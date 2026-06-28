@@ -1,0 +1,39 @@
+config: configs/poc.yaml
+
+model:
+  model_name: patchtst_v1_lookback252
+  model_type: patchtst
+  feature_set_name: feature_set_v1
+  label_name: is_top20pct
+  lookback: 252
+  horizons: ["3M", "6M"]
+  patch_len: 16
+  stride: 8
+  d_model: 128
+  n_heads: 8
+  num_layers: 4
+  dropout: 0.2
+  batch_size: 128
+  max_epochs: 50
+  early_stopping_patience: 7
+  learning_rate: 0.0005
+  weight_decay: 0.01
+  precision: 16-mixed
+  device: auto
+  num_workers: 0
+  random_state: 42
+  min_train_samples: 200
+
+split:
+  train_start: null
+  train_end: null
+  valid_start: null
+  valid_end: null
+  test_start: null
+  test_end: null
+  train_ratio: 0.70
+  valid_ratio: 0.15
+  test_ratio: 0.15
+
+paths:
+  artifact_dir: models/dnn

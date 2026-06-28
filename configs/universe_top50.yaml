@@ -1,0 +1,17 @@
+paths:
+  database: data/processed/roboquant.duckdb
+
+universe:
+  snapshot_date: "2026-06-05"
+  rule: prediction_top_market_cap
+  provider: v8_seed_document
+  kospi_target: 30
+  kosdaq_target: 20
+
+market_data:
+  local_provider: fdr_poc
+  fetch_limit_per_market: 100
+  validation_price_days: 90
+  min_listing_trading_days: 120
+  max_missing_ratio_60d: 0.10
+  max_latest_price_gap_days: 14

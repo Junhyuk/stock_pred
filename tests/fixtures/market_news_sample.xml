@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Sample Macro News Feed</title>
+    <link>https://example.com/rss</link>
+    <description>Fixture for market news feed tests</description>
+    <item>
+      <title>국민연금, 2분기 리밸런싱 검토… 국내주식 비중 상향 가능성</title>
+      <link>https://example.com/news/nps-rebalance-1</link>
+      <guid>https://example.com/news/nps-rebalance-1</guid>
+      <pubDate>Wed, 10 Jun 2026 09:00:00 +0900</pubDate>
+      <description>국민연금이 2분기 리밸런싱을 앞두고 국내주식 비중 조정을 검토 중이라는 보도가 나왔다.</description>
+    </item>
+    <item>
+      <title>Fed keeps rates unchanged, signals cautious stance on inflation</title>
+      <link>https://example.com/news/fed-rate-1</link>
+      <guid>https://example.com/news/fed-rate-1</guid>
+      <pubDate>Wed, 10 Jun 2026 10:00:00 +0000</pubDate>
+      <description>The Federal Reserve held interest rates steady while monitoring inflation trends.</description>
+    </item>
+    <item>
+      <title>외국인 순매수 전환, 기관은 차익 실현… 수급 혼조</title>
+      <link>https://example.com/news/flow-1</link>
+      <guid>https://example.com/news/flow-1</guid>
+      <pubDate>Wed, 10 Jun 2026 11:00:00 +0900</pubDate>
+      <description>코스피 마감, 외국인은 순매수로 전환했으나 기관은 순매도를 기록했다.</description>
+    </item>
+    <item>
+      <title>국민연금, 2분기 리밸런싱 검토… 국내주식 비중 상향 가능성</title>
+      <link>https://example.com/news/nps-rebalance-1</link>
+      <guid>https://example.com/news/nps-rebalance-1-dup</guid>
+      <pubDate>Wed, 10 Jun 2026 09:30:00 +0900</pubDate>
+      <description>Duplicate link entry for dedup testing.</description>
+    </item>
+  </channel>
+</rss>

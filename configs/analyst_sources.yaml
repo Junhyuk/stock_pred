@@ -1,0 +1,31 @@
+config: configs/poc.yaml
+
+import:
+  csv_paths:
+    - data/raw/analyst_reports.csv
+  html_paths: []
+  default_source_name: manual_import
+  default_source_url: manual://analyst_reports
+  require_source_metadata: true
+
+column_mapping:
+  report_date: ["report_date", "일자", "date"]
+  stock_name: ["stock_name", "회사명", "종목명", "company_name"]
+  ticker: ["ticker", "symbol", "종목코드"]
+  broker_name: ["broker_name", "소속", "증권사", "broker"]
+  analyst_name: ["analyst_name", "애널리스트", "name"]
+  report_title: ["report_title", "제목", "title"]
+  investment_rating: ["investment_rating", "투자의견", "rating"]
+  target_price: ["target_price", "목표가"]
+  previous_target_price: ["previous_target_price", "이전목표가"]
+  current_price_at_report: ["current_price_at_report", "현재가"]
+  target_change_pct: ["target_change_pct", "상하향율", "상・하향율"]
+  upside_pct_at_report: ["upside_pct_at_report", "UPSIDE", "upside_pct"]
+  source_name: ["source_name", "source"]
+  source_url: ["source_url", "url"]
+
+web_adapter:
+  enabled: false
+  base_url: https://whynotsellreport.com
+  request_interval_seconds: 3
+  user_agent: "AI Robo Stock Lab PoC contact: local"

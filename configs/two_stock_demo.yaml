@@ -1,0 +1,92 @@
+paths:
+  database: data/processed/roboquant.duckdb
+  raw_dir: data/raw
+  interim_dir: data/interim
+  processed_dir: data/processed
+  model_dir: models/two_stock_demo
+  report_dir: reports/two_stock_demo
+
+market:
+  markets: ["KOSPI"]
+  benchmark_code: "1001"
+  benchmark_name: "KOSPI"
+  start_date: "2019-01-01"
+  end_date: null
+  min_trading_value_20d: 1000000000
+
+universe:
+  type: kospi_top100_plus_focus
+  limit: 100
+  focus_symbol: "005930"
+  focus_symbols: ["005930", "005850"]
+  extra_symbols: ["005850"]
+
+collection:
+  sleep_seconds: 0.05
+  max_symbols: 101
+
+horizons:
+  3M: 63
+  6M: 126
+
+features:
+  columns:
+    - ret_21d
+    - ret_63d
+    - ret_126d
+    - ret_252d
+    - ma_gap_20d
+    - ma_gap_60d
+    - ma_gap_120d
+    - ma_gap_250d
+    - volatility_20d
+    - volatility_60d
+    - volume_ratio_20d
+    - trading_value_ma20
+    - close_to_52w_high
+    - rsi_14
+    - momentum_score
+    - volatility_score
+    - liquidity_score
+    - risk_score
+    - market_cap_score
+    - value_score
+    - quality_score
+    - supply_demand_score
+    - sentiment_score
+    - consensus_revision_score
+    - target_upside_score
+    - analyst_reliability_score
+
+model:
+  random_state: 42
+  validation_fraction: 0.2
+  min_train_rows: 1000
+  min_train_dates: 252
+  walk_forward:
+    enabled: true
+    initial_train_days: 504
+    step_days: 63
+    max_splits: 8
+
+recommendation:
+  default_top_k: 20
+  missing_factor_default: 0.5
+  weights:
+    pred_prob_top20: 0.35
+    pred_return_score: 0.20
+    value_score: 0.10
+    quality_score: 0.05
+    momentum_score: 0.10
+    supply_demand_score: 0.10
+    consensus_revision_score: 0.05
+    target_upside_score: 0.03
+    analyst_reliability_score: 0.04
+    sentiment_score: 0.05
+    liquidity_score: 0.10
+    risk_penalty: -0.20
+
+backtest:
+  rebalance_frequency: "M"
+  transaction_cost_bps: 30
+  benchmark_name: "KOSPI"

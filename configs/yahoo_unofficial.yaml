@@ -1,0 +1,46 @@
+paths:
+  database: data/processed/roboquant.duckdb
+
+yahoo_unofficial:
+  max_symbols: 100
+  sleep_seconds: 1.0
+  prices_enabled: true
+  fundamentals_enabled: true
+
+symbols:
+  - yahoo_symbol: 005930.KS
+    symbol: "005930"
+    asset_type: stock
+    currency: KRW
+  - yahoo_symbol: 000660.KS
+    symbol: "000660"
+    asset_type: stock
+    currency: KRW
+  - yahoo_symbol: 005850.KS
+    symbol: "005850"
+    asset_type: stock
+    currency: KRW
+  - yahoo_symbol: SPY
+    symbol: SPY
+    asset_type: etf
+    currency: USD
+  - yahoo_symbol: QQQ
+    symbol: QQQ
+    asset_type: etf
+    currency: USD
+  - yahoo_symbol: ^GSPC
+    symbol: ^GSPC
+    asset_type: index
+    currency: USD
+  - yahoo_symbol: ^IXIC
+    symbol: ^IXIC
+    asset_type: index
+    currency: USD
+  - yahoo_symbol: ^SOX
+    symbol: ^SOX
+    asset_type: index
+    currency: USD
+  - yahoo_symbol: ^VIX
+    symbol: ^VIX
+    asset_type: index
+    currency: USD

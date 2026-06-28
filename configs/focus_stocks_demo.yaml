@@ -1,0 +1,20 @@
+paths:
+  database: data/processed/roboquant.duckdb
+
+focus_stocks:
+  - symbol: "005930"
+    name: 삼성전자
+    exposure_group: semiconductor
+  - symbol: "000660"
+    name: SK하이닉스
+    exposure_group: semiconductor
+  - symbol: "005850"
+    name: 에스엘
+    exposure_group: auto
+
+horizons:
+  - 3M
+  - 6M
+
+regime:
+  feature_version: domestic_plus_global_regime_v1

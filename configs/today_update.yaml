@@ -1,0 +1,103 @@
+paths:
+  database: data/processed/roboquant.duckdb
+  report_dir: reports/today_update
+
+freshness:
+  max_yahoo_age_days: 3
+  max_macro_news_age_hours: 24
+  max_supply_age_days: 5
+
+market_outlook:
+  prediction_horizon: 2M
+  next_day_range_multiplier: 1.25
+  use_pykrx_calendar: true
+  krx_holidays: []
+
+market_credit_balance:
+  enabled: true
+  source: data_go_kr_kofia
+  endpoint: ""
+  timeout_seconds: 20
+
+focus_stocks:
+  - symbol: "005930"
+    name: 삼성전자
+    exposure_group: semiconductor
+    yahoo_symbol: 005930.KS
+    currency: KRW
+  - symbol: "000660"
+    name: SK하이닉스
+    exposure_group: semiconductor
+    yahoo_symbol: 000660.KS
+    currency: KRW
+  - symbol: "005850"
+    name: 에스엘
+    exposure_group: auto
+    yahoo_symbol: 005850.KS
+    currency: KRW
+
+yahoo_unofficial:
+  enabled: true
+  max_symbols: 100
+  sleep_seconds: 1.0
+  prices_enabled: true
+  fundamentals_enabled: false
+  symbols:
+    - yahoo_symbol: 005930.KS
+      symbol: "005930"
+      asset_type: stock
+      currency: KRW
+    - yahoo_symbol: 000660.KS
+      symbol: "000660"
+      asset_type: stock
+      currency: KRW
+    - yahoo_symbol: 005850.KS
+      symbol: "005850"
+      asset_type: stock
+      currency: KRW
+    - yahoo_symbol: SPY
+      symbol: SPY
+      asset_type: etf
+      currency: USD
+    - yahoo_symbol: QQQ
+      symbol: QQQ
+      asset_type: etf
+      currency: USD
+    - yahoo_symbol: ^GSPC
+      symbol: ^GSPC
+      asset_type: index
+      currency: USD
+    - yahoo_symbol: ^IXIC
+      symbol: ^IXIC
+      asset_type: index
+      currency: USD
+    - yahoo_symbol: ^SOX
+      symbol: ^SOX
+      asset_type: index
+      currency: USD
+    - yahoo_symbol: ^VIX
+      symbol: ^VIX
+      asset_type: index
+      currency: USD
+
+global_market:
+  config: configs/global_market.yaml
+  from_date: 2022-01-01
+  to_date: latest
+  cutoff: latest
+  prediction_date: latest
+
+market_news:
+  config: configs/market_news.yaml
+
+news:
+  enabled: true
+  provider: naver_search_api
+  query_template: "{name} 주가"
+  display: 10
+  sort: date
+
+market_move_explanations:
+  threshold: 0.02
+  lookback_days: 14
+  prediction_horizon: 2M

@@ -1,0 +1,181 @@
+paths:
+  database: data/processed/roboquant.duckdb
+  report_dir: reports/telegram_signals
+
+collection:
+  interval_minutes: 10
+  default_limit: 100
+  max_messages_per_channel: 200
+  session_path: data/interim/telegram_stock_robo
+
+channels:
+  - username: kwusa
+    display_name: 키움증권 미국주식 톡톡
+    source_weight: 1.0
+  - username: FastStockNewsUSA
+    display_name: 급등일보 미국주식 속보·매크로·리서치
+    source_weight: 0.7
+  - username: mkglobalinvest
+    display_name: 매경 월가월부
+    source_weight: 0.8
+  - username: sypark_strategy
+    display_name: 신영증권 박소연
+    source_weight: 0.9
+  - username: marketfeed
+    display_name: Market News Feed
+    source_weight: 0.8
+
+text_features:
+  ignore_words:
+    - AI
+    - CEO
+    - CPI
+    - PCE
+    - FOMC
+    - ETF
+    - EPS
+    - GDP
+    - USA
+    - USD
+    - SEC
+    - FED
+    - PMI
+    - ISM
+    - IPO
+    - ADR
+    - THE
+    - AND
+    - FOR
+  ticker_aliases:
+    엔비디아: NVDA
+    NVIDIA: NVDA
+    테슬라: TSLA
+    애플: AAPL
+    마이크로소프트: MSFT
+    아마존: AMZN
+    메타: META
+    구글: GOOGL
+    알파벳: GOOGL
+    브로드컴: AVGO
+    마이크론: MU
+  theme_keywords:
+    AI:
+      - AI
+      - 인공지능
+      - 데이터센터
+      - GPU
+      - LLM
+      - NVIDIA
+      - 엔비디아
+    SEMICONDUCTOR:
+      - 반도체
+      - HBM
+      - DRAM
+      - 파운드리
+      - TSMC
+      - 마이크론
+      - Micron
+    RATE:
+      - 금리
+      - FOMC
+      - 10년물
+      - 국채
+      - 연준
+      - Fed
+      - yield
+    ENERGY:
+      - 유가
+      - 원유
+      - WTI
+      - 천연가스
+      - 전력
+      - 전력망
+    BIO:
+      - FDA
+      - 임상
+      - 신약
+      - 바이오
+      - 제약
+    DEFENSE:
+      - 방산
+      - 국방
+      - 미사일
+      - 드론
+    CRYPTO:
+      - 비트코인
+      - BTC
+      - 이더리움
+      - ETH
+      - 코인
+  urgency_keywords:
+    high:
+      - 속보
+      - 급등
+      - 급락
+      - 서프라이즈
+      - 가이던스
+      - 인수
+      - 합병
+      - 소송
+    medium:
+      - 실적
+      - 매출
+      - EPS
+      - 목표가
+      - 상향
+      - 하향
+      - 리포트
+    low:
+      - 전망
+      - 분석
+      - 코멘트
+      - 브리핑
+  positive_words:
+    - 상향
+    - 호조
+    - 강세
+    - 서프라이즈
+    - 수혜
+    - 성장
+    - 돌파
+    - 최고
+    - beat
+    - upgrade
+    - bullish
+  negative_words:
+    - 하향
+    - 부진
+    - 약세
+    - 쇼크
+    - 규제
+    - 소송
+    - 감소
+    - 둔화
+    - miss
+    - downgrade
+    - bearish
+  risk_keywords:
+    - 수익보장
+    - 급등확정
+    - 리딩방
+    - 무료방
+    - 유료방
+    - 송금
+    - 계좌
+    - 몰빵
+    - 무조건
+    - 확정
+    - guaranteed
+    - pump
+
+ranking:
+  top_n: 10
+  mention_cap_24h: 10
+  weights:
+    mention_score: 0.25
+    sentiment_score: 0.20
+    source_weighted_score: 0.20
+    price_momentum_score: 0.20
+    urgency_score: 0.10
+    risk_penalty: -0.15
+    duplicate_score: -0.10

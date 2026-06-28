@@ -1,0 +1,44 @@
+config: configs/poc.yaml
+steps:
+  - name: collect_prices
+    command: ["python", "scripts/collect_prices.py", "--config", "configs/poc.yaml"]
+    enabled: true
+  - name: collect_market_metrics
+    command: ["python", "scripts/collect_market_metrics.py", "--config", "configs/poc.yaml"]
+    enabled: true
+  - name: collect_investor_flows
+    command: ["python", "scripts/collect_investor_flows.py", "--config", "configs/poc.yaml"]
+    enabled: true
+  - name: import_analyst_reports
+    command: ["python", "scripts/import_analyst_reports.py", "--config", "configs/analyst_sources.yaml"]
+    enabled: true
+  - name: update_analyst_outcomes
+    command: ["python", "scripts/update_analyst_outcomes.py", "--config", "configs/poc.yaml"]
+    enabled: true
+  - name: update_analyst_scores
+    command: ["python", "scripts/update_analyst_scores.py", "--config", "configs/poc.yaml"]
+    enabled: true
+  - name: build_feature_matrix
+    command: ["python", "scripts/build_feature_matrix.py", "--config", "configs/poc.yaml"]
+    enabled: true
+  - name: train_3m
+    command: ["python", "scripts/train_models.py", "--config", "configs/poc.yaml", "--horizon", "3M"]
+    enabled: true
+  - name: train_6m
+    command: ["python", "scripts/train_models.py", "--config", "configs/poc.yaml", "--horizon", "6M"]
+    enabled: true
+  - name: backtest_3m
+    command: ["python", "scripts/run_backtest.py", "--config", "configs/poc.yaml", "--horizon", "3M", "--top-k", "20"]
+    enabled: true
+  - name: backtest_6m
+    command: ["python", "scripts/run_backtest.py", "--config", "configs/poc.yaml", "--horizon", "6M", "--top-k", "20"]
+    enabled: true
+  - name: recommendations
+    command: ["python", "scripts/generate_recommendations.py", "--config", "configs/poc.yaml", "--date", "latest"]
+    enabled: true
+
+retry:
+  attempts: 1
+
+logs:
+  dir: logs

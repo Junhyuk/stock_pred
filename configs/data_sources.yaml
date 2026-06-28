@@ -1,0 +1,47 @@
+symbols:
+  primary: pykrx
+  fallback: finance_data_reader
+  refresh: daily
+
+prices:
+  primary: pykrx
+  fallback: finance_data_reader
+  start_date: "2019-01-01"
+  adjusted_price: true
+  refresh: daily_after_close
+
+market_metrics:
+  primary: pykrx
+  markets: ["KOSPI", "KOSDAQ"]
+  refresh: daily_after_close
+
+investor_flows:
+  primary: pykrx
+  markets: ["KOSPI", "KOSDAQ"]
+  investors:
+    foreign: "외국인"
+    institution: "기관합계"
+    retail: "개인"
+    pension: "연기금"
+    trust: "투신"
+    private_fund: "사모"
+  refresh: daily_after_close
+
+news:
+  primary: naver_search_api
+  enabled: false
+  max_items_per_symbol: 20
+  dedup: true
+  refresh: hourly
+
+dart:
+  primary: opendart
+  enabled: false
+  refresh: daily
+
+risk_data:
+  short_selling: krx_or_kis
+  credit_balance: krx_or_kis
+  enabled: false
+  refresh: daily_after_close
+

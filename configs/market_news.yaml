@@ -1,0 +1,238 @@
+paths:
+  database: data/processed/roboquant.duckdb
+
+collection:
+  interval_minutes: 30
+  request_timeout_seconds: 15
+  max_entries_per_feed: 50
+
+# 공식 RSS만 사용한다. URL 미확인 소스는 enabled: false 로 두고 placeholder를 남긴다.
+feeds:
+  - source: fed_press
+    name: Federal Reserve Press Releases
+    feed_url: https://www.federalreserve.gov/feeds/press_all.xml
+    default_category: macro
+    enabled: true
+
+  # 한국은행 공식 RSS — 운영 전 공식 사이트에서 feed URL을 확인한 뒤 enabled: true 로 전환
+  - source: bok_kr
+    name: 한국은행 보도자료
+    feed_url: ""
+    default_category: macro
+    enabled: false
+
+  # 국민연금공단 공식 RSS — URL 확인 후 활성화
+  - source: nps_kr
+    name: 국민연금공단
+    feed_url: ""
+    default_category: flow
+    enabled: false
+
+  # 금융위원회 공식 RSS — URL 확인 후 활성화
+  - source: fsc_kr
+    name: 금융위원회
+    feed_url: ""
+    default_category: macro
+    enabled: false
+
+category_keywords:
+  macro:
+    - 금리
+    - 기준금리
+    - FOMC
+    - 연준
+    - Fed
+    - CPI
+    - 인플레이션
+    - 국채
+    - yield
+    - 통화정책
+    - 환율
+  flow:
+    - 수급
+    - 국민연금
+    - 연기금
+    - 리밸런싱
+    - 외국인
+    - 기관
+    - 순매수
+    - 순매도
+    - 프로그램
+    - 공매도
+  sector:
+    - 반도체
+    - 기술주
+    - AI
+    - chip
+    - semiconductor
+    - 2차전지
+    - 바이오
+    - 방산
+    - 자동차
+    - IT
+    - 금융주
+    - 유통
+
+text_features:
+  ignore_words:
+    - AI
+    - CEO
+    - CPI
+    - PCE
+    - FOMC
+    - ETF
+    - EPS
+    - GDP
+    - USA
+    - USD
+    - SEC
+    - FED
+    - PMI
+    - ISM
+    - IPO
+    - ADR
+    - THE
+    - AND
+    - FOR
+  ticker_aliases:
+    엔비디아: NVDA
+    NVIDIA: NVDA
+    테슬라: TSLA
+    애플: AAPL
+    마이크로소프트: MSFT
+    아마존: AMZN
+    메타: META
+    구글: GOOGL
+    알파벳: GOOGL
+    삼성전자: "005930"
+    SK하이닉스: "000660"
+  theme_keywords:
+    PENSION_FLOW:
+      - 국민연금
+      - 연기금
+      - 리밸런싱
+      - NPS
+    RATE:
+      - 금리
+      - FOMC
+      - 10년물
+      - 국채
+      - 연준
+      - Fed
+      - yield
+      - 기준금리
+    FLOW:
+      - 수급
+      - 외국인
+      - 기관
+      - 순매수
+      - 순매도
+      - 공매도
+    SEMICONDUCTOR:
+      - 반도체
+      - 기술주
+      - AI
+      - chip
+      - semiconductor
+      - sell-off
+      - selloff
+      - HBM
+      - DRAM
+      - 파운드리
+    ENERGY:
+      - 유가
+      - 원유
+      - WTI
+      - 천연가스
+  positive_words:
+    - 상향
+    - 호조
+    - 강세
+    - 서프라이즈
+    - 수혜
+    - 성장
+    - beat
+    - upgrade
+    - bullish
+  negative_words:
+    - 하향
+    - 부진
+    - 약세
+    - 급락
+    - 차익실현
+    - selloff
+    - sell-off
+    - 쇼크
+    - 규제
+    - 감소
+    - 둔화
+    - miss
+    - downgrade
+    - bearish
+
+# 최신 시장 급등락 맥락. 무단 크롤링 없이 제목/요약/URL metadata만 등록한다.
+latest_market_context:
+  - source: curated_global_tech
+    category: sector
+    title: "South Korean stock index slumps after chip sell-off"
+    summary: >
+      2026-06-23 한국 KOSPI 급락은 삼성전자·SK하이닉스 등 반도체 대형주 매도,
+      AI 관련주 과열 부담, 레버리지 ETF 경계가 결합된 시장 충격으로 보도됨.
+    link: https://www.marketwatch.com/livecoverage/stock-market-today-dow-s-p-500-nasdaq-tech-sell-off-oil-prices-us-waiving-oil-sanctions-iran/card/south-korean-stock-index-slumps-10-day-after-record-close-iW6zJl4Eu6fcEdDMmVrO
+    pub_date: "2026-06-23"
+
+  - source: curated_global_tech
+    category: flow
+    title: "South Korean stocks tumble amid tech sell-off"
+    summary: >
+      글로벌 기술주 매도세와 함께 외국인 투자자가 주요 반도체주 차익실현에 나섰고,
+      원화 약세가 국내 증시 부담으로 언급됨.
+    link: https://www.theguardian.com/business/live/2026/jun/23/crude-oil-falls-us-waiver-iran-sanctions-peace-talks-progress-live-updates
+    pub_date: "2026-06-23"
+
+  - source: curated_global_tech
+    category: sector
+    title: "Global investors dump high-flying chip makers"
+    summary: >
+      AI와 반도체 관련주의 급등 이후 밸류에이션 부담과 실적 기대 경계가 커지며
+      한국 반도체주와 미국 반도체주가 동반 약세를 보였다는 시장 설명.
+    link: https://www.businessinsider.com/south-korea-kospi-plunges-ai-tech-hyperscaler-stock-market-selloff-2026-6
+    pub_date: "2026-06-23"
+
+  - source: curated_kr_market
+    category: flow
+    title: "검은 화요일 코스피 급락과 반도체 대형주 쏠림"
+    summary: >
+      2026-06-23 국내 증시는 삼성전자·SK하이닉스 급락, 외국인 매도,
+      연초 이후 급등 부담, 대형 반도체주 쏠림으로 변동성이 확대됐다는 보도.
+    link: https://www.yna.co.kr/amp/view/AKR20260623094051008
+    pub_date: "2026-06-23"
+
+  - source: curated_kr_market
+    category: sector
+    title: "코스피 9000선 하회와 반도체주 약세"
+    summary: >
+      장중 KOSPI 급락 과정에서 SK하이닉스와 삼성전자 등 반도체 대표주가
+      큰 폭으로 하락하며 시장 하락을 주도했다는 보도.
+    link: https://www.ytn.co.kr/_ln/0102_202606231138390780
+    pub_date: "2026-06-23"
+
+  - source: curated_kr_market
+    category: flow
+    title: "레버리지 ETF와 신용잔고가 키운 변동성 우려"
+    summary: >
+      반도체·기술주 단기 급등 뒤 레버리지 ETF, 신용잔고, 유동성 축소가
+      하락 변동성을 키운 요인으로 언급됨.
+    link: https://v.daum.net/v/20260623173832927
+    pub_date: "2026-06-23"
+
+# 사용자/운영자가 검증한 거시·수급 기사 (무단 크롤링 없이 메타만 등록)
+curated_articles:
+  - source: curated_kr_flow
+    category: flow
+    title: "[국민연금 양난] 다음달 강제 리밸런싱 돌입…55조 매도 대기"
+    summary: >
+      이달 말까지 한시 유예된 국민연금 국내주식 리밸런싱이 다음달 재개 예정.
+      국내주식 비중 30% 수준으로 허용치 26.8% 초과, 최대 55조원 규모 순매도 압력 추정.
+    link: https://news.einfomax.co.kr/news/articleView.html?idxno=4420806
+    pub_date: "2026-06-21"

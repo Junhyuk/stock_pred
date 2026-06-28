@@ -1,0 +1,45 @@
+feature_set_name: feature_set_v1
+status: production
+description: Current v5 tabular feature set for LightGBM, factor baseline, and PatchTST sequence PoC.
+features:
+  - ret_21d
+  - ret_63d
+  - ret_126d
+  - ret_252d
+  - ma_gap_20d
+  - ma_gap_60d
+  - ma_gap_120d
+  - ma_gap_250d
+  - volatility_20d
+  - volatility_60d
+  - volume_ratio_20d
+  - trading_value_ma20
+  - close_to_52w_high
+  - rsi_14
+  - momentum_score
+  - volatility_score
+  - liquidity_score
+  - risk_score
+  - market_cap_score
+  - value_score
+  - quality_score
+  - supply_demand_score
+  - sentiment_score
+  - foreign_net_value_20d_sum
+  - institution_net_value_20d_sum
+  - retail_net_value_20d_sum
+  - foreign_net_20d_to_mcap
+  - institution_net_20d_to_value
+  - retail_overheat_score
+  - foreign_consecutive_buy_days
+  - institution_consecutive_buy_days
+  - consensus_upside_pct
+  - consensus_momentum_30_90
+  - target_up_count_30d
+  - target_down_count_30d
+  - new_coverage_count_30d
+  - target_revision_balance_30d
+  - consensus_revision_score
+  - target_upside_score
+  - analyst_reliability_score
+  - weighted_analyst_reliability_score

@@ -1,0 +1,127 @@
+paths:
+  database: data/processed/roboquant.duckdb
+  report_dir: reports/global_market
+
+providers:
+  daily:
+    - yfinance_poc
+    - fred
+  intraday:
+    - yfinance_poc
+
+symbols:
+  yfinance_daily:
+    - "^GSPC"
+    - "^IXIC"
+    - "^DJI"
+    - "^SOX"
+    - "SOXX"
+    - "SMH"
+    - "^VIX"
+    - "TSM"
+    - "NVDA"
+    - "DRIV"
+    - "XLY"
+    - "TSLA"
+    - "GM"
+    - "F"
+    - "XLI"
+    - "XLF"
+    - "XLV"
+    - "IBB"
+    - "XBI"
+    - "XLE"
+    - "XLB"
+    - "LIT"
+    - "KORU"
+    - "EWY"
+    - "SPY"
+    - "QQQ"
+    - "USDKRW=X"
+    - "^N225"
+    - "^TWII"
+  yfinance_intraday:
+    - "ES=F"
+    - "NQ=F"
+    - "KORU"
+    - "EWY"
+    - "SPY"
+    - "QQQ"
+    - "SOXX"
+    - "DRIV"
+    - "XLY"
+    - "XLI"
+    - "XLF"
+    - "XLV"
+    - "XLE"
+    - "XLB"
+    - "USDKRW=X"
+  fred_daily:
+    - VIXCLS
+    - DGS10
+    - DGS2
+    - T10Y3M
+    - DCOILWTICO
+    - DCOILBRENTEU
+
+regime:
+  feature_version: domestic_plus_global_regime_v1
+  cutoff_time_kst: "08:00"
+  thresholds:
+    sp500_return_1d: -0.02
+    nasdaq_return_1d: -0.03
+    sox_return_1d: -0.04
+    vix_level: 25
+    vix_change_1d: 0.20
+    us10y_change_bp_1d: 10
+    usdkrw_return_1d: 0.01
+    nasdaq_futures_return_snapshot: -0.01
+
+focus_stocks:
+  - symbol: "005930"
+    name: 삼성전자
+    exposure_group: semiconductor
+  - symbol: "000660"
+    name: SK하이닉스
+    exposure_group: semiconductor
+  - symbol: "005850"
+    name: 에스엘
+    exposure_group: auto
+
+sector_linkage:
+  feature_version: us_sector_linkage_v1
+  lookback_days: 60
+  sectors:
+    semiconductor:
+      aliases: ["반도체", "전자", "semiconductor"]
+      primary_proxy: SOXX
+      proxies: ["^SOX", "SOXX", "SMH", "TSM", "NVDA", "QQQ"]
+    auto:
+      aliases: ["자동차", "자동차부품", "운수장비", "auto"]
+      primary_proxy: DRIV
+      proxies: ["DRIV", "XLY", "TSLA", "GM", "F"]
+    industrial:
+      aliases: ["산업재", "기계", "조선", "건설", "industrial"]
+      primary_proxy: XLI
+      proxies: ["XLI", "SPY"]
+    financial:
+      aliases: ["금융", "은행", "증권", "보험", "financial"]
+      primary_proxy: XLF
+      proxies: ["XLF", "SPY"]
+    healthcare:
+      aliases: ["헬스케어", "바이오", "제약", "healthcare"]
+      primary_proxy: XLV
+      proxies: ["XLV", "IBB", "XBI"]
+    energy_materials:
+      aliases: ["에너지", "화학", "소재", "철강", "배터리", "materials"]
+      primary_proxy: XLB
+      proxies: ["XLE", "XLB", "LIT"]
+    broad:
+      aliases: ["기타", "KOSPI", "KOSDAQ", "broad"]
+      primary_proxy: SPY
+      proxies: ["SPY", "QQQ", "EWY"]
+
+schedule:
+  global_daily_kst: "07:30"
+  premarket_regime_kst: "08:00"
+  domestic_refresh_kst: "18:00"

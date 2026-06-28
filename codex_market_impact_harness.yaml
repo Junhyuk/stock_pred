@@ -1,0 +1,110 @@
+project: market-impact-ai-robo
+python_version: ">=3.11"
+
+forbidden_features:
+  - auto_trade
+  - auto_order
+  - place_order
+  - send_order
+  - buy_market
+  - sell_market
+  - kis_order
+
+required_directories:
+  - data
+  - logs
+  - reports
+  - src
+  - src/collectors
+  - src/features
+  - src/analysis
+  - src/web
+  - tests
+
+required_files:
+  - README.md
+  - requirements.txt
+  - .env.example
+  - app.py
+  - src/config.py
+  - src/db.py
+  - src/scheduler.py
+  - src/collectors/collect_pykrx.py
+  - src/collectors/collect_dart.py
+  - src/collectors/collect_news.py
+  - src/collectors/collect_rss.py
+  - src/collectors/collect_telegram.py
+  - src/collectors/collect_us_prices.py
+  - src/collectors/collect_finnhub.py
+  - src/collectors/collect_sec.py
+  - src/collectors/collect_fred.py
+  - src/features/price_features.py
+  - src/features/flow_features.py
+  - src/features/news_features.py
+  - src/features/disclosure_features.py
+  - src/features/macro_features.py
+  - src/features/theme_features.py
+  - src/analysis/detect_large_moves.py
+  - src/analysis/score_impact.py
+  - src/analysis/explain_move.py
+  - src/analysis/market_mood.py
+  - src/analysis/summarize_ai.py
+  - src/web/components.py
+  - src/web/charts.py
+  - tests/test_large_move_detection.py
+  - tests/test_impact_score.py
+  - tests/test_news_features.py
+  - tests/test_flow_features.py
+  - tests/test_token_budget.py
+
+commands:
+  setup:
+    - pip install -r requirements.txt
+  validation:
+    - python src/db.py
+    - pytest -q
+    - python src/analysis/detect_large_moves.py --sample
+    - python src/analysis/score_impact.py --sample
+    - python -m py_compile app.py
+
+sample_large_move:
+  ticker: "005930"
+  name: "삼성전자"
+  event_date: "2026-06-23"
+  return_pct: 4.2
+  index_relative_return_pct: 3.1
+  volume_ratio_20d: 2.4
+  trading_value_ratio_20d: 2.1
+  rolling_volatility_20d: 1.4
+
+sample_flows:
+  individual_net_buy: -168000000000
+  foreign_net_buy: 125000000000
+  institution_net_buy: 42000000000
+
+impact_score_formula:
+  price_move_score: 0.15
+  volume_spike_score: 0.15
+  investor_flow_score: 0.20
+  news_sentiment_score: 0.15
+  disclosure_score: 0.15
+  sector_theme_score: 0.10
+  macro_market_score: 0.10
+  rumor_risk_penalty: -0.10
+
+token_budget:
+  max_evidence_items_per_ticker: 5
+  max_chars_per_evidence: 500
+  max_bundle_chars: 12000
+  disallow_raw_article_body: true
+  disallow_full_disclosure_text: true
+  require_url_deduplication: true
+
+readme_required_sections:
+  - 설치 방법
+  - 환경변수 설정
+  - 데이터 소스
+  - 실행 순서
+  - 웹 대시보드 실행
+  - 투자 유의사항
+  - 자동 매매 미지원 안내

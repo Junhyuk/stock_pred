@@ -1,0 +1,36 @@
+rolling_windows:
+  returns: [21, 63, 126, 252]
+  moving_average: [20, 60, 120, 250]
+  volatility: [20, 60]
+  flow: [1, 5, 20, 60]
+
+factor_defaults:
+  missing_factor_default: 0.5
+  sentiment_score: 0.5
+  quality_score: 0.5
+  consensus_revision_score: 0.5
+  target_upside_score: 0.5
+  analyst_reliability_score: 0.5
+  weighted_analyst_reliability_score: 0.5
+  new_coverage_score: 0.5
+
+recommendation_weights:
+  pred_prob_top20: 0.35
+  pred_return_score: 0.20
+  value_score: 0.10
+  quality_score: 0.05
+  momentum_score: 0.10
+  supply_demand_score: 0.10
+  consensus_revision_score: 0.05
+  target_upside_score: 0.03
+  analyst_reliability_score: 0.04
+  new_coverage_score: 0.03
+  sentiment_score: 0.05
+  liquidity_score: 0.10
+  risk_penalty: -0.20
+
+exclusions:
+  min_trading_value_20d: 1000000000
+  min_listing_age_days: 180
+  max_volatility_20d: 1.2
+  max_ret_5d: 0.45
