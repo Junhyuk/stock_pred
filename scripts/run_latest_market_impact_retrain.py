@@ -238,6 +238,21 @@ def build_collection_steps(args: argparse.Namespace, target_date: date) -> list[
                     ["scripts/collect_telegram_signals.py", "--config", "configs/telegram_signals.yaml"],
                     optional=True,
                 ),
+                Step(
+                    "collect_x_market_news",
+                    [
+                        "scripts/collect_x_market_news.py",
+                        "--config",
+                        "configs/x_market_news.yaml",
+                        "--allow-missing-key",
+                    ],
+                    optional=True,
+                ),
+                Step(
+                    "build_news_signal_features",
+                    ["scripts/build_news_signal_features.py", "--config", args.config, "--date", target_date.isoformat()],
+                    optional=True,
+                ),
             ]
         )
     if not args.skip_enrichment:
@@ -276,6 +291,7 @@ def build_training_steps(args: argparse.Namespace) -> list[Step]:
             Step("build_market_outlook_features", ["scripts/build_market_outlook_features.py", "--config", args.config, "--date", "latest"]),
             Step("train_market_outlook", ["scripts/train_market_outlook.py", "--config", args.config, "--date", "latest"]),
             Step("generate_market_outlook", ["scripts/generate_market_outlook.py", "--config", args.config, "--date", "latest"]),
+            Step("build_x_news_impact_analysis", ["scripts/build_x_news_impact_analysis.py", "--config", args.config, "--date", "latest"]),
         ]
     )
     for horizon in config.get("pipeline", {}).get("long_short_horizons", ["2M", "6M"]):

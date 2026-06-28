@@ -19,6 +19,7 @@ from roboquant.data.loaders import load_modeling_dataset
 from roboquant.db import append_dedup_table, connect_database
 from roboquant.koru import KORU_TRAINING_FEATURE_COLUMNS
 from roboquant.models.train import evaluate_predictions, save_model_bundle, train_horizon_model
+from roboquant.signals.news_signals import NEWS_TRAINING_FEATURE_COLUMNS
 from roboquant.signals.telegram_signals import TELEGRAM_TRAINING_FEATURE_COLUMNS
 from roboquant.us_sector_linkage import US_SECTOR_TRAINING_FEATURE_COLUMNS
 from roboquant.utils import write_json
@@ -91,6 +92,8 @@ def _feature_columns_for_horizon(config: dict, feature_columns: list[str], horiz
         blocked.update(KORU_TRAINING_FEATURE_COLUMNS)
     if not bool(config.get("telegram", {}).get("include_6m_features", False)):
         blocked.update(TELEGRAM_TRAINING_FEATURE_COLUMNS)
+    if not bool(config.get("news_signals", {}).get("include_6m_features", False)):
+        blocked.update(NEWS_TRAINING_FEATURE_COLUMNS)
     if not bool(config.get("us_sector_linkage", {}).get("include_6m_features", False)):
         blocked.update(US_SECTOR_TRAINING_FEATURE_COLUMNS)
     return [column for column in feature_columns if column not in blocked]

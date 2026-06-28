@@ -1,0 +1,13 @@
+paths:
+  database: data/processed/roboquant.duckdb
+
+x_market_news:
+  enabled: true
+  username: MarketNews_Feed
+  source: x_marketnews_feed
+  default_category: macro
+  max_results: 25
+  exclude: ["retweets", "replies"]
+  poll_interval_minutes: 30
+  request_timeout_seconds: 15
+  market_news_config: configs/market_news.yaml

@@ -11,6 +11,10 @@ import pandas as pd
 
 from roboquant.data.freshness import KST, expected_latest_trading_day, local_today
 from roboquant.db import append_dedup_table, table_exists
+from roboquant.signals.news_signals import (
+    DEFAULT_NEGATIVE_BUSINESS_KEYWORDS,
+    X_MARKET_NEWS_SOURCE,
+)
 
 MARKETS = ("KOSPI", "KOSDAQ")
 OUTLOOK_HORIZONS = ("TODAY", "WEEK")
@@ -40,6 +44,11 @@ INDEX_FEATURE_COLUMNS = [
     "telegram_semiconductor_score",
     "news_sentiment_score",
     "news_count_24h",
+    "x_news_count_24h",
+    "x_news_count_3d",
+    "x_news_negative_count_3d",
+    "x_news_negative_attention_score",
+    "x_news_bias_adjusted_sentiment_score",
 ]
 BREADTH_FEATURE_COLUMNS = [
     "top50_up_share_21d",
@@ -551,6 +560,9 @@ def _drivers(row: dict[str, Any], forecast: dict[str, Any]) -> list[dict[str, An
             "value": {
                 "news_count_24h": row.get("news_count_24h"),
                 "news_sentiment_score": row.get("news_sentiment_score"),
+                "x_news_count_24h": row.get("x_news_count_24h"),
+                "x_news_negative_attention_score": row.get("x_news_negative_attention_score"),
+                "x_news_bias_adjusted_sentiment_score": row.get("x_news_bias_adjusted_sentiment_score"),
                 "telegram_sentiment_score": row.get("telegram_sentiment_score"),
                 "telegram_risk_score": row.get("telegram_risk_score"),
             },
@@ -806,7 +818,7 @@ def _news_features(
         return pd.DataFrame()
     frame = conn.execute(
         """
-        SELECT pub_date, sentiment_score
+        SELECT pub_date, source, title, summary, sentiment_score
         FROM market_news_feed
         WHERE pub_date IS NOT NULL
         ORDER BY pub_date
@@ -815,6 +827,12 @@ def _news_features(
     if frame.empty or not asof_dates:
         return pd.DataFrame()
     frame["pub_date"] = pd.to_datetime(frame["pub_date"], errors="coerce")
+    frame["source"] = frame["source"].fillna("").astype(str)
+    frame["text"] = (
+        frame.get("title", pd.Series("", index=frame.index)).fillna("").astype(str)
+        + " "
+        + frame.get("summary", pd.Series("", index=frame.index)).fillna("").astype(str)
+    )
     frame["sentiment_score"] = pd.to_numeric(frame["sentiment_score"], errors="coerce").fillna(0.5)
     frame = frame.dropna(subset=["pub_date"])
     rows: list[dict[str, Any]] = []
@@ -828,11 +846,25 @@ def _news_features(
         )
         start = cutoff - window
         subset = frame[(frame["pub_date"] > start) & (frame["pub_date"] <= cutoff)]
+        x_subset_24h = subset[subset["source"].str.lower().eq(X_MARKET_NEWS_SOURCE)].copy()
+        x_start_3d = cutoff - timedelta(days=3)
+        x_subset_3d = frame[
+            (frame["pub_date"] > x_start_3d)
+            & (frame["pub_date"] <= cutoff)
+            & frame["source"].str.lower().eq(X_MARKET_NEWS_SOURCE)
+        ].copy()
+        x_negative = _negative_x_news_mask(x_subset_3d)
+        x_negative_count = int(x_negative.sum()) if not x_subset_3d.empty else 0
         rows.append(
             {
                 "date": current_asof,
                 "news_count_24h": int(len(subset)),
                 "news_sentiment_score": float(subset["sentiment_score"].mean()) if not subset.empty else 0.5,
+                "x_news_count_24h": int(len(x_subset_24h)),
+                "x_news_count_3d": int(len(x_subset_3d)),
+                "x_news_negative_count_3d": x_negative_count,
+                "x_news_negative_attention_score": min(1.0, x_negative_count * 2.0 / 3.0),
+                "x_news_bias_adjusted_sentiment_score": _weighted_x_sentiment(x_subset_3d, x_negative),
             }
         )
     return pd.DataFrame(rows)
@@ -878,6 +910,7 @@ def _fill_feature_defaults(dataset: pd.DataFrame) -> pd.DataFrame:
         "koru_impact_score": 0.5,
         "telegram_sentiment_score": 0.5,
         "news_sentiment_score": 0.5,
+        "x_news_bias_adjusted_sentiment_score": 0.5,
         "prediction_up_probability_avg": 0.5,
         "prediction_down_probability_avg": 0.5,
     }
@@ -886,6 +919,34 @@ def _fill_feature_defaults(dataset: pd.DataFrame) -> pd.DataFrame:
             output[column] = defaults.get(column, 0.0)
         output[column] = pd.to_numeric(output[column], errors="coerce").fillna(defaults.get(column, 0.0))
     return output
+
+
+def _negative_x_news_mask(frame: pd.DataFrame) -> pd.Series:
+    if frame.empty:
+        return pd.Series(dtype=bool)
+    sentiment_negative = pd.to_numeric(frame["sentiment_score"], errors="coerce").fillna(0.5) <= 0.45
+    text_negative = frame["text"].fillna("").astype(str).map(_has_negative_business_keyword)
+    return sentiment_negative | text_negative
+
+
+def _weighted_x_sentiment(frame: pd.DataFrame, negative_mask: pd.Series) -> float:
+    if frame.empty:
+        return 0.5
+    sentiments = pd.to_numeric(frame["sentiment_score"], errors="coerce").fillna(0.5)
+    weights = pd.Series(1.0, index=frame.index, dtype=float)
+    positive = sentiments >= 0.60
+    weights.loc[positive] = 0.75
+    if not negative_mask.empty:
+        weights.loc[negative_mask.reindex(frame.index).fillna(False)] = 2.0
+    denominator = float(weights.sum())
+    if denominator <= 0:
+        return 0.5
+    return float((sentiments * weights).sum() / denominator)
+
+
+def _has_negative_business_keyword(text: str) -> bool:
+    lowered = str(text or "").lower()
+    return any(str(keyword).lower() in lowered for keyword in DEFAULT_NEGATIVE_BUSINESS_KEYWORDS)
 
 
 def _component_status(conn) -> tuple[dict[str, str], list[str]]:

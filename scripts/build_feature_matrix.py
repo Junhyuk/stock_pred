@@ -17,6 +17,7 @@ from roboquant.data.loaders import (
     load_investor_flows,
     load_koru_linkage,
     load_market_metrics,
+    load_news_signals,
     load_prices,
     load_symbols,
     load_telegram_market_signals,
@@ -50,6 +51,7 @@ def main() -> None:
     consensus_history = load_consensus_history(conn)
     koru_linkage = load_koru_linkage(conn)
     telegram_market = load_telegram_market_signals(conn)
+    news_signals = load_news_signals(conn)
     us_sector_linkage = load_us_sector_linkage(conn)
     symbols = load_symbols(conn)
     benchmark = load_benchmark(conn)
@@ -62,6 +64,7 @@ def main() -> None:
         consensus_history=consensus_history,
         koru_linkage=koru_linkage,
         telegram_market=telegram_market,
+        news_signals=news_signals,
         us_sector_linkage=us_sector_linkage,
         symbols=symbols,
         config=config,

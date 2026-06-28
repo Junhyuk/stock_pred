@@ -88,6 +88,25 @@ features:
     - telegram_risk_score
     - telegram_semiconductor_score
     - telegram_macro_score
+    - news_headline_count_1d
+    - news_headline_count_3d
+    - news_attention_score
+    - news_sentiment_score
+    - news_urgency_score
+    - news_risk_score
+    - news_semiconductor_score
+    - news_macro_score
+    - news_flow_score
+    - news_negative_count_3d
+    - news_negative_ratio_3d
+    - news_negative_attention_score
+    - news_bias_adjusted_sentiment_score
+    - news_source_diversity_score
+    - x_news_count_24h
+    - x_news_count_3d
+    - x_news_negative_count_3d
+    - x_news_negative_attention_score
+    - x_news_bias_adjusted_sentiment_score
     - us_sector_return_1d
     - us_sector_return_5d
     - us_sector_zscore_20d
@@ -103,6 +122,13 @@ koru:
 
 telegram:
   include_6m_features: false
+
+news_signals:
+  include_6m_features: false
+  negative_weight: 2.0
+  positive_weight: 0.75
+  negative_sentiment_threshold: 0.45
+  positive_sentiment_threshold: 0.60
 
 us_sector_linkage:
   include_6m_features: false

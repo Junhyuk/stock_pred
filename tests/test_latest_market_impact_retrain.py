@@ -31,9 +31,13 @@ def test_latest_market_impact_runner_dry_run_order() -> None:
     assert "collect_market_news" in names
     assert "collect_naver_news_top50" in names
     assert "collect_telegram_signals" in names
+    assert "collect_x_market_news" in names
+    assert "build_news_signal_features" in names
     assert "collect_market_credit_balance" in names
     assert names.index("collect_naver_news_top50") < names.index("collect_telegram_signals")
-    assert names.index("collect_telegram_signals") < names.index("collect_market_credit_balance")
+    assert names.index("collect_telegram_signals") < names.index("collect_x_market_news")
+    assert names.index("collect_x_market_news") < names.index("build_news_signal_features")
+    assert names.index("build_news_signal_features") < names.index("collect_market_credit_balance")
     assert names.index("collect_market_credit_balance") < names.index("freshness_check")
     assert names.index("freshness_check") < names.index("build_us_sector_linkage")
     assert names.index("build_us_sector_linkage") < names.index("build_feature_matrix")
@@ -48,7 +52,8 @@ def test_latest_market_impact_runner_dry_run_order() -> None:
     assert names.index("generate_market_up_down") < names.index("build_market_outlook_features")
     assert names.index("build_market_outlook_features") < names.index("train_market_outlook")
     assert names.index("train_market_outlook") < names.index("generate_market_outlook")
-    assert names.index("generate_market_outlook") < names.index("market_move_explanations")
+    assert names.index("generate_market_outlook") < names.index("build_x_news_impact_analysis")
+    assert names.index("build_x_news_impact_analysis") < names.index("market_move_explanations")
     assert names.index("market_move_explanations") < names.index("today_context_refresh")
     assert "prediction_backtest_63" in names
     assert "prediction_backtest_126" in names

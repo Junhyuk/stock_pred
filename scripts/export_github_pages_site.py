@@ -94,7 +94,8 @@ def export_site(
 
     for name, payload in payloads.items():
         _write_json(data_dir / f"{name}.json", _sanitize(payload))
-    (output / "index.html").write_text(_index_html(), encoding="utf-8")
+    asset_version = _asset_version(str(manifest["generated_at"]))
+    (output / "index.html").write_text(_index_html(asset_version), encoding="utf-8")
     (assets_dir / "site.css").write_text(_site_css(), encoding="utf-8")
     (assets_dir / "site.js").write_text(_site_js(), encoding="utf-8")
     (output / ".nojekyll").write_text("", encoding="utf-8")
@@ -122,7 +123,10 @@ def _build_payloads(conn, today_config: dict[str, Any]) -> dict[str, Any]:
         ),
         "news_latest": {"items": _safe_payload(lambda: _latest_news_items(conn, limit=50), fallback=[])},
     }
+    payloads["x_market_news_status"] = _safe_payload(lambda: _x_market_news_status(conn))
     payloads["news_signal_latest"] = _safe_payload(lambda: _latest_news_signals(conn))
+    payloads["x_news_top20_impact"] = _safe_payload(lambda: _x_news_top20_impact(conn))
+    payloads["x_market_outlook_impact"] = _safe_payload(lambda: _x_market_outlook_impact(conn))
     payloads["validation"] = _validate_payloads(payloads)
     return payloads
 
@@ -254,14 +258,140 @@ def _latest_news_signals(conn) -> dict[str, Any]:
     }
 
 
+def _x_market_news_status(conn) -> dict[str, Any]:
+    count = 0
+    latest_pub_date = None
+    if table_exists(conn, "market_news_feed"):
+        row = conn.execute(
+            """
+            SELECT COUNT(*), MAX(pub_date)
+            FROM market_news_feed
+            WHERE source = 'x_marketnews_feed'
+            """
+        ).fetchone()
+        count = int(row[0] or 0)
+        latest_pub_date = row[1]
+    latest_failure = None
+    if table_exists(conn, "collection_failures"):
+        frame = conn.execute(
+            """
+            SELECT collected_at, error_message
+            FROM collection_failures
+            WHERE step = 'collect_x_market_news'
+               OR source = 'x_marketnews_feed'
+            ORDER BY collected_at DESC
+            LIMIT 1
+            """
+        ).fetchdf()
+        if not frame.empty:
+            latest_failure = frame.iloc[0].to_dict()
+    status = "ready" if count > 0 else "missing_key" if _is_missing_x_token_failure(latest_failure) else "not_collected"
+    messages = []
+    if status == "missing_key":
+        messages.append("X 뉴스 미수집: X_BEARER_TOKEN 설정 필요")
+    elif status == "not_collected":
+        messages.append("X 뉴스 미수집: collect_x_market_news.py 실행 필요")
+    return {
+        "status": status,
+        "source": "x_marketnews_feed",
+        "count": count,
+        "latest_pub_date": latest_pub_date,
+        "latest_failure_at": None if latest_failure is None else latest_failure.get("collected_at"),
+        "messages": messages,
+    }
+
+
+def _is_missing_x_token_failure(latest_failure: dict[str, Any] | None) -> bool:
+    if not latest_failure:
+        return False
+    return "X_BEARER_TOKEN" in str(latest_failure.get("error_message") or "")
+
+
+def _x_news_top20_impact(conn) -> dict[str, Any]:
+    if not table_exists(conn, "x_news_prediction_impact_daily"):
+        return _empty_x_impact_payload("x_news_prediction_impact_daily 테이블이 없습니다.")
+    row = conn.execute("SELECT MAX(asof_date) FROM x_news_prediction_impact_daily").fetchone()
+    asof = row[0] if row else None
+    if asof is None:
+        return _empty_x_impact_payload("X 뉴스 영향도 미생성: X 뉴스 수집 또는 build_x_news_impact_analysis.py 실행 필요")
+    frame = conn.execute(
+        """
+        SELECT *
+        FROM x_news_prediction_impact_daily
+        WHERE asof_date = ?
+        ORDER BY ABS(pred_prob_delta) DESC NULLS LAST, ABS(rank_delta) DESC NULLS LAST, rank_with_x
+        LIMIT 100
+        """,
+        [asof],
+    ).fetchdf()
+    items = frame.to_dict(orient="records")
+    return {
+        "status": "ready" if items else "not_collected",
+        "asof_date": asof,
+        "summary": {
+            "count": len(items),
+            "top20_changed": sum(1 for item in items if bool(item.get("top20_with_x")) != bool(item.get("top20_without_x"))),
+            "max_probability_delta": max((abs(float(item.get("pred_prob_delta") or 0.0)) for item in items), default=0.0),
+        },
+        "items": items,
+        "messages": [] if items else ["X 뉴스 영향도 미생성: X 뉴스 수집 또는 build_x_news_impact_analysis.py 실행 필요"],
+    }
+
+
+def _x_market_outlook_impact(conn) -> dict[str, Any]:
+    if not table_exists(conn, "x_market_outlook_impact_daily"):
+        return _empty_x_impact_payload("x_market_outlook_impact_daily 테이블이 없습니다.")
+    row = conn.execute("SELECT MAX(asof_date) FROM x_market_outlook_impact_daily").fetchone()
+    asof = row[0] if row else None
+    if asof is None:
+        return _empty_x_impact_payload("X 시장전망 영향도 미생성: X 뉴스 수집 또는 build_x_news_impact_analysis.py 실행 필요")
+    frame = conn.execute(
+        """
+        SELECT *
+        FROM x_market_outlook_impact_daily
+        WHERE asof_date = ?
+        ORDER BY
+          CASE WHEN horizon = 'TODAY' THEN 0 WHEN horizon = 'WEEK' THEN 1 ELSE 2 END,
+          CASE WHEN market = 'KOSPI' THEN 0 WHEN market = 'KOSDAQ' THEN 1 ELSE 2 END
+        LIMIT 20
+        """,
+        [asof],
+    ).fetchdf()
+    items = frame.to_dict(orient="records")
+    return {
+        "status": "ready" if items else "not_collected",
+        "asof_date": asof,
+        "summary": {
+            "count": len(items),
+            "max_expected_return_delta": max((abs(float(item.get("expected_return_delta") or 0.0)) for item in items), default=0.0),
+        },
+        "items": items,
+        "messages": [] if items else ["X 시장전망 영향도 미생성: X 뉴스 수집 또는 build_x_news_impact_analysis.py 실행 필요"],
+    }
+
+
+def _empty_x_impact_payload(message: str) -> dict[str, Any]:
+    return {
+        "status": "not_collected",
+        "asof_date": None,
+        "summary": {"count": 0},
+        "items": [],
+        "messages": [message],
+    }
+
+
 def _validate_payloads(payloads: dict[str, Any]) -> dict[str, Any]:
+    x_status = payloads.get("x_market_news_status") or {}
     counts = {
         "top20": len((payloads.get("top20_upside_3M") or {}).get("items") or []),
         "top50": len((payloads.get("top50_3M") or {}).get("items") or []),
         "long_short": len((payloads.get("long_short_2M") or {}).get("long_leg") or [])
         + len((payloads.get("long_short_2M") or {}).get("short_leg") or []),
         "news": len((payloads.get("news_latest") or {}).get("items") or []),
+        "x_marketnews_feed": int(x_status.get("count") or 0),
         "news_signals": len((payloads.get("news_signal_latest") or {}).get("items") or []),
+        "x_news_top20_impact": len((payloads.get("x_news_top20_impact") or {}).get("items") or []),
+        "x_market_outlook_impact": len((payloads.get("x_market_outlook_impact") or {}).get("items") or []),
         "market_moves": len((payloads.get("market_move_explanations") or {}).get("market") or [])
         + len((payloads.get("market_move_explanations") or {}).get("top50") or []),
         "tomorrow_markets": len(((payloads.get("tomorrow") or {}).get("market_outlook") or {}).get("items") or []),
@@ -284,6 +414,7 @@ def _validate_payloads(payloads: dict[str, Any]) -> dict[str, Any]:
         warnings.append("Top20 추천 데이터가 비어 있습니다.")
     if counts["long_short"] == 0:
         warnings.append("롱·숏 추천 데이터가 비어 있습니다.")
+    warnings.extend(str(message) for message in x_status.get("messages") or [] if x_status.get("status") == "missing_key")
     status = "failed" if errors else "ready" if not warnings else "partial_ready"
     return {
         "status": status,
@@ -304,14 +435,18 @@ def _safe_payload(func, fallback: Any | None = None) -> Any:
         return {"status": "error", "message": str(exc)}
 
 
-def _index_html() -> str:
-    return """<!doctype html>
+def _asset_version(generated_at: str) -> str:
+    return "".join(ch for ch in generated_at if ch.isdigit() or ch in "TZ")
+
+
+def _index_html(version: str) -> str:
+    return f"""<!doctype html>
 <html lang="ko">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>AI Robo Stock Daily</title>
-  <link rel="stylesheet" href="assets/site.css" />
+  <link rel="stylesheet" href="assets/site.css?v={version}" />
 </head>
 <body>
   <main>
@@ -327,6 +462,7 @@ def _index_html() -> str:
       <a href="#top50-section">Top50</a>
       <a href="#long-short-section">롱·숏</a>
       <a href="#tomorrow-section">내일 예측</a>
+      <a href="#x-impact-section">X 뉴스 영향도</a>
       <a href="#moves-section">시장 설명</a>
       <a href="#news-section">뉴스</a>
       <a href="#quality-section">데이터 품질</a>
@@ -349,6 +485,10 @@ def _index_html() -> str:
         <h2>KOSPI/KOSDAQ Tomorrow Range</h2>
         <div id="tomorrow" class="stack"></div>
       </article>
+      <article id="x-impact-section" class="panel wide">
+        <h2>X News Impact</h2>
+        <div id="xImpact" class="stack"></div>
+      </article>
       <article id="quality-section" class="panel">
         <h2>Market Quality</h2>
         <div id="quality" class="stack"></div>
@@ -368,7 +508,7 @@ def _index_html() -> str:
     </section>
     <p id="disclaimer" class="disclaimer"></p>
   </main>
-  <script src="assets/site.js"></script>
+  <script src="assets/site.js?v={version}"></script>
 </body>
 </html>
 """
@@ -562,7 +702,7 @@ function statusBadge(status) {
 }
 
 async function boot() {
-  const [manifest, dashboard, today, tomorrow, top20, top50, longShort, moves, news, newsSignals, validation] = await Promise.all([
+  const [manifest, dashboard, today, tomorrow, top20, top50, longShort, moves, news, newsSignals, xTop20Impact, xMarketImpact, validation] = await Promise.all([
     load("manifest"),
     load("dashboard"),
     load("today"),
@@ -573,6 +713,8 @@ async function boot() {
     load("market_move_explanations"),
     load("news_latest"),
     load("news_signal_latest"),
+    load("x_news_top20_impact"),
+    load("x_market_outlook_impact"),
     load("validation"),
   ]);
   document.getElementById("runStatus").innerHTML = `${statusBadge(validation.status || manifest.status)}<br><span>${shortDate(manifest.generated_at)}</span>`;
@@ -597,6 +739,7 @@ async function boot() {
   document.getElementById("top50").innerHTML = renderTop50(top50);
   document.getElementById("longShort").innerHTML = renderLongShort(longShort);
   document.getElementById("tomorrow").innerHTML = renderTomorrow(tomorrow);
+  document.getElementById("xImpact").innerHTML = renderXImpact(xTop20Impact, xMarketImpact);
   document.getElementById("quality").innerHTML = renderQuality(todayQuality, validation);
   document.getElementById("newsSignals").innerHTML = renderNewsSignals(newsSignals);
   document.getElementById("moves").innerHTML = table([...(moves.market || []), ...(moves.top50 || [])].slice(0, 20), [
@@ -720,6 +863,48 @@ function renderQuality(quality, validation) {
   const countRows = Object.entries(counts).map(([key, value]) => `<div class="row"><span>${esc(key)}</span><b>${esc(value)}</b></div>`);
   const messages = [...(validation.messages || []), ...(quality.messages || [])].slice(0, 6).map((message) => `<p class="muted">${esc(message)}</p>`);
   return [...rows, ...countRows, ...messages].join("") || '<div class="empty">품질 메시지 없음: 생성된 데이터가 정상 범위입니다.</div>';
+}
+
+function renderXImpact(top20, market) {
+  const topItems = top20.items || [];
+  const marketItems = market.items || [];
+  const messages = [...(top20.messages || []), ...(market.messages || [])];
+  if (!topItems.length && !marketItems.length) {
+    const message = messages[0] || "X 뉴스 영향도 미생성: X_BEARER_TOKEN 설정 또는 build_x_news_impact_analysis.py 실행 필요";
+    return `<div class="empty">${esc(message)}</div>`;
+  }
+  return [
+    `<div class="inline-metrics">
+      ${inlineMetric("Top20 영향 종목", topItems.length, shortDate(top20.asof_date))}
+      ${inlineMetric("Top20 변경", top20.summary?.top20_changed ?? 0, "편입/제외 변화")}
+      ${inlineMetric("최대 확률 변화", pct(top20.summary?.max_probability_delta || 0), "pred_prob_top20")}
+      ${inlineMetric("시장전망 변화", marketItems.length, shortDate(market.asof_date))}
+    </div>`,
+    `<section class="subsection"><h3>Top20 영향도</h3>${table(topItems.slice(0, 20), [
+      { key: "name", label: "Name", format: (value, row) => `${esc(value || row.symbol)}<br><span class="muted">${esc(row.symbol)}</span>` },
+      { key: "market", label: "Market" },
+      { key: "rank_delta", label: "Rank Δ" },
+      { key: "pred_prob_delta", label: "Prob Δ", format: pct },
+      { key: "pred_return_delta", label: "Return Δ", format: pct },
+      { key: "impact_level", label: "Impact", format: impactBadge },
+    ])}</section>`,
+    `<section class="subsection"><h3>KOSPI/KOSDAQ 범위 영향도</h3>${table(marketItems, [
+      { key: "market", label: "Market" },
+      { key: "horizon", label: "Horizon" },
+      { key: "expected_return_delta", label: "Return Δ", format: pct },
+      { key: "range_low_delta", label: "Low Δ", format: pct },
+      { key: "range_high_delta", label: "High Δ", format: pct },
+      { key: "up_probability_delta", label: "Up Prob Δ", format: pct },
+      { key: "shock_probability_delta", label: "Shock Δ", format: pct },
+      { key: "impact_level", label: "Impact", format: impactBadge },
+    ])}</section>`,
+  ].join("");
+}
+
+function impactBadge(value) {
+  const level = String(value || "low");
+  const cls = level === "high" ? "badge risk" : level === "medium" ? "badge warn" : "badge";
+  return `<span class="${cls}">${esc(level)}</span>`;
 }
 
 function renderNewsSignals(data) {

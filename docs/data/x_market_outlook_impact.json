@@ -1,0 +1,11 @@
+{
+  "status": "not_collected",
+  "asof_date": null,
+  "summary": {
+    "count": 0
+  },
+  "items": [],
+  "messages": [
+    "X 시장전망 영향도 미생성: X 뉴스 수집 또는 build_x_news_impact_analysis.py 실행 필요"
+  ]
+}

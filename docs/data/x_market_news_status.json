@@ -1,0 +1,10 @@
+{
+  "status": "missing_key",
+  "source": "x_marketnews_feed",
+  "count": 0,
+  "latest_pub_date": null,
+  "latest_failure_at": "2026-06-28 07:42:15.984341",
+  "messages": [
+    "X 뉴스 미수집: X_BEARER_TOKEN 설정 필요"
+  ]
+}

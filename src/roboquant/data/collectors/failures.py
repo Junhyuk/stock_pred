@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 import pandas as pd
 
@@ -16,7 +16,7 @@ def collection_failure_row(
     return pd.DataFrame(
         [
             {
-                "collected_at": datetime.utcnow(),
+                "collected_at": datetime.now(UTC).replace(tzinfo=None),
                 "step": step,
                 "source": source,
                 "symbol": symbol,
@@ -26,4 +26,3 @@ def collection_failure_row(
             }
         ]
     )
-

@@ -1,16 +1,23 @@
 {
-  "status": "ready",
+  "status": "partial_ready",
   "can_publish": true,
   "counts": {
     "top20": 20,
     "top50": 50,
     "long_short": 20,
     "news": 32,
+    "x_marketnews_feed": 0,
     "news_signals": 1,
+    "x_news_top20_impact": 0,
+    "x_market_outlook_impact": 0,
     "market_moves": 44,
     "tomorrow_markets": 4
   },
   "errors": [],
-  "warnings": [],
-  "messages": []
+  "warnings": [
+    "X 뉴스 미수집: X_BEARER_TOKEN 설정 필요"
+  ],
+  "messages": [
+    "X 뉴스 미수집: X_BEARER_TOKEN 설정 필요"
+  ]
 }

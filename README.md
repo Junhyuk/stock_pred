@@ -527,6 +527,56 @@ feature에는 포함하지만 `6M` 기본 feature에서는 제외합니다. Toda
 `/stock/005850`에는 즉시 설명용으로 표시하며, production 추천 점수 overlay는
 backtest/gatekeeper 통과 전에는 적용하지 않습니다.
 
+## X MarketNews Feed Signal
+
+`https://x.com/MarketNews_Feed`는 HTML 크롤링 없이 공식 X API v2로만 수집합니다.
+수집한 post text metadata는 기존 `market_news_feed`에 `source=x_marketnews_feed`로 저장하며,
+`news_signal_daily`, 시장전망, 내일 예측, 롱숏 리스크 설명, GitHub Pages 뉴스 목록에 같은
+뉴스 feature 경로로 반영됩니다.
+
+`.env`에는 X developer portal에서 발급받은 bearer token만 둡니다.
+
+```bash
+X_BEARER_TOKEN=
+```
+
+인증 없이 설정만 확인:
+
+```bash
+.venv/bin/python scripts/collect_x_market_news.py \
+  --config configs/x_market_news.yaml \
+  --dry-run
+```
+
+수집:
+
+```bash
+.venv/bin/python scripts/collect_x_market_news.py \
+  --config configs/x_market_news.yaml \
+  --allow-missing-key
+```
+
+30분 주기 cron 예시:
+
+```cron
+*/30 * * * * cd /home/joon/work/coding/AI/stock_pred && .venv/bin/python scripts/collect_x_market_news.py --config configs/x_market_news.yaml --allow-missing-key >> logs/x_market_news.log 2>&1
+```
+
+`X_BEARER_TOKEN`이 없으면 fake post를 만들지 않고 `collection_failures`에 기록합니다.
+X post 기반 news feature는 `2M/3M` 학습 feature에 포함하고 `6M/9M/1Y`에는 기존 정책대로
+제외합니다.
+
+재학습 후 X feature가 Top20과 KOSPI/KOSDAQ 범위 예측에 준 영향은 같은 모델로
+`with-X` inference와 X feature 중립화 inference를 비교해 저장합니다. 결과는
+`x_news_prediction_impact_daily`, `x_market_outlook_impact_daily`에 남고, GitHub Pages에는
+`x_news_top20_impact.json`, `x_market_outlook_impact.json`으로 export됩니다.
+
+```bash
+.venv/bin/python scripts/build_x_news_impact_analysis.py \
+  --config configs/top50_normal.yaml \
+  --date latest
+```
+
 ## Telegram News Signal MVP
 
 미국 주식/매크로와 한국 시장 전략 Telegram 공개 채널을 “매수·매도 신호”가 아니라 관심도와

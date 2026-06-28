@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-28T07:33:43Z",
+  "generated_at": "2026-06-28T08:12:48Z",
   "status": "manual",
   "disclaimer": "연구·정보제공용 대시보드입니다. 투자 판단과 책임은 사용자 본인에게 있으며 수익을 보장하지 않습니다.",
   "source": {
@@ -19,6 +19,9 @@
     "top20_price_forecast.json",
     "top20_upside_3M.json",
     "top50_3M.json",
-    "validation.json"
+    "validation.json",
+    "x_market_news_status.json",
+    "x_market_outlook_impact.json",
+    "x_news_top20_impact.json"
   ]
 }

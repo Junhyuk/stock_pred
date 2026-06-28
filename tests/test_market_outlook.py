@@ -12,6 +12,7 @@ from roboquant.market_outlook import (
     refresh_market_outlook_forecasts,
     target_dates_for_run,
 )
+from roboquant.signals.x_news_impact import build_x_market_outlook_impact
 
 
 def test_market_outlook_target_dates_for_20260624_premarket() -> None:
@@ -95,6 +96,56 @@ def test_market_outlook_news_features_use_trailing_window_without_lookahead(tmp_
 
     assert set(latest["news_count_24h"]) == {1}
     assert set(latest["news_sentiment_score"].round(2)) == {0.7}
+
+
+def test_market_outlook_uses_x_news_features_and_impact_ablation(tmp_path) -> None:
+    conn = connect_database(tmp_path / "outlook_x_news.duckdb")
+    _seed_benchmark(conn)
+    append_dedup_table(
+        conn,
+        "market_news_feed",
+        pd.DataFrame(
+            [
+                {
+                    "article_id": "x-market-1",
+                    "source": "x_marketnews_feed",
+                    "category": "macro",
+                    "title": "Korea chip stocks fall after semiconductor sell-off",
+                    "summary": "downgrade and weak demand pressure",
+                    "link": "https://x.com/MarketNews_Feed/status/1885000000000000001",
+                    "pub_date": datetime(2026, 6, 22, 15),
+                    "tickers_json": "[]",
+                    "themes_json": "[]",
+                    "sentiment_score": 0.2,
+                    "raw_json": "{}",
+                    "collected_at": datetime(2026, 6, 22, 15),
+                }
+            ]
+        ),
+        ["article_id"],
+    )
+
+    dataset = build_market_outlook_dataset(
+        conn,
+        asof_date="2026-06-23",
+        now=datetime(2026, 6, 23, 10, tzinfo=UTC),
+    )
+    latest = dataset[pd.to_datetime(dataset["asof_date"]).dt.date.eq(date(2026, 6, 23))]
+
+    assert set(latest["x_news_count_24h"]) == {1}
+    assert set(latest["x_news_negative_count_3d"]) == {1}
+    assert set(latest["x_news_bias_adjusted_sentiment_score"].round(2)) == {0.2}
+
+    impact = build_x_market_outlook_impact(
+        conn,
+        {"paths": {"model_dir": str(tmp_path / "models")}},
+        asof_date="2026-06-23",
+        model_path=tmp_path / "missing_model.json",
+    )
+
+    assert len(impact) == 4
+    assert {"KOSPI", "KOSDAQ"} == set(impact["market"])
+    assert "expected_return_delta" in impact.columns
 
 
 def test_market_outlook_shock_probability_uses_minus_two_percent_threshold() -> None:

@@ -57,6 +57,9 @@ def test_export_github_pages_site_writes_static_json_and_relative_assets(tmp_pat
     assert (output / "data" / "today.json").exists()
     assert (output / "data" / "tomorrow.json").exists()
     assert (output / "data" / "news_signal_latest.json").exists()
+    assert (output / "data" / "x_market_news_status.json").exists()
+    assert (output / "data" / "x_news_top20_impact.json").exists()
+    assert (output / "data" / "x_market_outlook_impact.json").exists()
     assert (output / "data" / "validation.json").exists()
 
     manifest = json.loads((output / "data" / "manifest.json").read_text(encoding="utf-8"))
@@ -71,9 +74,13 @@ def test_export_github_pages_site_writes_static_json_and_relative_assets(tmp_pat
     assert 'href="#top50-section"' in html
     assert 'href="#long-short-section"' in html
     assert 'href="#tomorrow-section"' in html
+    assert 'href="#x-impact-section"' in html
     assert 'load("top50_3M")' in js
     assert 'load("long_short_2M")' in js
+    assert 'load("x_news_top20_impact")' in js
+    assert 'load("x_market_outlook_impact")' in js
     assert "function renderLongShort" in js
+    assert "function renderXImpact" in js
     assert "function representativesByMarket" in js
     assert "KOSPI LONG" in js
     assert "No data" not in js
@@ -83,6 +90,12 @@ def test_export_github_pages_site_writes_static_json_and_relative_assets(tmp_pat
     assert validation["status"] in {"failed", "partial_ready", "ready"}
     assert "news_signals" in validation["counts"]
     assert "long_short" in validation["counts"]
+    assert "x_marketnews_feed" in validation["counts"]
+    assert "x_news_top20_impact" in validation["counts"]
+    assert "x_market_outlook_impact" in validation["counts"]
+    x_impact = json.loads((output / "data" / "x_news_top20_impact.json").read_text(encoding="utf-8"))
+    assert x_impact["status"] == "not_collected"
+    assert "X 뉴스 영향도 미생성" in x_impact["messages"][0]
     combined = "\n".join(path.read_text(encoding="utf-8") for path in output.rglob("*") if path.is_file())
     assert "super-secret" not in combined
     assert "연구·정보제공용" in combined
@@ -144,6 +157,52 @@ def test_export_news_latest_uses_market_news_feed_when_stock_news_empty(tmp_path
     assert news["items"][0]["description"] == "Large banks remain resilient under stress."
     assert validation["counts"]["news"] == 1
     assert "뉴스 미수집" not in "\n".join(validation["messages"])
+
+
+def test_export_validation_reports_missing_x_bearer_token(tmp_path) -> None:
+    db_path = tmp_path / "site.duckdb"
+    conn = connect_database(db_path)
+    conn.execute(
+        """
+        INSERT INTO collection_failures (
+          collected_at,
+          step,
+          source,
+          symbol,
+          target_date,
+          error_message,
+          retry_count
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
+        [
+            "2026-06-28 06:00:00",
+            "collect_x_market_news",
+            "x_marketnews_feed",
+            None,
+            "2026-06-28",
+            "X_BEARER_TOKEN is required for X API v2 collection.",
+            0,
+        ],
+    )
+    conn.close()
+    config_path = _write_config(tmp_path / "top50.yaml", db_path)
+    today_config_path = _write_config(tmp_path / "today.yaml", db_path)
+    output = tmp_path / "site"
+
+    exporter.export_site(
+        config_path=config_path,
+        today_config_path=today_config_path,
+        output_dir=output,
+        run_status="partial_ready",
+    )
+
+    status = json.loads((output / "data" / "x_market_news_status.json").read_text(encoding="utf-8"))
+    validation = json.loads((output / "data" / "validation.json").read_text(encoding="utf-8"))
+
+    assert status["status"] == "missing_key"
+    assert validation["counts"]["x_marketnews_feed"] == 0
+    assert "X 뉴스 미수집: X_BEARER_TOKEN 설정 필요" in validation["messages"]
 
 
 def test_publish_site_dry_run_does_not_create_or_push_worktree(tmp_path) -> None:

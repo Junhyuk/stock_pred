@@ -80,6 +80,12 @@ def load_telegram_market_signals(conn) -> pd.DataFrame:
     return conn.execute("SELECT * FROM telegram_market_signal_daily ORDER BY signal_date").fetchdf()
 
 
+def load_news_signals(conn) -> pd.DataFrame:
+    if not table_exists(conn, "news_signal_daily"):
+        return pd.DataFrame()
+    return conn.execute("SELECT * FROM news_signal_daily ORDER BY signal_date, scope, symbol").fetchdf()
+
+
 def load_us_sector_linkage(conn) -> pd.DataFrame:
     if not table_exists(conn, "us_sector_linkage_daily"):
         return pd.DataFrame()

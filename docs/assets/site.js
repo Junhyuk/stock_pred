@@ -47,7 +47,7 @@ function statusBadge(status) {
 }
 
 async function boot() {
-  const [manifest, dashboard, today, tomorrow, top20, top50, longShort, moves, news, newsSignals, validation] = await Promise.all([
+  const [manifest, dashboard, today, tomorrow, top20, top50, longShort, moves, news, newsSignals, xTop20Impact, xMarketImpact, validation] = await Promise.all([
     load("manifest"),
     load("dashboard"),
     load("today"),
@@ -58,6 +58,8 @@ async function boot() {
     load("market_move_explanations"),
     load("news_latest"),
     load("news_signal_latest"),
+    load("x_news_top20_impact"),
+    load("x_market_outlook_impact"),
     load("validation"),
   ]);
   document.getElementById("runStatus").innerHTML = `${statusBadge(validation.status || manifest.status)}<br><span>${shortDate(manifest.generated_at)}</span>`;
@@ -82,6 +84,7 @@ async function boot() {
   document.getElementById("top50").innerHTML = renderTop50(top50);
   document.getElementById("longShort").innerHTML = renderLongShort(longShort);
   document.getElementById("tomorrow").innerHTML = renderTomorrow(tomorrow);
+  document.getElementById("xImpact").innerHTML = renderXImpact(xTop20Impact, xMarketImpact);
   document.getElementById("quality").innerHTML = renderQuality(todayQuality, validation);
   document.getElementById("newsSignals").innerHTML = renderNewsSignals(newsSignals);
   document.getElementById("moves").innerHTML = table([...(moves.market || []), ...(moves.top50 || [])].slice(0, 20), [
@@ -205,6 +208,48 @@ function renderQuality(quality, validation) {
   const countRows = Object.entries(counts).map(([key, value]) => `<div class="row"><span>${esc(key)}</span><b>${esc(value)}</b></div>`);
   const messages = [...(validation.messages || []), ...(quality.messages || [])].slice(0, 6).map((message) => `<p class="muted">${esc(message)}</p>`);
   return [...rows, ...countRows, ...messages].join("") || '<div class="empty">품질 메시지 없음: 생성된 데이터가 정상 범위입니다.</div>';
+}
+
+function renderXImpact(top20, market) {
+  const topItems = top20.items || [];
+  const marketItems = market.items || [];
+  const messages = [...(top20.messages || []), ...(market.messages || [])];
+  if (!topItems.length && !marketItems.length) {
+    const message = messages[0] || "X 뉴스 영향도 미생성: X_BEARER_TOKEN 설정 또는 build_x_news_impact_analysis.py 실행 필요";
+    return `<div class="empty">${esc(message)}</div>`;
+  }
+  return [
+    `<div class="inline-metrics">
+      ${inlineMetric("Top20 영향 종목", topItems.length, shortDate(top20.asof_date))}
+      ${inlineMetric("Top20 변경", top20.summary?.top20_changed ?? 0, "편입/제외 변화")}
+      ${inlineMetric("최대 확률 변화", pct(top20.summary?.max_probability_delta || 0), "pred_prob_top20")}
+      ${inlineMetric("시장전망 변화", marketItems.length, shortDate(market.asof_date))}
+    </div>`,
+    `<section class="subsection"><h3>Top20 영향도</h3>${table(topItems.slice(0, 20), [
+      { key: "name", label: "Name", format: (value, row) => `${esc(value || row.symbol)}<br><span class="muted">${esc(row.symbol)}</span>` },
+      { key: "market", label: "Market" },
+      { key: "rank_delta", label: "Rank Δ" },
+      { key: "pred_prob_delta", label: "Prob Δ", format: pct },
+      { key: "pred_return_delta", label: "Return Δ", format: pct },
+      { key: "impact_level", label: "Impact", format: impactBadge },
+    ])}</section>`,
+    `<section class="subsection"><h3>KOSPI/KOSDAQ 범위 영향도</h3>${table(marketItems, [
+      { key: "market", label: "Market" },
+      { key: "horizon", label: "Horizon" },
+      { key: "expected_return_delta", label: "Return Δ", format: pct },
+      { key: "range_low_delta", label: "Low Δ", format: pct },
+      { key: "range_high_delta", label: "High Δ", format: pct },
+      { key: "up_probability_delta", label: "Up Prob Δ", format: pct },
+      { key: "shock_probability_delta", label: "Shock Δ", format: pct },
+      { key: "impact_level", label: "Impact", format: impactBadge },
+    ])}</section>`,
+  ].join("");
+}
+
+function impactBadge(value) {
+  const level = String(value || "low");
+  const cls = level === "high" ? "badge risk" : level === "medium" ? "badge warn" : "badge";
+  return `<span class="${cls}">${esc(level)}</span>`;
 }
 
 function renderNewsSignals(data) {
