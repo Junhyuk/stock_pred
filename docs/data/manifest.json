@@ -1,0 +1,24 @@
+{
+  "generated_at": "2026-06-28T07:33:43Z",
+  "status": "manual",
+  "disclaimer": "연구·정보제공용 대시보드입니다. 투자 판단과 책임은 사용자 본인에게 있으며 수익을 보장하지 않습니다.",
+  "source": {
+    "config": "configs/top50_normal.yaml",
+    "universe_rule": "prediction_top_market_cap",
+    "publish_surface": "github_pages_static_summary"
+  },
+  "run_result": {},
+  "data_files": [
+    "dashboard.json",
+    "long_short_2M.json",
+    "market_move_explanations.json",
+    "news_latest.json",
+    "news_signal_latest.json",
+    "today.json",
+    "tomorrow.json",
+    "top20_price_forecast.json",
+    "top20_upside_3M.json",
+    "top50_3M.json",
+    "validation.json"
+  ]
+}

@@ -105,7 +105,25 @@ text_features:
     구글: GOOGL
     알파벳: GOOGL
     삼성전자: "005930"
+    Samsung Electronics: "005930"
+    Samsung Electronics Co: "005930"
+    Samsung Electronics Co Ltd: "005930"
+    Samsung Electronics Co., Ltd.: "005930"
+    005930.KS: "005930"
+    SSNLF: "005930"
     SK하이닉스: "000660"
+    SK hynix: "000660"
+    SK Hynix: "000660"
+    SK hynix Inc: "000660"
+    000660.KS: "000660"
+    LG전자: "066570"
+    LG Electronics: "066570"
+    LG Electronics Inc: "066570"
+    066570.KS: "066570"
+    에스엘: "005850"
+    SL Corp: "005850"
+    SL Corporation: "005850"
+    005850.KS: "005850"
   theme_keywords:
     PENSION_FLOW:
       - 국민연금
@@ -169,6 +187,22 @@ text_features:
     - miss
     - downgrade
     - bearish
+  negative_business_keywords:
+    - 하향
+    - 부진
+    - 약세
+    - 급락
+    - 차익실현
+    - 규제
+    - 감소
+    - 둔화
+    - sell-off
+    - selloff
+    - downgrade
+    - miss
+    - slump
+    - tumble
+    - falls
 
 # 최신 시장 급등락 맥락. 무단 크롤링 없이 제목/요약/URL metadata만 등록한다.
 latest_market_context:
@@ -236,3 +270,12 @@ curated_articles:
       국내주식 비중 30% 수준으로 허용치 26.8% 초과, 최대 55조원 규모 순매도 압력 추정.
     link: https://news.einfomax.co.kr/news/articleView.html?idxno=4420806
     pub_date: "2026-06-21"
+
+  - source: curated_kr_flow
+    category: flow
+    title: "주말 점검: 국민연금 리밸런싱·연기금 수급 변수"
+    summary: >
+      6/21 보도된 국민연금 국내주식 비중(30%) 초과와 다음달 리밸런싱 재개 가능성이
+      6/28 기준 Top50 PoC 대시보드의 핵심 거시·수급 리스크 플래그로 유지.
+    link: https://news.einfomax.co.kr/news/articleView.html?idxno=4420806
+    pub_date: "2026-06-28"

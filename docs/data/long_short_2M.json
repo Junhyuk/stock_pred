@@ -3,7 +3,7 @@
   "asof_date": "2026-06-26",
   "markets": {
     "KOSPI": {
-      "upside": [
+      "long_leg": [
         {
           "asof_date": "2026-06-26",
           "horizon": "2M",
@@ -11,8 +11,9 @@
           "name": "SK하이닉스",
           "market": "KOSPI",
           "sector": "반도체 제조업",
-          "side": "UP",
+          "side": "LONG",
           "rank": 1,
+          "weight": 0.049999999999999996,
           "long_score": 0.6014939413419413,
           "short_score": 0.10590993244548609,
           "pred_return": 0.38040276436369014,
@@ -31,7 +32,7 @@
             "국민연금 리밸런싱 매도 압력(거시)",
             "대형주 순매도 우려"
           ],
-          "model_version": "poc-2M-2026-06-26"
+          "model_version": "poc-2M-2026-06-28"
         },
         {
           "asof_date": "2026-06-26",
@@ -40,8 +41,9 @@
           "name": "삼성전자",
           "market": "KOSPI",
           "sector": "통신 및 방송 장비 제조업",
-          "side": "UP",
+          "side": "LONG",
           "rank": 2,
+          "weight": 0.049999999999999996,
           "long_score": 0.5962937941103349,
           "short_score": 0.04540289940218616,
           "pred_return": 0.49313365842508133,
@@ -60,7 +62,7 @@
             "국민연금 리밸런싱 매도 압력(거시)",
             "대형주 순매도 우려"
           ],
-          "model_version": "poc-2M-2026-06-26"
+          "model_version": "poc-2M-2026-06-28"
         },
         {
           "asof_date": "2026-06-26",
@@ -69,8 +71,9 @@
           "name": "삼성생명",
           "market": "KOSPI",
           "sector": "보험업",
-          "side": "UP",
+          "side": "LONG",
           "rank": 3,
+          "weight": 0.049999999999999996,
           "long_score": 0.5282117784997222,
           "short_score": 0.08447280681367242,
           "pred_return": 0.3935118237047382,
@@ -89,7 +92,7 @@
             "국민연금 리밸런싱 매도 압력(거시)",
             "대형주 순매도 우려"
           ],
-          "model_version": "poc-2M-2026-06-26"
+          "model_version": "poc-2M-2026-06-28"
         },
         {
           "asof_date": "2026-06-26",
@@ -98,8 +101,9 @@
           "name": "한미반도체",
           "market": "KOSPI",
           "sector": "특수 목적용 기계 제조업",
-          "side": "UP",
+          "side": "LONG",
           "rank": 4,
+          "weight": 0.049999999999999996,
           "long_score": 0.5116907909796998,
           "short_score": 0.2591349401059502,
           "pred_return": 0.13475618094013142,
@@ -118,7 +122,7 @@
             "국민연금 리밸런싱 매도 압력(거시)",
             "대형주 순매도 우려"
           ],
-          "model_version": "poc-2M-2026-06-26"
+          "model_version": "poc-2M-2026-06-28"
         },
         {
           "asof_date": "2026-06-26",
@@ -127,8 +131,9 @@
           "name": "SK",
           "market": "KOSPI",
           "sector": "기타 금융업",
-          "side": "UP",
+          "side": "LONG",
           "rank": 5,
+          "weight": 0.049999999999999996,
           "long_score": 0.506310006234633,
           "short_score": 0.13435152701575623,
           "pred_return": 0.20443208588748624,
@@ -148,7 +153,7 @@
             "국민연금 리밸런싱 매도 압력(거시)",
             "대형주 순매도 우려"
           ],
-          "model_version": "poc-2M-2026-06-26"
+          "model_version": "poc-2M-2026-06-28"
         },
         {
           "asof_date": "2026-06-26",
@@ -157,8 +162,9 @@
           "name": "LS ELECTRIC",
           "market": "KOSPI",
           "sector": "전동기, 발전기 및 전기 변환 · 공급 · 제어 장치 제조업",
-          "side": "UP",
+          "side": "LONG",
           "rank": 6,
+          "weight": 0.049999999999999996,
           "long_score": 0.49302882226277234,
           "short_score": 0.16681289221592682,
           "pred_return": 0.3059938045572287,
@@ -177,10 +183,10 @@
             "국민연금 리밸런싱 매도 압력(거시)",
             "대형주 순매도 우려"
           ],
-          "model_version": "poc-2M-2026-06-26"
+          "model_version": "poc-2M-2026-06-28"
         }
       ],
-      "downside": [
+      "short_leg": [
         {
           "asof_date": "2026-06-26",
           "horizon": "2M",
@@ -188,8 +194,9 @@
           "name": "NAVER",
           "market": "KOSPI",
           "sector": "자료처리, 호스팅, 포털 및 기타 인터넷 정보매개 서비스업",
-          "side": "DOWN",
+          "side": "SHORT",
           "rank": 1,
+          "weight": -0.049999999999999996,
           "long_score": 0.05571320804618181,
           "short_score": 0.8123492330959298,
           "pred_return": -0.1500635426365545,
@@ -209,7 +216,7 @@
             "단기 반등 위험",
             "국민연금 리밸런싱 매도 압력(거시)"
           ],
-          "model_version": "poc-2M-2026-06-26"
+          "model_version": "poc-2M-2026-06-28"
         },
         {
           "asof_date": "2026-06-26",
@@ -218,8 +225,9 @@
           "name": "현대차",
           "market": "KOSPI",
           "sector": "자동차용 엔진 및 자동차 제조업",
-          "side": "DOWN",
+          "side": "SHORT",
           "rank": 2,
+          "weight": -0.049999999999999996,
           "long_score": 0.06488985861947039,
           "short_score": 0.6430820246586526,
           "pred_return": -0.162391207760384,
@@ -239,7 +247,7 @@
             "단기 반등 위험",
             "국민연금 리밸런싱 매도 압력(거시)"
           ],
-          "model_version": "poc-2M-2026-06-26"
+          "model_version": "poc-2M-2026-06-28"
         },
         {
           "asof_date": "2026-06-26",
@@ -248,8 +256,9 @@
           "name": "한화에어로스페이스",
           "market": "KOSPI",
           "sector": "항공기,우주선 및 부품 제조업",
-          "side": "DOWN",
+          "side": "SHORT",
           "rank": 3,
+          "weight": -0.049999999999999996,
           "long_score": 0.09806287903194282,
           "short_score": 0.5639504377364377,
           "pred_return": -0.0939270283612994,
@@ -268,7 +277,7 @@
             "모의 숏 레그: 실제 공매도 가능 여부 미확인",
             "국민연금 리밸런싱 매도 압력(거시)"
           ],
-          "model_version": "poc-2M-2026-06-26"
+          "model_version": "poc-2M-2026-06-28"
         },
         {
           "asof_date": "2026-06-26",
@@ -277,8 +286,9 @@
           "name": "한화오션",
           "market": "KOSPI",
           "sector": "선박 및 보트 건조업",
-          "side": "DOWN",
+          "side": "SHORT",
           "rank": 4,
+          "weight": -0.049999999999999996,
           "long_score": 0.054884828332026035,
           "short_score": 0.5226460012666165,
           "pred_return": -0.16621520423792494,
@@ -297,7 +307,7 @@
             "모의 숏 레그: 실제 공매도 가능 여부 미확인",
             "국민연금 리밸런싱 매도 압력(거시)"
           ],
-          "model_version": "poc-2M-2026-06-26"
+          "model_version": "poc-2M-2026-06-28"
         },
         {
           "asof_date": "2026-06-26",
@@ -306,8 +316,9 @@
           "name": "두산에너빌리티",
           "market": "KOSPI",
           "sector": "일반 목적용 기계 제조업",
-          "side": "DOWN",
+          "side": "SHORT",
           "rank": 5,
+          "weight": -0.049999999999999996,
           "long_score": 0.14002958930049825,
           "short_score": 0.5106320006490163,
           "pred_return": -0.0702053954046285,
@@ -326,7 +337,7 @@
             "모의 숏 레그: 실제 공매도 가능 여부 미확인",
             "국민연금 리밸런싱 매도 압력(거시)"
           ],
-          "model_version": "poc-2M-2026-06-26"
+          "model_version": "poc-2M-2026-06-28"
         },
         {
           "asof_date": "2026-06-26",
@@ -335,8 +346,9 @@
           "name": "HD현대중공업",
           "market": "KOSPI",
           "sector": "선박 및 보트 건조업",
-          "side": "DOWN",
+          "side": "SHORT",
           "rank": 6,
+          "weight": -0.049999999999999996,
           "long_score": 0.09367236017193106,
           "short_score": 0.5105996124777001,
           "pred_return": -0.10886997077400336,
@@ -355,12 +367,12 @@
             "모의 숏 레그: 실제 공매도 가능 여부 미확인",
             "국민연금 리밸런싱 매도 압력(거시)"
           ],
-          "model_version": "poc-2M-2026-06-26"
+          "model_version": "poc-2M-2026-06-28"
         }
       ]
     },
     "KOSDAQ": {
-      "upside": [
+      "long_leg": [
         {
           "asof_date": "2026-06-26",
           "horizon": "2M",
@@ -368,8 +380,9 @@
           "name": "이오테크닉스",
           "market": "KOSDAQ",
           "sector": "KOSDAQ",
-          "side": "UP",
+          "side": "LONG",
           "rank": 1,
+          "weight": 0.05,
           "long_score": 0.7457990983432474,
           "short_score": 0.08121755557390148,
           "pred_return": 0.310550695422616,
@@ -387,7 +400,7 @@
           "risk_flags": [
             "국민연금 리밸런싱 매도 압력(거시)"
           ],
-          "model_version": "poc-2M-2026-06-26"
+          "model_version": "poc-2M-2026-06-28"
         },
         {
           "asof_date": "2026-06-26",
@@ -396,8 +409,9 @@
           "name": "삼천당제약",
           "market": "KOSDAQ",
           "sector": "KOSDAQ",
-          "side": "UP",
+          "side": "LONG",
           "rank": 2,
+          "weight": 0.05,
           "long_score": 0.721190708434909,
           "short_score": 0.02336364240114545,
           "pred_return": 0.6141065285635218,
@@ -415,7 +429,7 @@
           "risk_flags": [
             "국민연금 리밸런싱 매도 압력(거시)"
           ],
-          "model_version": "poc-2M-2026-06-26"
+          "model_version": "poc-2M-2026-06-28"
         },
         {
           "asof_date": "2026-06-26",
@@ -424,8 +438,9 @@
           "name": "유진테크",
           "market": "KOSDAQ",
           "sector": "KOSDAQ",
-          "side": "UP",
+          "side": "LONG",
           "rank": 3,
+          "weight": 0.05,
           "long_score": 0.7177308253720491,
           "short_score": 0.11440966889859153,
           "pred_return": 0.2757105089287112,
@@ -443,7 +458,7 @@
           "risk_flags": [
             "국민연금 리밸런싱 매도 압력(거시)"
           ],
-          "model_version": "poc-2M-2026-06-26"
+          "model_version": "poc-2M-2026-06-28"
         },
         {
           "asof_date": "2026-06-26",
@@ -452,8 +467,9 @@
           "name": "로보티즈",
           "market": "KOSDAQ",
           "sector": "KOSDAQ",
-          "side": "UP",
+          "side": "LONG",
           "rank": 4,
+          "weight": 0.05,
           "long_score": 0.6487610050662689,
           "short_score": 0.057127770820660985,
           "pred_return": 0.5155150757422329,
@@ -471,10 +487,10 @@
           "risk_flags": [
             "국민연금 리밸런싱 매도 압력(거시)"
           ],
-          "model_version": "poc-2M-2026-06-26"
+          "model_version": "poc-2M-2026-06-28"
         }
       ],
-      "downside": [
+      "short_leg": [
         {
           "asof_date": "2026-06-26",
           "horizon": "2M",
@@ -482,8 +498,9 @@
           "name": "피에스케이",
           "market": "KOSDAQ",
           "sector": "KOSDAQ",
-          "side": "DOWN",
+          "side": "SHORT",
           "rank": 1,
+          "weight": -0.05,
           "long_score": 0.061507864562132086,
           "short_score": 0.5846144668468928,
           "pred_return": -0.17557225290927697,
@@ -502,7 +519,7 @@
             "모의 숏 레그: 실제 공매도 가능 여부 미확인",
             "국민연금 리밸런싱 매도 압력(거시)"
           ],
-          "model_version": "poc-2M-2026-06-26"
+          "model_version": "poc-2M-2026-06-28"
         },
         {
           "asof_date": "2026-06-26",
@@ -511,8 +528,9 @@
           "name": "파두",
           "market": "KOSDAQ",
           "sector": "KOSDAQ",
-          "side": "DOWN",
+          "side": "SHORT",
           "rank": 2,
+          "weight": -0.05,
           "long_score": 0.16164594387766731,
           "short_score": 0.5176984288574277,
           "pred_return": -0.1289935448550882,
@@ -531,7 +549,7 @@
             "모의 숏 레그: 실제 공매도 가능 여부 미확인",
             "국민연금 리밸런싱 매도 압력(거시)"
           ],
-          "model_version": "poc-2M-2026-06-26"
+          "model_version": "poc-2M-2026-06-28"
         },
         {
           "asof_date": "2026-06-26",
@@ -540,8 +558,9 @@
           "name": "제주반도체",
           "market": "KOSDAQ",
           "sector": "KOSDAQ",
-          "side": "DOWN",
+          "side": "SHORT",
           "rank": 3,
+          "weight": -0.05,
           "long_score": 0.23850447352126988,
           "short_score": 0.491470723376064,
           "pred_return": -0.05276755547488758,
@@ -560,7 +579,7 @@
             "모의 숏 레그: 실제 공매도 가능 여부 미확인",
             "국민연금 리밸런싱 매도 압력(거시)"
           ],
-          "model_version": "poc-2M-2026-06-26"
+          "model_version": "poc-2M-2026-06-28"
         },
         {
           "asof_date": "2026-06-26",
@@ -569,8 +588,9 @@
           "name": "휴젤",
           "market": "KOSDAQ",
           "sector": "KOSDAQ",
-          "side": "DOWN",
+          "side": "SHORT",
           "rank": 4,
+          "weight": -0.05,
           "long_score": 0.27600126584997425,
           "short_score": 0.37302021688099884,
           "pred_return": -0.004281476607157336,
@@ -589,12 +609,12 @@
             "모의 숏 레그: 실제 공매도 가능 여부 미확인",
             "국민연금 리밸런싱 매도 압력(거시)"
           ],
-          "model_version": "poc-2M-2026-06-26"
+          "model_version": "poc-2M-2026-06-28"
         }
       ]
     }
   },
-  "upside": [
+  "long_leg": [
     {
       "asof_date": "2026-06-26",
       "horizon": "2M",
@@ -602,8 +622,9 @@
       "name": "이오테크닉스",
       "market": "KOSDAQ",
       "sector": "KOSDAQ",
-      "side": "UP",
+      "side": "LONG",
       "rank": 1,
+      "weight": 0.05,
       "long_score": 0.7457990983432474,
       "short_score": 0.08121755557390148,
       "pred_return": 0.310550695422616,
@@ -621,7 +642,7 @@
       "risk_flags": [
         "국민연금 리밸런싱 매도 압력(거시)"
       ],
-      "model_version": "poc-2M-2026-06-26"
+      "model_version": "poc-2M-2026-06-28"
     },
     {
       "asof_date": "2026-06-26",
@@ -630,8 +651,9 @@
       "name": "삼천당제약",
       "market": "KOSDAQ",
       "sector": "KOSDAQ",
-      "side": "UP",
+      "side": "LONG",
       "rank": 2,
+      "weight": 0.05,
       "long_score": 0.721190708434909,
       "short_score": 0.02336364240114545,
       "pred_return": 0.6141065285635218,
@@ -649,7 +671,7 @@
       "risk_flags": [
         "국민연금 리밸런싱 매도 압력(거시)"
       ],
-      "model_version": "poc-2M-2026-06-26"
+      "model_version": "poc-2M-2026-06-28"
     },
     {
       "asof_date": "2026-06-26",
@@ -658,8 +680,9 @@
       "name": "유진테크",
       "market": "KOSDAQ",
       "sector": "KOSDAQ",
-      "side": "UP",
+      "side": "LONG",
       "rank": 3,
+      "weight": 0.05,
       "long_score": 0.7177308253720491,
       "short_score": 0.11440966889859153,
       "pred_return": 0.2757105089287112,
@@ -677,7 +700,7 @@
       "risk_flags": [
         "국민연금 리밸런싱 매도 압력(거시)"
       ],
-      "model_version": "poc-2M-2026-06-26"
+      "model_version": "poc-2M-2026-06-28"
     },
     {
       "asof_date": "2026-06-26",
@@ -686,8 +709,9 @@
       "name": "로보티즈",
       "market": "KOSDAQ",
       "sector": "KOSDAQ",
-      "side": "UP",
+      "side": "LONG",
       "rank": 4,
+      "weight": 0.05,
       "long_score": 0.6487610050662689,
       "short_score": 0.057127770820660985,
       "pred_return": 0.5155150757422329,
@@ -705,7 +729,7 @@
       "risk_flags": [
         "국민연금 리밸런싱 매도 압력(거시)"
       ],
-      "model_version": "poc-2M-2026-06-26"
+      "model_version": "poc-2M-2026-06-28"
     },
     {
       "asof_date": "2026-06-26",
@@ -714,8 +738,9 @@
       "name": "SK하이닉스",
       "market": "KOSPI",
       "sector": "반도체 제조업",
-      "side": "UP",
+      "side": "LONG",
       "rank": 1,
+      "weight": 0.049999999999999996,
       "long_score": 0.6014939413419413,
       "short_score": 0.10590993244548609,
       "pred_return": 0.38040276436369014,
@@ -734,7 +759,7 @@
         "국민연금 리밸런싱 매도 압력(거시)",
         "대형주 순매도 우려"
       ],
-      "model_version": "poc-2M-2026-06-26"
+      "model_version": "poc-2M-2026-06-28"
     },
     {
       "asof_date": "2026-06-26",
@@ -743,8 +768,9 @@
       "name": "삼성전자",
       "market": "KOSPI",
       "sector": "통신 및 방송 장비 제조업",
-      "side": "UP",
+      "side": "LONG",
       "rank": 2,
+      "weight": 0.049999999999999996,
       "long_score": 0.5962937941103349,
       "short_score": 0.04540289940218616,
       "pred_return": 0.49313365842508133,
@@ -763,7 +789,7 @@
         "국민연금 리밸런싱 매도 압력(거시)",
         "대형주 순매도 우려"
       ],
-      "model_version": "poc-2M-2026-06-26"
+      "model_version": "poc-2M-2026-06-28"
     },
     {
       "asof_date": "2026-06-26",
@@ -772,8 +798,9 @@
       "name": "삼성생명",
       "market": "KOSPI",
       "sector": "보험업",
-      "side": "UP",
+      "side": "LONG",
       "rank": 3,
+      "weight": 0.049999999999999996,
       "long_score": 0.5282117784997222,
       "short_score": 0.08447280681367242,
       "pred_return": 0.3935118237047382,
@@ -792,7 +819,7 @@
         "국민연금 리밸런싱 매도 압력(거시)",
         "대형주 순매도 우려"
       ],
-      "model_version": "poc-2M-2026-06-26"
+      "model_version": "poc-2M-2026-06-28"
     },
     {
       "asof_date": "2026-06-26",
@@ -801,8 +828,9 @@
       "name": "한미반도체",
       "market": "KOSPI",
       "sector": "특수 목적용 기계 제조업",
-      "side": "UP",
+      "side": "LONG",
       "rank": 4,
+      "weight": 0.049999999999999996,
       "long_score": 0.5116907909796998,
       "short_score": 0.2591349401059502,
       "pred_return": 0.13475618094013142,
@@ -821,7 +849,7 @@
         "국민연금 리밸런싱 매도 압력(거시)",
         "대형주 순매도 우려"
       ],
-      "model_version": "poc-2M-2026-06-26"
+      "model_version": "poc-2M-2026-06-28"
     },
     {
       "asof_date": "2026-06-26",
@@ -830,8 +858,9 @@
       "name": "SK",
       "market": "KOSPI",
       "sector": "기타 금융업",
-      "side": "UP",
+      "side": "LONG",
       "rank": 5,
+      "weight": 0.049999999999999996,
       "long_score": 0.506310006234633,
       "short_score": 0.13435152701575623,
       "pred_return": 0.20443208588748624,
@@ -851,7 +880,7 @@
         "국민연금 리밸런싱 매도 압력(거시)",
         "대형주 순매도 우려"
       ],
-      "model_version": "poc-2M-2026-06-26"
+      "model_version": "poc-2M-2026-06-28"
     },
     {
       "asof_date": "2026-06-26",
@@ -860,8 +889,9 @@
       "name": "LS ELECTRIC",
       "market": "KOSPI",
       "sector": "전동기, 발전기 및 전기 변환 · 공급 · 제어 장치 제조업",
-      "side": "UP",
+      "side": "LONG",
       "rank": 6,
+      "weight": 0.049999999999999996,
       "long_score": 0.49302882226277234,
       "short_score": 0.16681289221592682,
       "pred_return": 0.3059938045572287,
@@ -880,10 +910,10 @@
         "국민연금 리밸런싱 매도 압력(거시)",
         "대형주 순매도 우려"
       ],
-      "model_version": "poc-2M-2026-06-26"
+      "model_version": "poc-2M-2026-06-28"
     }
   ],
-  "downside": [
+  "short_leg": [
     {
       "asof_date": "2026-06-26",
       "horizon": "2M",
@@ -891,8 +921,9 @@
       "name": "피에스케이",
       "market": "KOSDAQ",
       "sector": "KOSDAQ",
-      "side": "DOWN",
+      "side": "SHORT",
       "rank": 1,
+      "weight": -0.05,
       "long_score": 0.061507864562132086,
       "short_score": 0.5846144668468928,
       "pred_return": -0.17557225290927697,
@@ -911,7 +942,7 @@
         "모의 숏 레그: 실제 공매도 가능 여부 미확인",
         "국민연금 리밸런싱 매도 압력(거시)"
       ],
-      "model_version": "poc-2M-2026-06-26"
+      "model_version": "poc-2M-2026-06-28"
     },
     {
       "asof_date": "2026-06-26",
@@ -920,8 +951,9 @@
       "name": "파두",
       "market": "KOSDAQ",
       "sector": "KOSDAQ",
-      "side": "DOWN",
+      "side": "SHORT",
       "rank": 2,
+      "weight": -0.05,
       "long_score": 0.16164594387766731,
       "short_score": 0.5176984288574277,
       "pred_return": -0.1289935448550882,
@@ -940,7 +972,7 @@
         "모의 숏 레그: 실제 공매도 가능 여부 미확인",
         "국민연금 리밸런싱 매도 압력(거시)"
       ],
-      "model_version": "poc-2M-2026-06-26"
+      "model_version": "poc-2M-2026-06-28"
     },
     {
       "asof_date": "2026-06-26",
@@ -949,8 +981,9 @@
       "name": "제주반도체",
       "market": "KOSDAQ",
       "sector": "KOSDAQ",
-      "side": "DOWN",
+      "side": "SHORT",
       "rank": 3,
+      "weight": -0.05,
       "long_score": 0.23850447352126988,
       "short_score": 0.491470723376064,
       "pred_return": -0.05276755547488758,
@@ -969,7 +1002,7 @@
         "모의 숏 레그: 실제 공매도 가능 여부 미확인",
         "국민연금 리밸런싱 매도 압력(거시)"
       ],
-      "model_version": "poc-2M-2026-06-26"
+      "model_version": "poc-2M-2026-06-28"
     },
     {
       "asof_date": "2026-06-26",
@@ -978,8 +1011,9 @@
       "name": "휴젤",
       "market": "KOSDAQ",
       "sector": "KOSDAQ",
-      "side": "DOWN",
+      "side": "SHORT",
       "rank": 4,
+      "weight": -0.05,
       "long_score": 0.27600126584997425,
       "short_score": 0.37302021688099884,
       "pred_return": -0.004281476607157336,
@@ -998,7 +1032,7 @@
         "모의 숏 레그: 실제 공매도 가능 여부 미확인",
         "국민연금 리밸런싱 매도 압력(거시)"
       ],
-      "model_version": "poc-2M-2026-06-26"
+      "model_version": "poc-2M-2026-06-28"
     },
     {
       "asof_date": "2026-06-26",
@@ -1007,8 +1041,9 @@
       "name": "NAVER",
       "market": "KOSPI",
       "sector": "자료처리, 호스팅, 포털 및 기타 인터넷 정보매개 서비스업",
-      "side": "DOWN",
+      "side": "SHORT",
       "rank": 1,
+      "weight": -0.049999999999999996,
       "long_score": 0.05571320804618181,
       "short_score": 0.8123492330959298,
       "pred_return": -0.1500635426365545,
@@ -1028,7 +1063,7 @@
         "단기 반등 위험",
         "국민연금 리밸런싱 매도 압력(거시)"
       ],
-      "model_version": "poc-2M-2026-06-26"
+      "model_version": "poc-2M-2026-06-28"
     },
     {
       "asof_date": "2026-06-26",
@@ -1037,8 +1072,9 @@
       "name": "현대차",
       "market": "KOSPI",
       "sector": "자동차용 엔진 및 자동차 제조업",
-      "side": "DOWN",
+      "side": "SHORT",
       "rank": 2,
+      "weight": -0.049999999999999996,
       "long_score": 0.06488985861947039,
       "short_score": 0.6430820246586526,
       "pred_return": -0.162391207760384,
@@ -1058,7 +1094,7 @@
         "단기 반등 위험",
         "국민연금 리밸런싱 매도 압력(거시)"
       ],
-      "model_version": "poc-2M-2026-06-26"
+      "model_version": "poc-2M-2026-06-28"
     },
     {
       "asof_date": "2026-06-26",
@@ -1067,8 +1103,9 @@
       "name": "한화에어로스페이스",
       "market": "KOSPI",
       "sector": "항공기,우주선 및 부품 제조업",
-      "side": "DOWN",
+      "side": "SHORT",
       "rank": 3,
+      "weight": -0.049999999999999996,
       "long_score": 0.09806287903194282,
       "short_score": 0.5639504377364377,
       "pred_return": -0.0939270283612994,
@@ -1087,7 +1124,7 @@
         "모의 숏 레그: 실제 공매도 가능 여부 미확인",
         "국민연금 리밸런싱 매도 압력(거시)"
       ],
-      "model_version": "poc-2M-2026-06-26"
+      "model_version": "poc-2M-2026-06-28"
     },
     {
       "asof_date": "2026-06-26",
@@ -1096,8 +1133,9 @@
       "name": "한화오션",
       "market": "KOSPI",
       "sector": "선박 및 보트 건조업",
-      "side": "DOWN",
+      "side": "SHORT",
       "rank": 4,
+      "weight": -0.049999999999999996,
       "long_score": 0.054884828332026035,
       "short_score": 0.5226460012666165,
       "pred_return": -0.16621520423792494,
@@ -1116,7 +1154,7 @@
         "모의 숏 레그: 실제 공매도 가능 여부 미확인",
         "국민연금 리밸런싱 매도 압력(거시)"
       ],
-      "model_version": "poc-2M-2026-06-26"
+      "model_version": "poc-2M-2026-06-28"
     },
     {
       "asof_date": "2026-06-26",
@@ -1125,8 +1163,9 @@
       "name": "두산에너빌리티",
       "market": "KOSPI",
       "sector": "일반 목적용 기계 제조업",
-      "side": "DOWN",
+      "side": "SHORT",
       "rank": 5,
+      "weight": -0.049999999999999996,
       "long_score": 0.14002958930049825,
       "short_score": 0.5106320006490163,
       "pred_return": -0.0702053954046285,
@@ -1145,7 +1184,7 @@
         "모의 숏 레그: 실제 공매도 가능 여부 미확인",
         "국민연금 리밸런싱 매도 압력(거시)"
       ],
-      "model_version": "poc-2M-2026-06-26"
+      "model_version": "poc-2M-2026-06-28"
     },
     {
       "asof_date": "2026-06-26",
@@ -1154,8 +1193,9 @@
       "name": "HD현대중공업",
       "market": "KOSPI",
       "sector": "선박 및 보트 건조업",
-      "side": "DOWN",
+      "side": "SHORT",
       "rank": 6,
+      "weight": -0.049999999999999996,
       "long_score": 0.09367236017193106,
       "short_score": 0.5105996124777001,
       "pred_return": -0.10886997077400336,
@@ -1174,8 +1214,8 @@
         "모의 숏 레그: 실제 공매도 가능 여부 미확인",
         "국민연금 리밸런싱 매도 압력(거시)"
       ],
-      "model_version": "poc-2M-2026-06-26"
+      "model_version": "poc-2M-2026-06-28"
     }
   ],
-  "disclaimer": "본 추천은 Top50 유니버스 내 시장별 상승·하락 랭킹 참고용이며 투자 권유가 아닙니다. 하락 추천은 모델 기반 하방 확률 신호이며 실제 공매도 가능성을 보장하지 않습니다."
+  "disclaimer": "본 리포트는 시장중립 랭크 스프레드 모의 결과이며 실제 공매도 체결, 대차 가능성, 세금, 슬리피지를 보장하지 않습니다. 투자 권유가 아니며 참고 신호입니다."
 }

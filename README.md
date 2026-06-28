@@ -91,7 +91,8 @@ streamlit run app_streamlit.py --server.address 0.0.0.0 --server.port 8501
 
 ## Public PoC (GitHub Pages)
 
-로컬 DuckDB 스냅샷을 `docs/` 정적 사이트로 export한 뒤 GitHub Pages에 배포합니다.
+로컬 DuckDB 스냅샷을 `docs/` 정적 **Top50 Daily Dashboard**로 export한 뒤 GitHub Pages에 배포합니다.
+(로컬 미리보기: `python -m http.server 8787 --directory reports/github_pages_site` 또는 export 후 `docs/`)
 
 ```bash
 # 데이터 갱신 + export + commit + push (한 번에)
@@ -100,11 +101,11 @@ streamlit run app_streamlit.py --server.address 0.0.0.0 --server.port 8501
 # DB가 이미 최신일 때 export + push만
 .venv/bin/python scripts/publish_github_pages.py --skip-refresh
 
-# 로컬 검증만 (push 생략)
-.venv/bin/python scripts/publish_github_pages.py --skip-refresh --skip-push
+# export only (8787 미리보기와 동일 구조 → docs/)
+.venv/bin/python scripts/export_github_pages_site.py --output docs
 ```
 
-- export only: `scripts/export_github_pages_snapshot.py`
+- legacy Today/up-down only export: `scripts/export_github_pages_snapshot.py`
 - 공개 URL (Pages 활성화 후): `https://junhyuk.github.io/stock_pred/`
 - GitHub 저장소 설정: Settings → Pages → Source = **GitHub Actions**
 - `.env`, DuckDB, models는 커밋되지 않습니다. `docs/` JSON/HTML만 push됩니다.

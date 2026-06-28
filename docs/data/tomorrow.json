@@ -15111,28 +15111,32 @@
   },
   "market_outlook": {
     "asof_date": "2026-06-26",
+    "target_date": "2026-06-29",
+    "horizon": "NEXT_TRADING_DAY",
+    "source_horizon": "TODAY",
     "status": "partial_ready",
     "source": "market_outlook_forecasts",
+    "range_multiplier": 1.25,
+    "calendar_source": "weekday_fallback",
     "summary": {
-      "count": 8,
+      "count": 4,
       "markets": [
         "KOSDAQ",
         "KOSPI"
       ],
       "horizons": [
-        "TODAY",
-        "WEEK"
+        "NEXT_TRADING_DAY"
       ]
     },
     "items": [
       {
         "asof_date": "2026-06-26T00:00:00",
         "target_date": "2026-06-29T00:00:00",
-        "horizon": "TODAY",
+        "horizon": "NEXT_TRADING_DAY",
         "market": "KOSPI",
         "expected_return": -0.013499731848054187,
-        "range_low": -0.028035085595859058,
-        "range_high": 0.0010356218997506824,
+        "range_low": -0.031668924032810276,
+        "range_high": 0.004669460336701899,
         "up_probability": 0.17650893774922927,
         "down_probability": 0.8234910622507707,
         "shock_probability": 0.32736389138667804,
@@ -15215,16 +15219,20 @@
           "model_sample_count": 1837,
           "feature_cutoff_date": "2026-06-26",
           "lookahead_guard": "features use asof_date-or-earlier only"
-        }
+        },
+        "source_horizon": "TODAY",
+        "source_range_low": -0.028035085595859058,
+        "source_range_high": 0.0010356218997506824,
+        "range_multiplier": 1.25
       },
       {
         "asof_date": "2026-06-26T00:00:00",
         "target_date": "2026-06-29T00:00:00",
-        "horizon": "TODAY",
+        "horizon": "NEXT_TRADING_DAY",
         "market": "KOSPI",
         "expected_return": 0.027807732869820908,
-        "range_low": 0.013272379122016039,
-        "range_high": 0.04234308661762578,
+        "range_low": 0.009638540685064822,
+        "range_high": 0.045976925054577,
         "up_probability": 0.9721330240397492,
         "down_probability": 0.027866975960250784,
         "shock_probability": 0.0005026028528334336,
@@ -15307,16 +15315,20 @@
           "model_sample_count": 1837,
           "feature_cutoff_date": "2026-06-26",
           "lookahead_guard": "features use asof_date-or-earlier only"
-        }
+        },
+        "source_horizon": "TODAY",
+        "source_range_low": 0.013272379122016039,
+        "source_range_high": 0.04234308661762578,
+        "range_multiplier": 1.25
       },
       {
         "asof_date": "2026-06-26T00:00:00",
         "target_date": "2026-06-29T00:00:00",
-        "horizon": "TODAY",
+        "horizon": "NEXT_TRADING_DAY",
         "market": "KOSDAQ",
         "expected_return": 0.002521063984421635,
-        "range_low": -0.014415297202440433,
-        "range_high": 0.019457425171283703,
+        "range_low": -0.01864938749915595,
+        "range_high": 0.02369151546799922,
         "up_probability": 0.5591660200377211,
         "down_probability": 0.4408339799622789,
         "shock_probability": 0.09180093365759956,
@@ -15399,16 +15411,20 @@
           "model_sample_count": 1837,
           "feature_cutoff_date": "2026-06-26",
           "lookahead_guard": "features use asof_date-or-earlier only"
-        }
+        },
+        "source_horizon": "TODAY",
+        "source_range_low": -0.014415297202440433,
+        "source_range_high": 0.019457425171283703,
+        "range_multiplier": 1.25
       },
       {
         "asof_date": "2026-06-26T00:00:00",
         "target_date": "2026-06-29T00:00:00",
-        "horizon": "TODAY",
+        "horizon": "NEXT_TRADING_DAY",
         "market": "KOSDAQ",
         "expected_return": -0.0024406876871057885,
-        "range_low": -0.019377048873967857,
-        "range_high": 0.014495673499756279,
+        "range_low": -0.023611139170683373,
+        "range_high": 0.018729763796471795,
         "up_probability": 0.4427070681213061,
         "down_probability": 0.5572929318786939,
         "shock_probability": 0.14991876213829464,
@@ -15491,375 +15507,11 @@
           "model_sample_count": 1837,
           "feature_cutoff_date": "2026-06-26",
           "lookahead_guard": "features use asof_date-or-earlier only"
-        }
-      },
-      {
-        "asof_date": "2026-06-26T00:00:00",
-        "target_date": "2026-07-03T00:00:00",
-        "horizon": "WEEK",
-        "market": "KOSPI",
-        "expected_return": 0.0001934669313771683,
-        "range_low": -0.02178169400028527,
-        "range_high": 0.02216862786303961,
-        "up_probability": 0.503512199159411,
-        "down_probability": 0.49648780084058897,
-        "shock_probability": 0.17906808953345804,
-        "direction": "NEUTRAL",
-        "confidence": 0.6621073194956465,
-        "drivers_json": "[{\"kind\": \"index_model\", \"label\": \"지수 직접 모델\", \"summary\": \"KOSPI WEEK 지수 momentum/volatility 기반\", \"value\": {\"index_expected_return\": -0.0013338144691151846, \"index_return_1d\": -0.05812682664636126, \"index_volatility_20d\": 0.048664268642288726}}, {\"kind\": \"breadth\", \"label\": \"Top50 breadth 모델\", \"summary\": \"Top50 상승 breadth와 기존 2M 예측 분포를 단기 시장 방향 보조 신호로 사용\", \"value\": {\"breadth_expected_return\": 0.0030298466751486814, \"top50_up_share_21d\": 0.26666666666666666, \"prediction_up_probability_avg\": 0.1467594283359739, \"prediction_down_probability_avg\": 0.23508730184516502}}, {\"kind\": \"koru\", \"label\": \"KORU/EWY\", \"summary\": \"미국장 한국 ETF와 3배 레버리지 심리\", \"value\": {\"koru_return_1d\": -0.12794753696146102, \"ewy_return_1d\": -0.041707317073170734, \"koru_ewy_spread_1d\": -0.08624021988829028, \"koru_impact_score\": 0.20314942872101438}}, {\"kind\": \"regime\", \"label\": \"글로벌 레짐\", \"summary\": \"해외 지수·반도체·선물·환율 위험 레짐\", \"value\": {\"global_risk_score\": 10.0, \"recommended_cash_ratio\": 0.05, \"semiconductor_score\": 0.0, \"futures_score\": 10.0}}, {\"kind\": \"news_telegram\", \"label\": \"뉴스/Telegram\", \"summary\": \"거시 뉴스와 Telegram 시장 attention을 원문 전문 없이 집계\", \"value\": {\"news_count_24h\": 0, \"news_sentiment_score\": 0.5, \"telegram_sentiment_score\": 0.5, \"telegram_risk_score\": 0.0}}]",
-        "data_quality_json": "{\"status\": \"partial_ready\", \"components\": {\"benchmark\": \"ready\", \"top50_breadth\": \"ready\", \"prediction_breadth\": \"ready\", \"koru\": \"ready\", \"regime\": \"ready\", \"telegram\": \"missing\", \"news\": \"ready\"}, \"messages\": [\"Telegram 시장 신호 데이터 부족: 중립값으로 전망을 생성했습니다.\"], \"model_sample_count\": 1837, \"feature_cutoff_date\": \"2026-06-26\", \"lookahead_guard\": \"features use asof_date-or-earlier only\"}",
-        "model_version": "market-outlook-v1-2026-06-28",
-        "created_at": "2026-06-28T06:59:12.361351",
-        "drivers": [
-          {
-            "kind": "index_model",
-            "label": "지수 직접 모델",
-            "summary": "KOSPI WEEK 지수 momentum/volatility 기반",
-            "value": {
-              "index_expected_return": -0.0013338144691151846,
-              "index_return_1d": -0.05812682664636126,
-              "index_volatility_20d": 0.048664268642288726
-            }
-          },
-          {
-            "kind": "breadth",
-            "label": "Top50 breadth 모델",
-            "summary": "Top50 상승 breadth와 기존 2M 예측 분포를 단기 시장 방향 보조 신호로 사용",
-            "value": {
-              "breadth_expected_return": 0.0030298466751486814,
-              "top50_up_share_21d": 0.26666666666666666,
-              "prediction_up_probability_avg": 0.1467594283359739,
-              "prediction_down_probability_avg": 0.23508730184516502
-            }
-          },
-          {
-            "kind": "koru",
-            "label": "KORU/EWY",
-            "summary": "미국장 한국 ETF와 3배 레버리지 심리",
-            "value": {
-              "koru_return_1d": -0.12794753696146102,
-              "ewy_return_1d": -0.041707317073170734,
-              "koru_ewy_spread_1d": -0.08624021988829028,
-              "koru_impact_score": 0.20314942872101438
-            }
-          },
-          {
-            "kind": "regime",
-            "label": "글로벌 레짐",
-            "summary": "해외 지수·반도체·선물·환율 위험 레짐",
-            "value": {
-              "global_risk_score": 10.0,
-              "recommended_cash_ratio": 0.05,
-              "semiconductor_score": 0.0,
-              "futures_score": 10.0
-            }
-          },
-          {
-            "kind": "news_telegram",
-            "label": "뉴스/Telegram",
-            "summary": "거시 뉴스와 Telegram 시장 attention을 원문 전문 없이 집계",
-            "value": {
-              "news_count_24h": 0,
-              "news_sentiment_score": 0.5,
-              "telegram_sentiment_score": 0.5,
-              "telegram_risk_score": 0.0
-            }
-          }
-        ],
-        "data_quality": {
-          "status": "partial_ready",
-          "components": {
-            "benchmark": "ready",
-            "top50_breadth": "ready",
-            "prediction_breadth": "ready",
-            "koru": "ready",
-            "regime": "ready",
-            "telegram": "missing",
-            "news": "ready"
-          },
-          "messages": [
-            "Telegram 시장 신호 데이터 부족: 중립값으로 전망을 생성했습니다."
-          ],
-          "model_sample_count": 1837,
-          "feature_cutoff_date": "2026-06-26",
-          "lookahead_guard": "features use asof_date-or-earlier only"
-        }
-      },
-      {
-        "asof_date": "2026-06-26T00:00:00",
-        "target_date": "2026-07-03T00:00:00",
-        "horizon": "WEEK",
-        "market": "KOSPI",
-        "expected_return": 0.00884183330040942,
-        "range_low": -0.013133327631253019,
-        "range_high": 0.03081699423207186,
-        "up_probability": 0.6562889003504672,
-        "down_probability": 0.34371109964953284,
-        "shock_probability": 0.09468008100908765,
-        "direction": "BULLISH",
-        "confidence": 0.7537733402102802,
-        "drivers_json": "[{\"kind\": \"index_model\", \"label\": \"지수 직접 모델\", \"summary\": \"KOSPI WEEK 지수 momentum/volatility 기반\", \"value\": {\"index_expected_return\": 0.011971364560165202, \"index_return_1d\": -0.05812682664636126, \"index_volatility_20d\": 0.048664268642288726}}, {\"kind\": \"breadth\", \"label\": \"Top50 breadth 모델\", \"summary\": \"Top50 상승 breadth와 기존 2M 예측 분포를 단기 시장 방향 보조 신호로 사용\", \"value\": {\"breadth_expected_return\": 0.0030298466751486814, \"top50_up_share_21d\": 0.26666666666666666, \"prediction_up_probability_avg\": 0.1467594283359739, \"prediction_down_probability_avg\": 0.23508730184516502}}, {\"kind\": \"koru\", \"label\": \"KORU/EWY\", \"summary\": \"미국장 한국 ETF와 3배 레버리지 심리\", \"value\": {\"koru_return_1d\": -0.12794753696146102, \"ewy_return_1d\": -0.041707317073170734, \"koru_ewy_spread_1d\": -0.08624021988829028, \"koru_impact_score\": 0.20314942872101438}}, {\"kind\": \"regime\", \"label\": \"글로벌 레짐\", \"summary\": \"해외 지수·반도체·선물·환율 위험 레짐\", \"value\": {\"global_risk_score\": 35.0, \"recommended_cash_ratio\": 0.15, \"semiconductor_score\": 25.0, \"futures_score\": 10.0}}, {\"kind\": \"news_telegram\", \"label\": \"뉴스/Telegram\", \"summary\": \"거시 뉴스와 Telegram 시장 attention을 원문 전문 없이 집계\", \"value\": {\"news_count_24h\": 0, \"news_sentiment_score\": 0.5, \"telegram_sentiment_score\": 0.5, \"telegram_risk_score\": 0.0}}]",
-        "data_quality_json": "{\"status\": \"partial_ready\", \"components\": {\"benchmark\": \"ready\", \"top50_breadth\": \"ready\", \"prediction_breadth\": \"ready\", \"koru\": \"ready\", \"regime\": \"ready\", \"telegram\": \"missing\", \"news\": \"ready\"}, \"messages\": [\"Telegram 시장 신호 데이터 부족: 중립값으로 전망을 생성했습니다.\"], \"model_sample_count\": 1837, \"feature_cutoff_date\": \"2026-06-26\", \"lookahead_guard\": \"features use asof_date-or-earlier only\"}",
-        "model_version": "market-outlook-v1-2026-06-28",
-        "created_at": "2026-06-28T06:59:12.361351",
-        "drivers": [
-          {
-            "kind": "index_model",
-            "label": "지수 직접 모델",
-            "summary": "KOSPI WEEK 지수 momentum/volatility 기반",
-            "value": {
-              "index_expected_return": 0.011971364560165202,
-              "index_return_1d": -0.05812682664636126,
-              "index_volatility_20d": 0.048664268642288726
-            }
-          },
-          {
-            "kind": "breadth",
-            "label": "Top50 breadth 모델",
-            "summary": "Top50 상승 breadth와 기존 2M 예측 분포를 단기 시장 방향 보조 신호로 사용",
-            "value": {
-              "breadth_expected_return": 0.0030298466751486814,
-              "top50_up_share_21d": 0.26666666666666666,
-              "prediction_up_probability_avg": 0.1467594283359739,
-              "prediction_down_probability_avg": 0.23508730184516502
-            }
-          },
-          {
-            "kind": "koru",
-            "label": "KORU/EWY",
-            "summary": "미국장 한국 ETF와 3배 레버리지 심리",
-            "value": {
-              "koru_return_1d": -0.12794753696146102,
-              "ewy_return_1d": -0.041707317073170734,
-              "koru_ewy_spread_1d": -0.08624021988829028,
-              "koru_impact_score": 0.20314942872101438
-            }
-          },
-          {
-            "kind": "regime",
-            "label": "글로벌 레짐",
-            "summary": "해외 지수·반도체·선물·환율 위험 레짐",
-            "value": {
-              "global_risk_score": 35.0,
-              "recommended_cash_ratio": 0.15,
-              "semiconductor_score": 25.0,
-              "futures_score": 10.0
-            }
-          },
-          {
-            "kind": "news_telegram",
-            "label": "뉴스/Telegram",
-            "summary": "거시 뉴스와 Telegram 시장 attention을 원문 전문 없이 집계",
-            "value": {
-              "news_count_24h": 0,
-              "news_sentiment_score": 0.5,
-              "telegram_sentiment_score": 0.5,
-              "telegram_risk_score": 0.0
-            }
-          }
-        ],
-        "data_quality": {
-          "status": "partial_ready",
-          "components": {
-            "benchmark": "ready",
-            "top50_breadth": "ready",
-            "prediction_breadth": "ready",
-            "koru": "ready",
-            "regime": "ready",
-            "telegram": "missing",
-            "news": "ready"
-          },
-          "messages": [
-            "Telegram 시장 신호 데이터 부족: 중립값으로 전망을 생성했습니다."
-          ],
-          "model_sample_count": 1837,
-          "feature_cutoff_date": "2026-06-26",
-          "lookahead_guard": "features use asof_date-or-earlier only"
-        }
-      },
-      {
-        "asof_date": "2026-06-26T00:00:00",
-        "target_date": "2026-07-03T00:00:00",
-        "horizon": "WEEK",
-        "market": "KOSDAQ",
-        "expected_return": 0.013223482677827126,
-        "range_low": -0.012760563858781333,
-        "range_high": 0.039207529214435585,
-        "up_probability": 0.6945915565455647,
-        "down_probability": 0.3054084434544353,
-        "shock_probability": 0.10051707144138772,
-        "direction": "BULLISH",
-        "confidence": 0.7767549339273387,
-        "drivers_json": "[{\"kind\": \"index_model\", \"label\": \"지수 직접 모델\", \"summary\": \"KOSDAQ WEEK 지수 momentum/volatility 기반\", \"value\": {\"index_expected_return\": 0.017886083400513047, \"index_return_1d\": -0.041044818148027074, \"index_volatility_20d\": 0.038705286381465115}}, {\"kind\": \"breadth\", \"label\": \"Top50 breadth 모델\", \"summary\": \"Top50 상승 breadth와 기존 2M 예측 분포를 단기 시장 방향 보조 신호로 사용\", \"value\": {\"breadth_expected_return\": 0.004564367049981842, \"top50_up_share_21d\": 0.2, \"prediction_up_probability_avg\": 0.3114712989879369, \"prediction_down_probability_avg\": 0.1797668269776655}}, {\"kind\": \"koru\", \"label\": \"KORU/EWY\", \"summary\": \"미국장 한국 ETF와 3배 레버리지 심리\", \"value\": {\"koru_return_1d\": -0.12794753696146102, \"ewy_return_1d\": -0.041707317073170734, \"koru_ewy_spread_1d\": -0.08624021988829028, \"koru_impact_score\": 0.20314942872101438}}, {\"kind\": \"regime\", \"label\": \"글로벌 레짐\", \"summary\": \"해외 지수·반도체·선물·환율 위험 레짐\", \"value\": {\"global_risk_score\": 10.0, \"recommended_cash_ratio\": 0.05, \"semiconductor_score\": 0.0, \"futures_score\": 10.0}}, {\"kind\": \"news_telegram\", \"label\": \"뉴스/Telegram\", \"summary\": \"거시 뉴스와 Telegram 시장 attention을 원문 전문 없이 집계\", \"value\": {\"news_count_24h\": 0, \"news_sentiment_score\": 0.5, \"telegram_sentiment_score\": 0.5, \"telegram_risk_score\": 0.0}}]",
-        "data_quality_json": "{\"status\": \"partial_ready\", \"components\": {\"benchmark\": \"ready\", \"top50_breadth\": \"ready\", \"prediction_breadth\": \"ready\", \"koru\": \"ready\", \"regime\": \"ready\", \"telegram\": \"missing\", \"news\": \"ready\"}, \"messages\": [\"Telegram 시장 신호 데이터 부족: 중립값으로 전망을 생성했습니다.\"], \"model_sample_count\": 1837, \"feature_cutoff_date\": \"2026-06-26\", \"lookahead_guard\": \"features use asof_date-or-earlier only\"}",
-        "model_version": "market-outlook-v1-2026-06-28",
-        "created_at": "2026-06-28T06:59:12.361351",
-        "drivers": [
-          {
-            "kind": "index_model",
-            "label": "지수 직접 모델",
-            "summary": "KOSDAQ WEEK 지수 momentum/volatility 기반",
-            "value": {
-              "index_expected_return": 0.017886083400513047,
-              "index_return_1d": -0.041044818148027074,
-              "index_volatility_20d": 0.038705286381465115
-            }
-          },
-          {
-            "kind": "breadth",
-            "label": "Top50 breadth 모델",
-            "summary": "Top50 상승 breadth와 기존 2M 예측 분포를 단기 시장 방향 보조 신호로 사용",
-            "value": {
-              "breadth_expected_return": 0.004564367049981842,
-              "top50_up_share_21d": 0.2,
-              "prediction_up_probability_avg": 0.3114712989879369,
-              "prediction_down_probability_avg": 0.1797668269776655
-            }
-          },
-          {
-            "kind": "koru",
-            "label": "KORU/EWY",
-            "summary": "미국장 한국 ETF와 3배 레버리지 심리",
-            "value": {
-              "koru_return_1d": -0.12794753696146102,
-              "ewy_return_1d": -0.041707317073170734,
-              "koru_ewy_spread_1d": -0.08624021988829028,
-              "koru_impact_score": 0.20314942872101438
-            }
-          },
-          {
-            "kind": "regime",
-            "label": "글로벌 레짐",
-            "summary": "해외 지수·반도체·선물·환율 위험 레짐",
-            "value": {
-              "global_risk_score": 10.0,
-              "recommended_cash_ratio": 0.05,
-              "semiconductor_score": 0.0,
-              "futures_score": 10.0
-            }
-          },
-          {
-            "kind": "news_telegram",
-            "label": "뉴스/Telegram",
-            "summary": "거시 뉴스와 Telegram 시장 attention을 원문 전문 없이 집계",
-            "value": {
-              "news_count_24h": 0,
-              "news_sentiment_score": 0.5,
-              "telegram_sentiment_score": 0.5,
-              "telegram_risk_score": 0.0
-            }
-          }
-        ],
-        "data_quality": {
-          "status": "partial_ready",
-          "components": {
-            "benchmark": "ready",
-            "top50_breadth": "ready",
-            "prediction_breadth": "ready",
-            "koru": "ready",
-            "regime": "ready",
-            "telegram": "missing",
-            "news": "ready"
-          },
-          "messages": [
-            "Telegram 시장 신호 데이터 부족: 중립값으로 전망을 생성했습니다."
-          ],
-          "model_sample_count": 1837,
-          "feature_cutoff_date": "2026-06-26",
-          "lookahead_guard": "features use asof_date-or-earlier only"
-        }
-      },
-      {
-        "asof_date": "2026-06-26T00:00:00",
-        "target_date": "2026-07-03T00:00:00",
-        "horizon": "WEEK",
-        "market": "KOSDAQ",
-        "expected_return": -0.03690897304476838,
-        "range_low": -0.06289301958137684,
-        "range_high": -0.010924926508159922,
-        "up_probability": 0.07773872630041456,
-        "down_probability": 0.9222612736995854,
-        "shock_probability": 0.7423942550167787,
-        "direction": "BEARISH",
-        "confidence": 0.8599999999999999,
-        "drivers_json": "[{\"kind\": \"index_model\", \"label\": \"지수 직접 모델\", \"summary\": \"KOSDAQ WEEK 지수 momentum/volatility 기반\", \"value\": {\"index_expected_return\": -0.05924077155732618, \"index_return_1d\": -0.041044818148027074, \"index_volatility_20d\": 0.038705286381465115}}, {\"kind\": \"breadth\", \"label\": \"Top50 breadth 모델\", \"summary\": \"Top50 상승 breadth와 기존 2M 예측 분포를 단기 시장 방향 보조 신호로 사용\", \"value\": {\"breadth_expected_return\": 0.004564367049981842, \"top50_up_share_21d\": 0.2, \"prediction_up_probability_avg\": 0.3114712989879369, \"prediction_down_probability_avg\": 0.1797668269776655}}, {\"kind\": \"koru\", \"label\": \"KORU/EWY\", \"summary\": \"미국장 한국 ETF와 3배 레버리지 심리\", \"value\": {\"koru_return_1d\": -0.12794753696146102, \"ewy_return_1d\": -0.041707317073170734, \"koru_ewy_spread_1d\": -0.08624021988829028, \"koru_impact_score\": 0.20314942872101438}}, {\"kind\": \"regime\", \"label\": \"글로벌 레짐\", \"summary\": \"해외 지수·반도체·선물·환율 위험 레짐\", \"value\": {\"global_risk_score\": 35.0, \"recommended_cash_ratio\": 0.15, \"semiconductor_score\": 25.0, \"futures_score\": 10.0}}, {\"kind\": \"news_telegram\", \"label\": \"뉴스/Telegram\", \"summary\": \"거시 뉴스와 Telegram 시장 attention을 원문 전문 없이 집계\", \"value\": {\"news_count_24h\": 0, \"news_sentiment_score\": 0.5, \"telegram_sentiment_score\": 0.5, \"telegram_risk_score\": 0.0}}]",
-        "data_quality_json": "{\"status\": \"partial_ready\", \"components\": {\"benchmark\": \"ready\", \"top50_breadth\": \"ready\", \"prediction_breadth\": \"ready\", \"koru\": \"ready\", \"regime\": \"ready\", \"telegram\": \"missing\", \"news\": \"ready\"}, \"messages\": [\"Telegram 시장 신호 데이터 부족: 중립값으로 전망을 생성했습니다.\"], \"model_sample_count\": 1837, \"feature_cutoff_date\": \"2026-06-26\", \"lookahead_guard\": \"features use asof_date-or-earlier only\"}",
-        "model_version": "market-outlook-v1-2026-06-28",
-        "created_at": "2026-06-28T06:59:12.361351",
-        "drivers": [
-          {
-            "kind": "index_model",
-            "label": "지수 직접 모델",
-            "summary": "KOSDAQ WEEK 지수 momentum/volatility 기반",
-            "value": {
-              "index_expected_return": -0.05924077155732618,
-              "index_return_1d": -0.041044818148027074,
-              "index_volatility_20d": 0.038705286381465115
-            }
-          },
-          {
-            "kind": "breadth",
-            "label": "Top50 breadth 모델",
-            "summary": "Top50 상승 breadth와 기존 2M 예측 분포를 단기 시장 방향 보조 신호로 사용",
-            "value": {
-              "breadth_expected_return": 0.004564367049981842,
-              "top50_up_share_21d": 0.2,
-              "prediction_up_probability_avg": 0.3114712989879369,
-              "prediction_down_probability_avg": 0.1797668269776655
-            }
-          },
-          {
-            "kind": "koru",
-            "label": "KORU/EWY",
-            "summary": "미국장 한국 ETF와 3배 레버리지 심리",
-            "value": {
-              "koru_return_1d": -0.12794753696146102,
-              "ewy_return_1d": -0.041707317073170734,
-              "koru_ewy_spread_1d": -0.08624021988829028,
-              "koru_impact_score": 0.20314942872101438
-            }
-          },
-          {
-            "kind": "regime",
-            "label": "글로벌 레짐",
-            "summary": "해외 지수·반도체·선물·환율 위험 레짐",
-            "value": {
-              "global_risk_score": 35.0,
-              "recommended_cash_ratio": 0.15,
-              "semiconductor_score": 25.0,
-              "futures_score": 10.0
-            }
-          },
-          {
-            "kind": "news_telegram",
-            "label": "뉴스/Telegram",
-            "summary": "거시 뉴스와 Telegram 시장 attention을 원문 전문 없이 집계",
-            "value": {
-              "news_count_24h": 0,
-              "news_sentiment_score": 0.5,
-              "telegram_sentiment_score": 0.5,
-              "telegram_risk_score": 0.0
-            }
-          }
-        ],
-        "data_quality": {
-          "status": "partial_ready",
-          "components": {
-            "benchmark": "ready",
-            "top50_breadth": "ready",
-            "prediction_breadth": "ready",
-            "koru": "ready",
-            "regime": "ready",
-            "telegram": "missing",
-            "news": "ready"
-          },
-          "messages": [
-            "Telegram 시장 신호 데이터 부족: 중립값으로 전망을 생성했습니다."
-          ],
-          "model_sample_count": 1837,
-          "feature_cutoff_date": "2026-06-26",
-          "lookahead_guard": "features use asof_date-or-earlier only"
-        }
+        },
+        "source_horizon": "TODAY",
+        "source_range_low": -0.019377048873967857,
+        "source_range_high": 0.014495673499756279,
+        "range_multiplier": 1.25
       }
     ],
     "data_quality": {
@@ -15871,14 +15523,20 @@
         "koru": "ready",
         "regime": "ready",
         "telegram": "missing",
-        "news": "ready"
+        "news": "ready",
+        "next_day_outlook": "ready",
+        "next_trading_day_calendar": "fallback"
       },
       "messages": [
-        "Telegram 시장 신호 데이터 부족: 중립값으로 전망을 생성했습니다."
+        "Telegram 시장 신호 데이터 부족: 중립값으로 전망을 생성했습니다.",
+        "pykrx business-day helper를 위한 KRX_ID/PW가 없어 weekday fallback으로 다음 거래일을 계산했습니다."
       ],
       "model_sample_count": 1837,
       "feature_cutoff_date": "2026-06-26",
-      "lookahead_guard": "features use asof_date-or-earlier only"
+      "lookahead_guard": "features use asof_date-or-earlier only",
+      "source_horizon": "TODAY",
+      "range_multiplier": 1.25,
+      "calendar_source": "weekday_fallback"
     }
   },
   "koru_linkage": {
@@ -15956,8 +15614,8 @@
       }
     },
     "weight_decisions": {
-      "6M": 0.0,
       "2M": 0.0,
+      "6M": 0.0,
       "3M": 0.0
     },
     "leverage_warning": "KORU는 일간 3배 레버리지 ETF입니다. 장기 보유 시 기초지수 수익률의 단순 3배와 다르게 움직일 수 있으며, 변동성, 일일 리밸런싱, 복리 효과로 손실이 확대될 수 있습니다. 본 화면은 투자 참고용 분석이며 매수/매도 추천이 아닙니다."
@@ -15970,12 +15628,19 @@
       "supply_flows": "missing",
       "market_regime": "ready",
       "global_markets": "ready",
-      "news": "ready"
+      "news": "ready",
+      "next_day_outlook": "ready",
+      "next_trading_day_calendar": "fallback",
+      "next_day_long_short_range": "ready",
+      "credit_balance": "missing"
     },
     "messages": [
       "Yahoo/yfinance 원본 가격이 오래되어 국내/글로벌 최신 데이터로 대체 표시",
       "거시 뉴스 피드 기준(종목별 네이버 뉴스 없음)",
-      "수급 데이터 미수집: KOSPI: \"None of [Index(['종가', '시가총액', '거래량', '거래대금'], dtype='object')] are in the [columns]\"; KOSDAQ: \"None of [Index(['종가', '시가총액', '거래량', '거래대금'], dtype='obje"
+      "수급 데이터 미수집: KOSPI: \"None of [Index(['종가', '시가총액', '거래량', '거래대금'], dtype='object')] are in the [columns]\"; KOSDAQ: \"None of [Index(['종가', '시가총액', '거래량', '거래대금'], dtype='obje",
+      "Telegram 시장 신호 데이터 부족: 중립값으로 전망을 생성했습니다.",
+      "pykrx business-day helper를 위한 KRX_ID/PW가 없어 weekday fallback으로 다음 거래일을 계산했습니다.",
+      "신용잔고 데이터가 없어 중립 pressure로 숏·롱 범위를 계산했습니다."
     ],
     "freshness": {
       "status": "ready",
@@ -15989,7 +15654,7 @@
       ]
     }
   },
-  "disclaimer": "오늘 시장 업데이트는 연구·정보제공용이며 투자 결과를 보장하지 않습니다.",
+  "disclaimer": "다음 거래일 시장 예측은 연구·정보제공용이며 투자 결과를 보장하지 않습니다.",
   "macro_news": [
     {
       "article_id": "ee1ea7efd291400cd96776c254117b1b4ba785958521b7cb903b2f0a28d1fe1f",
@@ -16571,5 +16236,140 @@
       ],
       "lookahead_guard": "global daily data uses target_date - 1 or earlier"
     }
-  }
+  },
+  "long_short_range": {
+    "status": "partial_ready",
+    "asof_date": "2026-06-26",
+    "target_date": "2026-06-29",
+    "items": [
+      {
+        "market": "KOSPI",
+        "asof_date": "2026-06-26",
+        "target_date": "2026-06-29",
+        "long_center": 0.25,
+        "long_low": 0.13252828346504675,
+        "long_high": 0.36747171653495325,
+        "short_low": 0.6325282834650467,
+        "short_high": 0.8674717165349533,
+        "band": 0.11747171653495325,
+        "expected_return": -0.013499731848054187,
+        "up_probability": 0.17650893774922927,
+        "down_probability": 0.8234910622507707,
+        "shock_probability": 0.32736389138667804,
+        "confidence": 0.8540946373504623,
+        "credit_delta_1d_pct": null,
+        "credit_delta_5d_pct": null,
+        "credit_delta_20d_pct": null,
+        "credit_overheat_score": 0.5,
+        "credit_deleveraging_score": 0.5,
+        "credit_pressure_score": 0.5,
+        "credit_balance_date": null,
+        "credit_balance_krw": null,
+        "credit_source": null,
+        "basis": "market_outlook + market_credit_balance_daily",
+        "disclaimer": "실제 주문·공매도 지시가 아닌 다음 거래일 시장별 모의 노출 범위입니다."
+      },
+      {
+        "market": "KOSPI",
+        "asof_date": "2026-06-26",
+        "target_date": "2026-06-29",
+        "long_center": 0.75,
+        "long_low": 0.6457798958858867,
+        "long_high": 0.8542201041141133,
+        "short_low": 0.1457798958858867,
+        "short_high": 0.3542201041141133,
+        "band": 0.10422010411411335,
+        "expected_return": 0.027807732869820908,
+        "up_probability": 0.9721330240397492,
+        "down_probability": 0.027866975960250784,
+        "shock_probability": 0.0005026028528334336,
+        "confidence": 0.8599999999999999,
+        "credit_delta_1d_pct": null,
+        "credit_delta_5d_pct": null,
+        "credit_delta_20d_pct": null,
+        "credit_overheat_score": 0.5,
+        "credit_deleveraging_score": 0.5,
+        "credit_pressure_score": 0.5,
+        "credit_balance_date": null,
+        "credit_balance_krw": null,
+        "credit_source": null,
+        "basis": "market_outlook + market_credit_balance_daily",
+        "disclaimer": "실제 주문·공매도 지시가 아닌 다음 거래일 시장별 모의 노출 범위입니다."
+      },
+      {
+        "market": "KOSDAQ",
+        "asof_date": "2026-06-26",
+        "target_date": "2026-06-29",
+        "long_center": 0.4916353312870617,
+        "long_low": 0.3788282823014367,
+        "long_high": 0.6044423802726867,
+        "short_low": 0.3955576197273133,
+        "short_high": 0.6211717176985633,
+        "band": 0.11280704898562502,
+        "expected_return": 0.002521063984421635,
+        "up_probability": 0.5591660200377211,
+        "down_probability": 0.4408339799622789,
+        "shock_probability": 0.09180093365759956,
+        "confidence": 0.6954996120226326,
+        "credit_delta_1d_pct": null,
+        "credit_delta_5d_pct": null,
+        "credit_delta_20d_pct": null,
+        "credit_overheat_score": 0.5,
+        "credit_deleveraging_score": 0.5,
+        "credit_pressure_score": 0.5,
+        "credit_balance_date": null,
+        "credit_balance_krw": null,
+        "credit_source": null,
+        "basis": "market_outlook + market_credit_balance_daily",
+        "disclaimer": "실제 주문·공매도 지시가 아닌 다음 거래일 시장별 모의 노출 범위입니다."
+      },
+      {
+        "market": "KOSDAQ",
+        "asof_date": "2026-06-26",
+        "target_date": "2026-06-29",
+        "long_center": 0.39057938365253336,
+        "long_low": 0.27541390594081805,
+        "long_high": 0.5057448613642487,
+        "short_low": 0.4942551386357513,
+        "short_high": 0.724586094059182,
+        "band": 0.11516547771171531,
+        "expected_return": -0.0024406876871057885,
+        "up_probability": 0.4427070681213061,
+        "down_probability": 0.5572929318786939,
+        "shock_probability": 0.14991876213829464,
+        "confidence": 0.6943757591272163,
+        "credit_delta_1d_pct": null,
+        "credit_delta_5d_pct": null,
+        "credit_delta_20d_pct": null,
+        "credit_overheat_score": 0.5,
+        "credit_deleveraging_score": 0.5,
+        "credit_pressure_score": 0.5,
+        "credit_balance_date": null,
+        "credit_balance_krw": null,
+        "credit_source": null,
+        "basis": "market_outlook + market_credit_balance_daily",
+        "disclaimer": "실제 주문·공매도 지시가 아닌 다음 거래일 시장별 모의 노출 범위입니다."
+      }
+    ],
+    "summary": {
+      "count": 4,
+      "markets": [
+        "KOSDAQ",
+        "KOSPI"
+      ]
+    },
+    "data_quality": {
+      "status": "partial_ready",
+      "components": {
+        "market_outlook": "ready",
+        "credit_balance": "missing"
+      },
+      "messages": [
+        "신용잔고 데이터가 없어 중립 pressure로 숏·롱 범위를 계산했습니다."
+      ]
+    },
+    "disclaimer": "다음 거래일 숏·롱 범위는 정보제공용 시뮬레이션이며 투자 결과를 보장하지 않습니다."
+  },
+  "next_trading_day": "2026-06-29",
+  "range_multiplier": 1.25
 }

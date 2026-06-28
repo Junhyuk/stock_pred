@@ -1,0 +1,39 @@
+{
+  "status": "ready",
+  "asof_date": "2026-06-26",
+  "summary": {
+    "count": 1,
+    "negative_max": 0.0,
+    "source_diversity_max": 0.2
+  },
+  "items": [
+    {
+      "signal_date": "2026-06-26 00:00:00",
+      "scope": "market",
+      "symbol": "ALL",
+      "headline_count_1d": 0,
+      "headline_count_3d": 3,
+      "sentiment_avg_3d": 0.5,
+      "urgency_avg_3d": 0.0,
+      "risk_avg_3d": 0.0,
+      "news_headline_count_1d": 0.0,
+      "news_headline_count_3d": 3.0,
+      "news_attention_score": 0.3,
+      "news_sentiment_score": 0.5,
+      "news_urgency_score": 0.0,
+      "news_risk_score": 0.0,
+      "news_semiconductor_score": 0.0,
+      "news_macro_score": 1.0,
+      "news_flow_score": 0.0,
+      "news_negative_count_3d": 0.0,
+      "news_negative_ratio_3d": 0.0,
+      "news_negative_attention_score": 0.0,
+      "news_bias_adjusted_sentiment_score": 0.5,
+      "news_source_diversity_score": 0.2,
+      "themes_json": "[\"RATE\"]",
+      "evidence_json": "[{\"date\": \"2026-06-25\", \"source\": \"fed_press\", \"title\": \"Federal Reserve Board announces termination of enforcement action with Jiko Group, Inc.\", \"link\": \"https://www.federalreserve.gov/newsevents/pressreleases/enforcement20260625a.htm\", \"negative\": false, \"negative_keywords\": []}, {\"date\": \"2026-06-25\", \"source\": \"fed_press\", \"title\": \"Federal Reserve Board issues enforcement action with employee of Bank of Eufaula and S N B Bancshares, Inc.\", \"link\": \"https://www.federalreserve.gov/newsevents/pressreleases/enforcement20260625b.htm\", \"negative\": false, \"negative_keywords\": []}, {\"date\": \"2026-06-24\", \"source\": \"fed_press\", \"title\": \"Federal Reserve Board's annual bank stress test confirms that large banks are well positioned to weather a severe recession and able to continue to lend to hou...\", \"link\": \"https://www.federalreserve.gov/newsevents/pressreleases/bcreg20260624a.htm\", \"negative\": false, \"negative_keywords\": []}]",
+      "created_at": "2026-06-28 06:51:35.834356"
+    }
+  ],
+  "messages": []
+}

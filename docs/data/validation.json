@@ -1,0 +1,16 @@
+{
+  "status": "ready",
+  "can_publish": true,
+  "counts": {
+    "top20": 20,
+    "top50": 50,
+    "long_short": 20,
+    "news": 32,
+    "news_signals": 1,
+    "market_moves": 44,
+    "tomorrow_markets": 4
+  },
+  "errors": [],
+  "warnings": [],
+  "messages": []
+}

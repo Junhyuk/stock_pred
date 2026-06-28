@@ -1,0 +1,1292 @@
+{
+  "snapshot_date": "2026-06-26",
+  "disclaimer": "본 서비스는 투자 참고용 정보이며, 투자 판단과 책임은 사용자 본인에게 있습니다. 과거 수익률과 백테스트 결과가 미래 수익을 보장하지 않습니다.",
+  "position_summary": {
+    "quant": {
+      "long_term": "상방",
+      "short_term": "중립",
+      "cash_ratio": 0.3
+    },
+    "ai_robo": {
+      "kospi": "NEUTRAL",
+      "kosdaq": "NEUTRAL",
+      "sp500": "NEUTRAL",
+      "cash_ratio": 0.25
+    }
+  },
+  "theme_data": {
+    "top_sector": "통신 및 방송 장비 제조업",
+    "sectors": [
+      {
+        "sector": "통신 및 방송 장비 제조업",
+        "score": 0.7021570597064325,
+        "count": 2,
+        "avg_risk": 0.22
+      },
+      {
+        "sector": "보험업",
+        "score": 0.6829934128252713,
+        "count": 2,
+        "avg_risk": 0.2577777777777778
+      },
+      {
+        "sector": "반도체 제조업",
+        "score": 0.6707977671063414,
+        "count": 2,
+        "avg_risk": 0.23777777777777778
+      },
+      {
+        "sector": "기타 금융업",
+        "score": 0.5295677039054365,
+        "count": 8,
+        "avg_risk": 0.2419363077659829
+      },
+      {
+        "sector": "전동기, 발전기 및 전기 변환 · 공급 · 제어 장치 제조업",
+        "score": 0.4943474740241919,
+        "count": 4,
+        "avg_risk": 0.2633333333333333
+      },
+      {
+        "sector": "KOSDAQ",
+        "score": 0.44321769263798416,
+        "count": 16,
+        "avg_risk": 0.32333333333333336
+      },
+      {
+        "sector": "일차전지 및 이차전지 제조업",
+        "score": 0.43776744808924845,
+        "count": 2,
+        "avg_risk": 0.24
+      },
+      {
+        "sector": "자동차 신품 부품 제조업",
+        "score": 0.4188952306249766,
+        "count": 2,
+        "avg_risk": 0.2644444444444444
+      },
+      {
+        "sector": "자료처리, 호스팅, 포털 및 기타 인터넷 정보매개 서비스업",
+        "score": 0.4183911443168033,
+        "count": 2,
+        "avg_risk": 0.21777777777777776
+      }
+    ]
+  },
+  "ai_recommendations": [
+    {
+      "rank": 1,
+      "symbol": "005930",
+      "name": "삼성전자",
+      "market": "KOSPI",
+      "sector": "통신 및 방송 장비 제조업",
+      "final_score": 0.7021570597064325,
+      "up_probability": 0.44616302773266414,
+      "expected_return": 0.3494842499468122,
+      "risk": 0.22,
+      "reason_json": "[\"예측 초과수익률 순위가 상위권\", \"가격 모멘텀 점수가 우수\", \"최근 신규 커버리지 리포트 발생\", \"거래대금 기반 유동성이 양호\"]",
+      "risk_flags_json": "[]"
+    },
+    {
+      "rank": 1,
+      "symbol": "005930",
+      "name": "삼성전자",
+      "market": "KOSPI",
+      "sector": "통신 및 방송 장비 제조업",
+      "final_score": 0.7021570597064325,
+      "up_probability": 0.5,
+      "expected_return": 0.0,
+      "risk": 0.22,
+      "reason_json": "[\"예측 초과수익률 순위가 상위권\", \"가격 모멘텀 점수가 우수\", \"최근 신규 커버리지 리포트 발생\", \"거래대금 기반 유동성이 양호\"]",
+      "risk_flags_json": "[]"
+    },
+    {
+      "rank": 2,
+      "symbol": "032830",
+      "name": "삼성생명",
+      "market": "KOSPI",
+      "sector": "보험업",
+      "final_score": 0.6829934128252713,
+      "up_probability": 0.5558541953737908,
+      "expected_return": 0.18059971150539253,
+      "risk": 0.2577777777777778,
+      "reason_json": "[\"예측 초과수익률 순위가 상위권\", \"가격 모멘텀 점수가 우수\", \"최근 신규 커버리지 리포트 발생\"]",
+      "risk_flags_json": "[]"
+    },
+    {
+      "rank": 2,
+      "symbol": "032830",
+      "name": "삼성생명",
+      "market": "KOSPI",
+      "sector": "보험업",
+      "final_score": 0.6829934128252713,
+      "up_probability": 0.5,
+      "expected_return": 0.0,
+      "risk": 0.2577777777777778,
+      "reason_json": "[\"예측 초과수익률 순위가 상위권\", \"가격 모멘텀 점수가 우수\", \"최근 신규 커버리지 리포트 발생\"]",
+      "risk_flags_json": "[]"
+    },
+    {
+      "rank": 3,
+      "symbol": "402340",
+      "name": "SK스퀘어",
+      "market": "KOSPI",
+      "sector": "기타 금융업",
+      "final_score": 0.6755571320560065,
+      "up_probability": 0.44311693635465843,
+      "expected_return": 0.15701289956636677,
+      "risk": 0.25266897834062013,
+      "reason_json": "[\"예측 초과수익률 순위가 상위권\", \"가격 모멘텀 점수가 우수\", \"최근 신규 커버리지 리포트 발생\", \"거래대금 기반 유동성이 양호\"]",
+      "risk_flags_json": "[\"RSI 단기 과열\"]"
+    },
+    {
+      "rank": 3,
+      "symbol": "402340",
+      "name": "SK스퀘어",
+      "market": "KOSPI",
+      "sector": "기타 금융업",
+      "final_score": 0.6755571320560065,
+      "up_probability": 0.5,
+      "expected_return": 0.0,
+      "risk": 0.25266897834062013,
+      "reason_json": "[\"예측 초과수익률 순위가 상위권\", \"가격 모멘텀 점수가 우수\", \"최근 신규 커버리지 리포트 발생\", \"거래대금 기반 유동성이 양호\"]",
+      "risk_flags_json": "[\"RSI 단기 과열\"]"
+    },
+    {
+      "rank": 4,
+      "symbol": "000660",
+      "name": "SK하이닉스",
+      "market": "KOSPI",
+      "sector": "반도체 제조업",
+      "final_score": 0.6707977671063414,
+      "up_probability": 0.47672377903399116,
+      "expected_return": 0.08484198528368492,
+      "risk": 0.23777777777777778,
+      "reason_json": "[\"예측 초과수익률 순위가 상위권\", \"가격 모멘텀 점수가 우수\", \"최근 신규 커버리지 리포트 발생\", \"거래대금 기반 유동성이 양호\"]",
+      "risk_flags_json": "[]"
+    },
+    {
+      "rank": 4,
+      "symbol": "000660",
+      "name": "SK하이닉스",
+      "market": "KOSPI",
+      "sector": "반도체 제조업",
+      "final_score": 0.6707977671063414,
+      "up_probability": 0.5,
+      "expected_return": 0.0,
+      "risk": 0.23777777777777778,
+      "reason_json": "[\"예측 초과수익률 순위가 상위권\", \"가격 모멘텀 점수가 우수\", \"최근 신규 커버리지 리포트 발생\", \"거래대금 기반 유동성이 양호\"]",
+      "risk_flags_json": "[]"
+    },
+    {
+      "rank": 5,
+      "symbol": "034730",
+      "name": "SK",
+      "market": "KOSPI",
+      "sector": "기타 금융업",
+      "final_score": 0.6671760500531768,
+      "up_probability": 0.46451482710493713,
+      "expected_return": 0.4763254756247789,
+      "risk": 0.27952069716775596,
+      "reason_json": "[\"예측 초과수익률 순위가 상위권\", \"가격 모멘텀 점수가 우수\", \"최근 신규 커버리지 리포트 발생\"]",
+      "risk_flags_json": "[\"RSI 단기 과열\"]"
+    },
+    {
+      "rank": 5,
+      "symbol": "034730",
+      "name": "SK",
+      "market": "KOSPI",
+      "sector": "기타 금융업",
+      "final_score": 0.6671760500531768,
+      "up_probability": 0.5,
+      "expected_return": 0.0,
+      "risk": 0.27952069716775596,
+      "reason_json": "[\"예측 초과수익률 순위가 상위권\", \"가격 모멘텀 점수가 우수\", \"최근 신규 커버리지 리포트 발생\"]",
+      "risk_flags_json": "[\"RSI 단기 과열\"]"
+    },
+    {
+      "rank": 6,
+      "symbol": "000250",
+      "name": "삼천당제약",
+      "market": "KOSDAQ",
+      "sector": "KOSDAQ",
+      "final_score": 0.5084727437489623,
+      "up_probability": 0.37658879166370185,
+      "expected_return": 0.8576096477092664,
+      "risk": 0.3466666666666667,
+      "reason_json": "[\"예측 초과수익률 순위가 상위권\", \"최근 신규 커버리지 리포트 발생\", \"종합 점수 기준 상위 추천군\"]",
+      "risk_flags_json": "[\"상대적 유동성 낮음\"]"
+    },
+    {
+      "rank": 6,
+      "symbol": "000250",
+      "name": "삼천당제약",
+      "market": "KOSDAQ",
+      "sector": "KOSDAQ",
+      "final_score": 0.5084727437489623,
+      "up_probability": 0.5,
+      "expected_return": 0.0,
+      "risk": 0.3466666666666667,
+      "reason_json": "[\"예측 초과수익률 순위가 상위권\", \"최근 신규 커버리지 리포트 발생\", \"종합 점수 기준 상위 추천군\"]",
+      "risk_flags_json": "[\"상대적 유동성 낮음\"]"
+    },
+    {
+      "rank": 7,
+      "symbol": "010120",
+      "name": "LS ELECTRIC",
+      "market": "KOSPI",
+      "sector": "전동기, 발전기 및 전기 변환 · 공급 · 제어 장치 제조업",
+      "final_score": 0.5046861599890737,
+      "up_probability": 0.2345001396513214,
+      "expected_return": 0.008128250575464393,
+      "risk": 0.2644444444444444,
+      "reason_json": "[\"최근 신규 커버리지 리포트 발생\", \"거래대금 기반 유동성이 양호\", \"종합 점수 기준 상위 추천군\"]",
+      "risk_flags_json": "[]"
+    },
+    {
+      "rank": 7,
+      "symbol": "010120",
+      "name": "LS ELECTRIC",
+      "market": "KOSPI",
+      "sector": "전동기, 발전기 및 전기 변환 · 공급 · 제어 장치 제조업",
+      "final_score": 0.5046861599890737,
+      "up_probability": 0.5,
+      "expected_return": 0.0,
+      "risk": 0.2644444444444444,
+      "reason_json": "[\"최근 신규 커버리지 리포트 발생\", \"거래대금 기반 유동성이 양호\", \"종합 점수 기준 상위 추천군\"]",
+      "risk_flags_json": "[]"
+    },
+    {
+      "rank": 8,
+      "symbol": "214370",
+      "name": "케어젠",
+      "market": "KOSDAQ",
+      "sector": "KOSDAQ",
+      "final_score": 0.486481224394092,
+      "up_probability": 0.38788286334819944,
+      "expected_return": 0.2417163396682364,
+      "risk": 0.34888888888888897,
+      "reason_json": "[\"예측 초과수익률 순위가 상위권\", \"최근 신규 커버리지 리포트 발생\", \"종합 점수 기준 상위 추천군\"]",
+      "risk_flags_json": "[\"상대적 유동성 낮음\"]"
+    },
+    {
+      "rank": 8,
+      "symbol": "214370",
+      "name": "케어젠",
+      "market": "KOSDAQ",
+      "sector": "KOSDAQ",
+      "final_score": 0.486481224394092,
+      "up_probability": 0.5,
+      "expected_return": 0.0,
+      "risk": 0.34888888888888897,
+      "reason_json": "[\"예측 초과수익률 순위가 상위권\", \"최근 신규 커버리지 리포트 발생\", \"종합 점수 기준 상위 추천군\"]",
+      "risk_flags_json": "[\"상대적 유동성 낮음\"]"
+    },
+    {
+      "rank": 9,
+      "symbol": "298040",
+      "name": "효성중공업",
+      "market": "KOSPI",
+      "sector": "전동기, 발전기 및 전기 변환 · 공급 · 제어 장치 제조업",
+      "final_score": 0.4840087880593101,
+      "up_probability": 0.2455806642964412,
+      "expected_return": 0.0034930602187000564,
+      "risk": 0.2622222222222222,
+      "reason_json": "[\"최근 신규 커버리지 리포트 발생\", \"종합 점수 기준 상위 추천군\", \"추가 정량 근거는 후속 데이터 수집 후 보강 필요\"]",
+      "risk_flags_json": "[]"
+    },
+    {
+      "rank": 9,
+      "symbol": "298040",
+      "name": "효성중공업",
+      "market": "KOSPI",
+      "sector": "전동기, 발전기 및 전기 변환 · 공급 · 제어 장치 제조업",
+      "final_score": 0.4840087880593101,
+      "up_probability": 0.5,
+      "expected_return": 0.0,
+      "risk": 0.2622222222222222,
+      "reason_json": "[\"최근 신규 커버리지 리포트 발생\", \"종합 점수 기준 상위 추천군\", \"추가 정량 근거는 후속 데이터 수집 후 보강 필요\"]",
+      "risk_flags_json": "[]"
+    },
+    {
+      "rank": 10,
+      "symbol": "178320",
+      "name": "서진시스템",
+      "market": "KOSDAQ",
+      "sector": "KOSDAQ",
+      "final_score": 0.45228444937327517,
+      "up_probability": 0.18176509344745267,
+      "expected_return": 0.035839380898449714,
+      "risk": 0.2866666666666667,
+      "reason_json": "[\"예측 초과수익률 순위가 상위권\", \"최근 신규 커버리지 리포트 발생\", \"종합 점수 기준 상위 추천군\"]",
+      "risk_flags_json": "[]"
+    },
+    {
+      "rank": 10,
+      "symbol": "178320",
+      "name": "서진시스템",
+      "market": "KOSDAQ",
+      "sector": "KOSDAQ",
+      "final_score": 0.45228444937327517,
+      "up_probability": 0.5,
+      "expected_return": 0.0,
+      "risk": 0.2866666666666667,
+      "reason_json": "[\"예측 초과수익률 순위가 상위권\", \"최근 신규 커버리지 리포트 발생\", \"종합 점수 기준 상위 추천군\"]",
+      "risk_flags_json": "[]"
+    }
+  ],
+  "core_portfolio": [
+    {
+      "ticker": "005930",
+      "name": "삼성전자",
+      "sector": "통신 및 방송 장비 제조업",
+      "rating": 3.5,
+      "upside": 0.5,
+      "current_return": 0.3494842499468122,
+      "current_price": null,
+      "risk_level": 0.22,
+      "final_score": 0.7021570597064325
+    },
+    {
+      "ticker": "005930",
+      "name": "삼성전자",
+      "sector": "통신 및 방송 장비 제조업",
+      "rating": 3.5,
+      "upside": 0.5,
+      "current_return": 0.0,
+      "current_price": null,
+      "risk_level": 0.22,
+      "final_score": 0.7021570597064325
+    },
+    {
+      "ticker": "032830",
+      "name": "삼성생명",
+      "sector": "보험업",
+      "rating": 3.4,
+      "upside": 0.5,
+      "current_return": 0.18059971150539253,
+      "current_price": null,
+      "risk_level": 0.2577777777777778,
+      "final_score": 0.6829934128252713
+    },
+    {
+      "ticker": "032830",
+      "name": "삼성생명",
+      "sector": "보험업",
+      "rating": 3.4,
+      "upside": 0.5,
+      "current_return": 0.0,
+      "current_price": null,
+      "risk_level": 0.2577777777777778,
+      "final_score": 0.6829934128252713
+    },
+    {
+      "ticker": "402340",
+      "name": "SK스퀘어",
+      "sector": "기타 금융업",
+      "rating": 3.4,
+      "upside": 0.5,
+      "current_return": 0.15701289956636677,
+      "current_price": null,
+      "risk_level": 0.25266897834062013,
+      "final_score": 0.6755571320560065
+    },
+    {
+      "ticker": "402340",
+      "name": "SK스퀘어",
+      "sector": "기타 금융업",
+      "rating": 3.4,
+      "upside": 0.5,
+      "current_return": 0.0,
+      "current_price": null,
+      "risk_level": 0.25266897834062013,
+      "final_score": 0.6755571320560065
+    },
+    {
+      "ticker": "000660",
+      "name": "SK하이닉스",
+      "sector": "반도체 제조업",
+      "rating": 3.4,
+      "upside": 0.5,
+      "current_return": 0.08484198528368492,
+      "current_price": null,
+      "risk_level": 0.23777777777777778,
+      "final_score": 0.6707977671063414
+    },
+    {
+      "ticker": "000660",
+      "name": "SK하이닉스",
+      "sector": "반도체 제조업",
+      "rating": 3.4,
+      "upside": 0.5,
+      "current_return": 0.0,
+      "current_price": null,
+      "risk_level": 0.23777777777777778,
+      "final_score": 0.6707977671063414
+    }
+  ],
+  "quant_portfolio": {
+    "profile": "neutral",
+    "cash_ratio": 0.15,
+    "items": [
+      {
+        "symbol": "005930",
+        "ticker": "005930",
+        "name": "삼성전자",
+        "sector": "통신 및 방송 장비 제조업",
+        "final_score": 0.7021570597064325,
+        "upside": 0.5,
+        "risk_score": 0.22,
+        "raw_weight": 0.05114592158237699,
+        "weight": 0.0511
+      },
+      {
+        "symbol": "005930",
+        "ticker": "005930",
+        "name": "삼성전자",
+        "sector": "통신 및 방송 장비 제조업",
+        "final_score": 0.7021570597064325,
+        "upside": 0.5,
+        "risk_score": 0.22,
+        "raw_weight": 0.05114592158237699,
+        "weight": 0.0511
+      },
+      {
+        "symbol": "032830",
+        "ticker": "032830",
+        "name": "삼성생명",
+        "sector": "보험업",
+        "final_score": 0.6829934128252713,
+        "upside": 0.5,
+        "risk_score": 0.2577777777777778,
+        "raw_weight": 0.04975001967258771,
+        "weight": 0.0498
+      },
+      {
+        "symbol": "032830",
+        "ticker": "032830",
+        "name": "삼성생명",
+        "sector": "보험업",
+        "final_score": 0.6829934128252713,
+        "upside": 0.5,
+        "risk_score": 0.2577777777777778,
+        "raw_weight": 0.04975001967258771,
+        "weight": 0.0498
+      },
+      {
+        "symbol": "402340",
+        "ticker": "402340",
+        "name": "SK스퀘어",
+        "sector": "기타 금융업",
+        "final_score": 0.6755571320560065,
+        "upside": 0.5,
+        "risk_score": 0.25266897834062013,
+        "raw_weight": 0.049208352494523065,
+        "weight": 0.0492
+      },
+      {
+        "symbol": "402340",
+        "ticker": "402340",
+        "name": "SK스퀘어",
+        "sector": "기타 금융업",
+        "final_score": 0.6755571320560065,
+        "upside": 0.5,
+        "risk_score": 0.25266897834062013,
+        "raw_weight": 0.049208352494523065,
+        "weight": 0.0492
+      },
+      {
+        "symbol": "000660",
+        "ticker": "000660",
+        "name": "SK하이닉스",
+        "sector": "반도체 제조업",
+        "final_score": 0.6707977671063414,
+        "upside": 0.5,
+        "risk_score": 0.23777777777777778,
+        "raw_weight": 0.048861674919851585,
+        "weight": 0.0489
+      },
+      {
+        "symbol": "000660",
+        "ticker": "000660",
+        "name": "SK하이닉스",
+        "sector": "반도체 제조업",
+        "final_score": 0.6707977671063414,
+        "upside": 0.5,
+        "risk_score": 0.23777777777777778,
+        "raw_weight": 0.048861674919851585,
+        "weight": 0.0489
+      },
+      {
+        "symbol": "034730",
+        "ticker": "034730",
+        "name": "SK",
+        "sector": "기타 금융업",
+        "final_score": 0.6671760500531768,
+        "upside": 0.5,
+        "risk_score": 0.27952069716775596,
+        "raw_weight": 0.04859786491632878,
+        "weight": 0.0486
+      },
+      {
+        "symbol": "034730",
+        "ticker": "034730",
+        "name": "SK",
+        "sector": "기타 금융업",
+        "final_score": 0.6671760500531768,
+        "upside": 0.5,
+        "risk_score": 0.27952069716775596,
+        "raw_weight": 0.04859786491632878,
+        "weight": 0.0486
+      },
+      {
+        "symbol": "000250",
+        "ticker": "000250",
+        "name": "삼천당제약",
+        "sector": "KOSDAQ",
+        "final_score": 0.5084727437489623,
+        "upside": 0.5,
+        "risk_score": 0.3466666666666667,
+        "raw_weight": 0.03703773496122588,
+        "weight": 0.037
+      },
+      {
+        "symbol": "000250",
+        "ticker": "000250",
+        "name": "삼천당제약",
+        "sector": "KOSDAQ",
+        "final_score": 0.5084727437489623,
+        "upside": 0.5,
+        "risk_score": 0.3466666666666667,
+        "raw_weight": 0.03703773496122588,
+        "weight": 0.037
+      },
+      {
+        "symbol": "010120",
+        "ticker": "010120",
+        "name": "LS ELECTRIC",
+        "sector": "전동기, 발전기 및 전기 변환 · 공급 · 제어 장치 제조업",
+        "final_score": 0.5046861599890737,
+        "upside": 0.5,
+        "risk_score": 0.2644444444444444,
+        "raw_weight": 0.03676191587862727,
+        "weight": 0.0368
+      },
+      {
+        "symbol": "010120",
+        "ticker": "010120",
+        "name": "LS ELECTRIC",
+        "sector": "전동기, 발전기 및 전기 변환 · 공급 · 제어 장치 제조업",
+        "final_score": 0.5046861599890737,
+        "upside": 0.5,
+        "risk_score": 0.2644444444444444,
+        "raw_weight": 0.03676191587862727,
+        "weight": 0.0368
+      },
+      {
+        "symbol": "214370",
+        "ticker": "214370",
+        "name": "케어젠",
+        "sector": "KOSDAQ",
+        "final_score": 0.486481224394092,
+        "upside": 0.5,
+        "risk_score": 0.34888888888888897,
+        "raw_weight": 0.03543584759307525,
+        "weight": 0.0354
+      },
+      {
+        "symbol": "214370",
+        "ticker": "214370",
+        "name": "케어젠",
+        "sector": "KOSDAQ",
+        "final_score": 0.486481224394092,
+        "upside": 0.5,
+        "risk_score": 0.34888888888888897,
+        "raw_weight": 0.03543584759307525,
+        "weight": 0.0354
+      },
+      {
+        "symbol": "298040",
+        "ticker": "298040",
+        "name": "효성중공업",
+        "sector": "전동기, 발전기 및 전기 변환 · 공급 · 제어 장치 제조업",
+        "final_score": 0.4840087880593101,
+        "upside": 0.5,
+        "risk_score": 0.2622222222222222,
+        "raw_weight": 0.03525575250872325,
+        "weight": 0.0353
+      },
+      {
+        "symbol": "298040",
+        "ticker": "298040",
+        "name": "효성중공업",
+        "sector": "전동기, 발전기 및 전기 변환 · 공급 · 제어 장치 제조업",
+        "final_score": 0.4840087880593101,
+        "upside": 0.5,
+        "risk_score": 0.2622222222222222,
+        "raw_weight": 0.03525575250872325,
+        "weight": 0.0353
+      },
+      {
+        "symbol": "178320",
+        "ticker": "178320",
+        "name": "서진시스템",
+        "sector": "KOSDAQ",
+        "final_score": 0.45228444937327517,
+        "upside": 0.5,
+        "risk_score": 0.2866666666666667,
+        "raw_weight": 0.03294491547268021,
+        "weight": 0.0329
+      },
+      {
+        "symbol": "178320",
+        "ticker": "178320",
+        "name": "서진시스템",
+        "sector": "KOSDAQ",
+        "final_score": 0.45228444937327517,
+        "upside": 0.5,
+        "risk_score": 0.2866666666666667,
+        "raw_weight": 0.03294491547268021,
+        "weight": 0.0329
+      }
+    ]
+  },
+  "qual_portfolio": {
+    "theme": "애널리스트/공시 기반 정성 후보",
+    "items": []
+  },
+  "upside_ranking": [
+    {
+      "symbol": "005930",
+      "name": "삼성전자",
+      "market": "KOSPI",
+      "upside_score": 0.5
+    },
+    {
+      "symbol": "005930",
+      "name": "삼성전자",
+      "market": "KOSPI",
+      "upside_score": 0.5
+    },
+    {
+      "symbol": "032830",
+      "name": "삼성생명",
+      "market": "KOSPI",
+      "upside_score": 0.5
+    },
+    {
+      "symbol": "032830",
+      "name": "삼성생명",
+      "market": "KOSPI",
+      "upside_score": 0.5
+    },
+    {
+      "symbol": "402340",
+      "name": "SK스퀘어",
+      "market": "KOSPI",
+      "upside_score": 0.5
+    },
+    {
+      "symbol": "402340",
+      "name": "SK스퀘어",
+      "market": "KOSPI",
+      "upside_score": 0.5
+    },
+    {
+      "symbol": "000660",
+      "name": "SK하이닉스",
+      "market": "KOSPI",
+      "upside_score": 0.5
+    },
+    {
+      "symbol": "000660",
+      "name": "SK하이닉스",
+      "market": "KOSPI",
+      "upside_score": 0.5
+    },
+    {
+      "symbol": "034730",
+      "name": "SK",
+      "market": "KOSPI",
+      "upside_score": 0.5
+    },
+    {
+      "symbol": "034730",
+      "name": "SK",
+      "market": "KOSPI",
+      "upside_score": 0.5
+    }
+  ],
+  "analyst_reports": [],
+  "backtest_summary": {
+    "eval_date": "2026-03-25T00:00:00",
+    "model_name": "lightgbm",
+    "model_version": "poc-3M-2026-06-28-wf",
+    "horizon": "3M",
+    "horizon_days": 63,
+    "sample_count": 61053,
+    "hit_ratio": 0.5786939216746105,
+    "precision_top20": 0.5940944881889764,
+    "avg_actual_return": 0.12581123833325905,
+    "avg_benchmark_return": 0.053490057029086,
+    "avg_excess_return": 0.07232118130417306,
+    "median_actual_return": 0.04105263157894745,
+    "win_rate": 0.5291468068727172,
+    "mdd": -0.2756539221405323,
+    "sharpe": 1.5330409924612245,
+    "rank_ic": 0.06756508823178603,
+    "production_weight": 1.0,
+    "gate_status": "production",
+    "created_at": "2026-06-28T06:59:18.672958",
+    "weekly_returns": [
+      {
+        "label": "2026-06-26 00:00:00",
+        "return": null
+      },
+      {
+        "label": "2026-06-25 00:00:00",
+        "return": null
+      },
+      {
+        "label": "2026-06-23 00:00:00",
+        "return": null
+      },
+      {
+        "label": "2026-06-09 00:00:00",
+        "return": null
+      },
+      {
+        "label": "2026-06-05 00:00:00",
+        "return": null
+      },
+      {
+        "label": "2026-03-25 00:00:00",
+        "return": 0.2353653258951779
+      },
+      {
+        "label": "2026-03-24 00:00:00",
+        "return": 0.3184955052337599
+      },
+      {
+        "label": "2026-03-23 00:00:00",
+        "return": 0.34214300279634763
+      },
+      {
+        "label": "2026-03-20 00:00:00",
+        "return": 0.2391148959671258
+      },
+      {
+        "label": "2026-03-19 00:00:00",
+        "return": 0.3791488465050115
+      },
+      {
+        "label": "2026-03-18 00:00:00",
+        "return": 0.3357357686441406
+      },
+      {
+        "label": "2026-03-17 00:00:00",
+        "return": 0.40033945914701863
+      }
+    ]
+  },
+  "model_accuracy": [
+    {
+      "eval_date": "2026-03-25T00:00:00",
+      "model_name": "lightgbm",
+      "model_version": "poc-3M-2026-06-28-wf",
+      "horizon": "3M",
+      "horizon_days": 63,
+      "sample_count": 61053,
+      "hit_ratio": 0.5786939216746105,
+      "precision_top20": 0.5940944881889764,
+      "avg_excess_return": 0.07232118130417306,
+      "mdd": -0.2756539221405323,
+      "sharpe": 1.5330409924612245,
+      "rank_ic": 0.06756508823178603,
+      "production_weight": 1.0,
+      "gate_status": "production"
+    },
+    {
+      "eval_date": "2025-12-17T00:00:00",
+      "model_name": "lightgbm",
+      "model_version": "poc-6M-2026-06-28-wf",
+      "horizon": "6M",
+      "horizon_days": 126,
+      "sample_count": 57903,
+      "hit_ratio": 0.6107628274873496,
+      "precision_top20": 0.6196354598177299,
+      "avg_excess_return": 0.16839886528130485,
+      "mdd": -0.14092753030163052,
+      "sharpe": 1.2088244805975357,
+      "rank_ic": 0.07762553380489245,
+      "production_weight": 1.0,
+      "gate_status": "production"
+    },
+    {
+      "eval_date": "2025-09-12T00:00:00",
+      "model_name": "lightgbm",
+      "model_version": "poc-9M-2026-06-28-wf",
+      "horizon": "9M",
+      "horizon_days": 189,
+      "sample_count": 54753,
+      "hit_ratio": 0.6194546417547897,
+      "precision_top20": 0.6383304195804196,
+      "avg_excess_return": 0.29009417255843983,
+      "mdd": -0.009513821733303396,
+      "sharpe": 0.9782667584871224,
+      "rank_ic": 0.1514438970667409,
+      "production_weight": 1.0,
+      "gate_status": "production"
+    },
+    {
+      "eval_date": "2025-06-16T00:00:00",
+      "model_name": "lightgbm",
+      "model_version": "poc-1Y-2026-06-28-wf",
+      "horizon": "1Y",
+      "horizon_days": 252,
+      "sample_count": 51603,
+      "hit_ratio": 0.6302540549968025,
+      "precision_top20": 0.650555041628122,
+      "avg_excess_return": 0.42953015618625007,
+      "mdd": 0.0,
+      "sharpe": 1.1122755314251314,
+      "rank_ic": 0.14670069460395987,
+      "production_weight": 1.0,
+      "gate_status": "production"
+    }
+  ],
+  "focus_stock": {
+    "symbol": "005930",
+    "name": "삼성전자",
+    "market": "KOSPI",
+    "sector": "통신 및 방송 장비 제조업",
+    "latest_price": {
+      "date": "2026-06-26T00:00:00",
+      "close": 339500.0,
+      "volume": 35233554.0,
+      "trading_value": 11961791583000.0,
+      "source": "finance_data_reader"
+    },
+    "prediction": {
+      "asof_date": "2026-06-26T00:00:00",
+      "symbol": "005930",
+      "horizon": "3M",
+      "pred_return": 0.3494842499468122,
+      "pred_prob_top20": 0.44616302773266414,
+      "pred_risk": 0.22,
+      "confidence": 0.5538369722673359,
+      "model_version": "poc-3M-2026-06-28",
+      "pred_prob_bottom20": 0.08603052879643001,
+      "long_score": 0.6516978166395985,
+      "short_score": 0.06761831727785803,
+      "rank": 4.0
+    },
+    "is_top20": true,
+    "recommendation": {
+      "asof_date": "2026-06-26T00:00:00",
+      "horizon": "3M",
+      "symbol": "005930",
+      "final_score": 0.7021570597064325,
+      "rank": 1,
+      "reason_json": "[\"예측 초과수익률 순위가 상위권\", \"가격 모멘텀 점수가 우수\", \"최근 신규 커버리지 리포트 발생\", \"거래대금 기반 유동성이 양호\"]",
+      "risk_flags_json": "[]",
+      "model_version": "poc-3M-2026-06-28",
+      "name": "삼성전자",
+      "market": "KOSPI",
+      "sector": "통신 및 방송 장비 제조업",
+      "pred_return": 0.3494842499468122,
+      "pred_prob_top20": 0.44616302773266414,
+      "target_upside_score": 0.5,
+      "risk_score": 0.22,
+      "supply_demand_score": 0.5,
+      "momentum_score": 0.85,
+      "trading_value_ma20": 11208909245950.0
+    },
+    "features": {
+      "date": "2026-06-26T00:00:00",
+      "symbol": "005930",
+      "horizon": "3M",
+      "horizon_days": 63,
+      "ret_21d": 0.10586319218241047,
+      "ret_63d": 0.7962962962962963,
+      "ret_126d": 2.1464318813716403,
+      "ret_252d": 4.935314685314685,
+      "ma_gap_20d": 0.014416971688951952,
+      "ma_gap_60d": 0.253654183463089,
+      "ma_gap_120d": 0.5430006325014864,
+      "ma_gap_250d": 1.2761343127080034,
+      "volatility_20d": 1.0425859510863646,
+      "volatility_60d": 0.8377087778156681,
+      "volume_ratio_20d": 1.0529380840900853,
+      "trading_value_ma20": 11208909245950.0,
+      "close_to_52w_high": -0.06344827586206891,
+      "rsi_14": 59.44206008583691,
+      "momentum_score": 0.85,
+      "volatility_score": 0.56,
+      "liquidity_score": 0.98,
+      "risk_score": 0.22,
+      "market_cap": null,
+      "per": null,
+      "pbr": null,
+      "eps": null,
+      "bps": null,
+      "dividend_yield": null,
+      "market_cap_score": 0.5,
+      "value_score": 0.5,
+      "quality_score": 0.5,
+      "supply_demand_score": 0.5,
+      "sentiment_score": 0.5,
+      "foreign_net_value_1d_sum": null,
+      "foreign_net_value_5d_sum": null,
+      "foreign_net_value_20d_sum": null,
+      "foreign_net_value_60d_sum": null,
+      "institution_net_value_1d_sum": null,
+      "institution_net_value_5d_sum": null,
+      "institution_net_value_20d_sum": null,
+      "institution_net_value_60d_sum": null,
+      "retail_net_value_1d_sum": null,
+      "retail_net_value_5d_sum": null,
+      "retail_net_value_20d_sum": null,
+      "retail_net_value_60d_sum": null,
+      "foreign_net_20d_to_mcap": null,
+      "institution_net_20d_to_value": null,
+      "retail_overheat_score": null,
+      "foreign_consecutive_buy_days": null,
+      "institution_consecutive_buy_days": null,
+      "consensus_upside_pct": 0.5,
+      "consensus_momentum_30_90": 0.5,
+      "target_up_count_30d": 0.5,
+      "target_down_count_30d": 0.5,
+      "new_coverage_count_30d": 0.5,
+      "target_revision_balance_30d": 0.5,
+      "consensus_revision_score": 0.5,
+      "target_upside_score": 0.5,
+      "analyst_reliability_score": 0.5,
+      "weighted_analyst_reliability_score": 0.5,
+      "koru_return_1d": -0.12794753696146102,
+      "koru_volume_ratio_20d": 1.029587587780175,
+      "ewy_return_1d": -0.041707317073170734,
+      "koru_ewy_spread_1d": -0.08624021988829028,
+      "koru_leverage_drift_1d": -0.0028255857419488273,
+      "koru_impact_score": 0.20314942872101438,
+      "koru_market_shock_flag": 1.0,
+      "kospi_return_1d": -0.05812682664636126,
+      "kosdaq_return_1d": -0.041044818148027074,
+      "telegram_attention_score": 0.0,
+      "telegram_sentiment_score": 0.5,
+      "telegram_urgency_score": 0.0,
+      "telegram_risk_score": 0.0,
+      "telegram_semiconductor_score": 0.0,
+      "telegram_macro_score": 0.0,
+      "us_sector_return_1d": 0.016262943462904394,
+      "us_sector_return_5d": -0.005954268063241693,
+      "us_sector_zscore_20d": 0.537163641036745,
+      "us_sector_beta_60d": 0.44799090711972245,
+      "us_sector_corr_60d": 0.36490046430016665,
+      "us_sector_impact_score": 0.6525446427666245,
+      "us_sector_direction_agreement": 0.6666666666666666,
+      "news_headline_count_1d": 0.0,
+      "news_headline_count_3d": 3.0,
+      "news_attention_score": 0.3,
+      "news_sentiment_score": 0.5,
+      "news_urgency_score": 0.0,
+      "news_risk_score": 0.0,
+      "news_semiconductor_score": 0.0,
+      "news_macro_score": 1.0,
+      "news_flow_score": 0.0,
+      "news_negative_count_3d": 0.0,
+      "news_negative_ratio_3d": 0.0,
+      "news_negative_attention_score": 0.0,
+      "news_bias_adjusted_sentiment_score": 0.5,
+      "news_source_diversity_score": 0.2
+    },
+    "sector_linkage": {
+      "domestic_sector": "broad",
+      "status": "ready",
+      "asof_date": "2026-06-26",
+      "item": {
+        "trade_date": "2026-06-26T00:00:00",
+        "domestic_sector": "broad",
+        "primary_proxy": "SPY",
+        "proxy_symbols_json": "[\"SPY\", \"QQQ\", \"EWY\"]",
+        "us_sector_return_1d": 0.016262943462904394,
+        "us_sector_return_5d": -0.005954268063241693,
+        "us_sector_zscore_20d": 0.537163641036745,
+        "us_sector_beta_60d": 0.44799090711972245,
+        "us_sector_corr_60d": 0.36490046430016665,
+        "us_sector_impact_score": 0.6525446427666245,
+        "us_sector_direction_agreement": 0.6666666666666666,
+        "sample_count_60d": 60,
+        "data_quality_json": "{\"status\": \"ready\", \"components\": {\"global_proxy\": \"ready\", \"domestic_history\": \"ready\"}, \"messages\": [], \"primary_proxy\": \"SPY\", \"proxies\": [\"SPY\", \"QQQ\", \"EWY\"], \"lookahead_guard\": \"global daily data uses target_date - 1 or earlier\"}",
+        "created_at": "2026-06-28T06:51:38.839991",
+        "proxy_symbols": [
+          "SPY",
+          "QQQ",
+          "EWY"
+        ],
+        "data_quality": {
+          "status": "ready",
+          "components": {
+            "global_proxy": "ready",
+            "domestic_history": "ready"
+          },
+          "messages": [],
+          "primary_proxy": "SPY",
+          "proxies": [
+            "SPY",
+            "QQQ",
+            "EWY"
+          ],
+          "lookahead_guard": "global daily data uses target_date - 1 or earlier"
+        }
+      }
+    },
+    "cluster": {
+      "symbol": "005930",
+      "horizon": "3M",
+      "cluster": {
+        "asof_date": "2026-06-26T00:00:00",
+        "horizon": "3M",
+        "symbol": "005930",
+        "cluster_id": 1,
+        "cluster_label": "고모멘텀",
+        "distance_to_centroid": 1.726888611648572,
+        "feature_values_json": "{\"ret_21d\": 0.10586319218241047, \"ret_63d\": 0.7962962962962963, \"ret_126d\": 2.1464318813716403, \"momentum_score\": 0.85, \"volatility_60d\": 0.8377087778156681, \"liquidity_score\": 0.98, \"risk_score\": 0.22, \"market_cap_score\": 0.5}",
+        "model_version": "kmeans-5-2026-06-26",
+        "created_at": "2026-06-28T06:59:16.494713",
+        "name": "삼성전자",
+        "market": "KOSPI",
+        "sector": "통신 및 방송 장비 제조업"
+      },
+      "peers": [
+        {
+          "asof_date": "2026-06-26T00:00:00",
+          "horizon": "3M",
+          "symbol": "000660",
+          "cluster_id": 1,
+          "cluster_label": "고모멘텀",
+          "distance_to_centroid": 0.8138878049166405,
+          "feature_values_json": "{\"ret_21d\": 0.19170753455193945, \"ret_63d\": 1.6864321608040203, \"ret_126d\": 3.8511796733212345, \"momentum_score\": 0.9249999999999999, \"volatility_60d\": 0.9688308268265948, \"liquidity_score\": 1.0, \"risk_score\": 0.23777777777777778, \"market_cap_score\": 0.5}",
+          "model_version": "kmeans-5-2026-06-26",
+          "created_at": "2026-06-28T06:59:16.494713",
+          "name": "SK하이닉스",
+          "market": "KOSPI",
+          "sector": "반도체 제조업"
+        },
+        {
+          "asof_date": "2026-06-26T00:00:00",
+          "horizon": "3M",
+          "symbol": "034730",
+          "cluster_id": 1,
+          "cluster_label": "고모멘텀",
+          "distance_to_centroid": 1.4029777845698574,
+          "feature_values_json": "{\"ret_21d\": 0.19852941176470584, \"ret_63d\": 1.3554913294797686, \"ret_126d\": 2.196078431372549, \"momentum_score\": 0.875, \"volatility_60d\": 0.8084489567563087, \"liquidity_score\": 0.62, \"risk_score\": 0.27952069716775596, \"market_cap_score\": 0.5}",
+          "model_version": "kmeans-5-2026-06-26",
+          "created_at": "2026-06-28T06:59:16.494713",
+          "name": "SK",
+          "market": "KOSPI",
+          "sector": "기타 금융업"
+        },
+        {
+          "asof_date": "2026-06-26T00:00:00",
+          "horizon": "3M",
+          "symbol": "402340",
+          "cluster_id": 1,
+          "cluster_label": "고모멘텀",
+          "distance_to_centroid": 1.4980321970494603,
+          "feature_values_json": "{\"ret_21d\": 0.347962382445141, \"ret_63d\": 1.84297520661157, \"ret_126d\": 5.07773851590106, \"momentum_score\": 0.98, \"volatility_60d\": 1.0013045330815933, \"liquidity_score\": 0.94, \"risk_score\": 0.25266897834062013, \"market_cap_score\": 0.5}",
+          "model_version": "kmeans-5-2026-06-26",
+          "created_at": "2026-06-28T06:59:16.494713",
+          "name": "SK스퀘어",
+          "market": "KOSPI",
+          "sector": "기타 금융업"
+        },
+        {
+          "asof_date": "2026-06-26T00:00:00",
+          "horizon": "3M",
+          "symbol": "032830",
+          "cluster_id": 1,
+          "cluster_label": "고모멘텀",
+          "distance_to_centroid": 1.5873523643305985,
+          "feature_values_json": "{\"ret_21d\": 0.22002820874471096, \"ret_63d\": 0.901098901098901, \"ret_126d\": 1.8157552083333335, \"momentum_score\": 0.8300000000000001, \"volatility_60d\": 0.853110651356417, \"liquidity_score\": 0.66, \"risk_score\": 0.2577777777777778, \"market_cap_score\": 0.5}",
+          "model_version": "kmeans-5-2026-06-26",
+          "created_at": "2026-06-28T06:59:16.494713",
+          "name": "삼성생명",
+          "market": "KOSPI",
+          "sector": "보험업"
+        },
+        {
+          "asof_date": "2026-06-26T00:00:00",
+          "horizon": "3M",
+          "symbol": "080220",
+          "cluster_id": 1,
+          "cluster_label": "고모멘텀",
+          "distance_to_centroid": 1.9345310237934579,
+          "feature_values_json": "{\"ret_21d\": -0.056137012369172234, \"ret_63d\": 1.2571103526734926, \"ret_126d\": 4.370871683811586, \"momentum_score\": 0.855, \"volatility_60d\": 1.2967302739575917, \"liquidity_score\": 0.84, \"risk_score\": 0.2933333333333334, \"market_cap_score\": 0.5}",
+          "model_version": "kmeans-5-2026-06-26",
+          "created_at": "2026-06-28T06:59:16.494713",
+          "name": "제주반도체",
+          "market": "KOSDAQ",
+          "sector": null
+        },
+        {
+          "asof_date": "2026-06-26T00:00:00",
+          "horizon": "3M",
+          "symbol": "028260",
+          "cluster_id": 1,
+          "cluster_label": "고모멘텀",
+          "distance_to_centroid": 1.9558273048736594,
+          "feature_values_json": "{\"ret_21d\": 0.20462850182704018, \"ret_63d\": 0.7110726643598615, \"ret_126d\": 1.0349794238683128, \"momentum_score\": 0.78, \"volatility_60d\": 0.9816863654947192, \"liquidity_score\": 0.8, \"risk_score\": 0.2644444444444444, \"market_cap_score\": 0.5}",
+          "model_version": "kmeans-5-2026-06-26",
+          "created_at": "2026-06-28T06:59:16.494713",
+          "name": "삼성물산",
+          "market": "KOSPI",
+          "sector": "기타 전문 도매업"
+        },
+        {
+          "asof_date": "2026-06-26T00:00:00",
+          "horizon": "3M",
+          "symbol": "009150",
+          "cluster_id": 1,
+          "cluster_label": "고모멘텀",
+          "distance_to_centroid": 3.5183540707502017,
+          "feature_values_json": "{\"ret_21d\": 0.22269938650306753, \"ret_63d\": 3.385038503850385, \"ret_126d\": 6.709864603481625, \"momentum_score\": 0.985, \"volatility_60d\": 1.0911985845454932, \"liquidity_score\": 0.96, \"risk_score\": 0.25777777777777783, \"market_cap_score\": 0.5}",
+          "model_version": "kmeans-5-2026-06-26",
+          "created_at": "2026-06-28T06:59:16.494713",
+          "name": "삼성전기",
+          "market": "KOSPI",
+          "sector": "전자부품 제조업"
+        }
+      ]
+    },
+    "data_status": "실데이터",
+    "disclaimer": "본 서비스는 투자 참고용 정보이며, 투자 판단과 책임은 사용자 본인에게 있습니다. 과거 수익률과 백테스트 결과가 미래 수익을 보장하지 않습니다."
+  },
+  "cluster_data": [
+    {
+      "asof_date": "2026-06-26T00:00:00",
+      "horizon": "3M",
+      "cluster_id": 0,
+      "cluster_label": "저변동·대형주",
+      "member_count": 19,
+      "centroid_json": "{\"ret_21d\": -0.15105640158750916, \"ret_63d\": -0.06354730746434953, \"ret_126d\": 0.1203386392448903, \"momentum_score\": 0.37473684210526315, \"volatility_60d\": 0.6144799937194119, \"liquidity_score\": 0.5789473684210527, \"risk_score\": 0.23824561403508773, \"market_cap_score\": 0.5}",
+      "top_symbols_json": "[\"000270\", \"267260\", \"373220\", \"329180\", \"005490\", \"012450\", \"034020\", \"055550\", \"042660\", \"068270\"]",
+      "model_version": "kmeans-5-2026-06-26"
+    },
+    {
+      "asof_date": "2026-06-26T00:00:00",
+      "horizon": "3M",
+      "cluster_id": 1,
+      "cluster_label": "고모멘텀",
+      "member_count": 8,
+      "centroid_json": "{\"ret_21d\": 0.17941020070623043, \"ret_63d\": 1.491939426896787, \"ret_126d\": 3.4003624276826674, \"momentum_score\": 0.885, \"volatility_60d\": 0.9798773712292983, \"liquidity_score\": 0.8500000000000001, \"risk_score\": 0.2579125983274359, \"market_cap_score\": 0.5}",
+      "top_symbols_json": "[\"000660\", \"034730\", \"402340\", \"032830\", \"005930\", \"080220\", \"028260\", \"009150\"]",
+      "model_version": "kmeans-5-2026-06-26"
+    },
+    {
+      "asof_date": "2026-06-26T00:00:00",
+      "horizon": "3M",
+      "cluster_id": 2,
+      "cluster_label": "고유동성",
+      "member_count": 10,
+      "centroid_json": "{\"ret_21d\": -0.20166582894581742, \"ret_63d\": 0.18054183469617402, \"ret_126d\": 0.8894541981808736, \"momentum_score\": 0.5645, \"volatility_60d\": 1.1267544218771681, \"liquidity_score\": 0.58, \"risk_score\": 0.3031111111111111, \"market_cap_score\": 0.5}",
+      "top_symbols_json": "[\"042700\", \"347850\", \"010120\", \"178320\", \"108490\", \"012330\", \"067310\", \"039030\", \"440110\", \"066570\"]",
+      "model_version": "kmeans-5-2026-06-26"
+    },
+    {
+      "asof_date": "2026-06-26T00:00:00",
+      "horizon": "3M",
+      "cluster_id": 3,
+      "cluster_label": "고모멘텀",
+      "member_count": 3,
+      "centroid_json": "{\"ret_21d\": 0.3976225683390517, \"ret_63d\": 0.6061646575321679, \"ret_126d\": 2.7622510216902736, \"momentum_score\": 0.8633333333333333, \"volatility_60d\": 1.2062498994628077, \"liquidity_score\": 0.1866666666666667, \"risk_score\": 0.364548161530998, \"market_cap_score\": 0.5}",
+      "top_symbols_json": "[\"084370\", \"031980\", \"319660\"]",
+      "model_version": "kmeans-5-2026-06-26"
+    },
+    {
+      "asof_date": "2026-06-26T00:00:00",
+      "horizon": "3M",
+      "cluster_id": 4,
+      "cluster_label": "저변동·대형주",
+      "member_count": 10,
+      "centroid_json": "{\"ret_21d\": -0.23801139626974493, \"ret_63d\": -0.2583762598151007, \"ret_126d\": 0.11553600003624231, \"momentum_score\": 0.3065, \"volatility_60d\": 0.8696167153435155, \"liquidity_score\": 0.13399999999999995, \"risk_score\": 0.32222222222222224, \"market_cap_score\": 0.5}",
+      "top_symbols_json": "[\"277810\", \"214370\", \"950160\", \"310210\", \"095340\", \"005290\", \"087010\", \"028300\", \"000250\", \"145020\"]",
+      "model_version": "kmeans-5-2026-06-26"
+    }
+  ],
+  "sector_ranking": [
+    {
+      "sector": "통신 및 방송 장비 제조업",
+      "average_score": 0.7021570597064325,
+      "recommendation_count": 2,
+      "average_risk": 0.22
+    },
+    {
+      "sector": "보험업",
+      "average_score": 0.6829934128252713,
+      "recommendation_count": 2,
+      "average_risk": 0.2577777777777778
+    },
+    {
+      "sector": "반도체 제조업",
+      "average_score": 0.6707977671063414,
+      "recommendation_count": 2,
+      "average_risk": 0.23777777777777778
+    },
+    {
+      "sector": "기타 금융업",
+      "average_score": 0.5295677039054365,
+      "recommendation_count": 8,
+      "average_risk": 0.2419363077659829
+    },
+    {
+      "sector": "전동기, 발전기 및 전기 변환 · 공급 · 제어 장치 제조업",
+      "average_score": 0.4943474740241919,
+      "recommendation_count": 4,
+      "average_risk": 0.2633333333333333
+    },
+    {
+      "sector": "KOSDAQ",
+      "average_score": 0.44321769263798416,
+      "recommendation_count": 16,
+      "average_risk": 0.32333333333333336
+    },
+    {
+      "sector": "일차전지 및 이차전지 제조업",
+      "average_score": 0.43776744808924845,
+      "recommendation_count": 2,
+      "average_risk": 0.24
+    },
+    {
+      "sector": "자동차 신품 부품 제조업",
+      "average_score": 0.4188952306249766,
+      "recommendation_count": 2,
+      "average_risk": 0.2644444444444444
+    },
+    {
+      "sector": "자료처리, 호스팅, 포털 및 기타 인터넷 정보매개 서비스업",
+      "average_score": 0.4183911443168033,
+      "recommendation_count": 2,
+      "average_risk": 0.21777777777777776
+    }
+  ],
+  "data_quality": {
+    "counts": {
+      "symbols": 208,
+      "prices_daily": 214457,
+      "features_daily": 428945,
+      "labels": 428945,
+      "predictions": 287665,
+      "recommendations": 400,
+      "stock_clusters": 351
+    },
+    "price_sources": [
+      {
+        "source": "finance_data_reader",
+        "rows": 214457
+      }
+    ],
+    "latest_price_date": "2026-06-26",
+    "neutral_factor_defaults_applied": true
+  }
+}

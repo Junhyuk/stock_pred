@@ -21,9 +21,9 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Refresh data, export GitHub Pages docs/, commit, and push."
     )
-    parser.add_argument("--config", default="configs/poc.yaml")
+    parser.add_argument("--config", default="configs/top50_normal.yaml")
     parser.add_argument("--today-config", default="configs/today_update.yaml")
-    parser.add_argument("--top50-config", default="configs/top50_normal.yaml")
+    parser.add_argument("--market-news-config", default="configs/market_news.yaml")
     parser.add_argument("--output", default="docs")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--skip-refresh", action="store_true")
@@ -37,8 +37,16 @@ def main() -> None:
     args = parse_args()
     steps: list[list[str]] = []
     if not args.no_stop_web:
-        steps.append(["bash", "-lc", "fuser -k 8000/tcp 8501/tcp >/dev/null 2>&1 || true"])
+        steps.append(["bash", "-lc", "fuser -k 8000/tcp 8501/tcp 8787/tcp >/dev/null 2>&1 || true"])
     if not args.skip_refresh:
+        steps.append(
+            [
+                sys.executable,
+                "scripts/collect_market_news.py",
+                "--config",
+                args.market_news_config,
+            ]
+        )
         steps.append(
             [
                 sys.executable,
@@ -52,13 +60,13 @@ def main() -> None:
                 sys.executable,
                 "scripts/generate_market_up_down.py",
                 "--config",
-                args.top50_config,
+                args.config,
             ]
         )
     steps.append(
         [
             sys.executable,
-            "scripts/export_github_pages_snapshot.py",
+            "scripts/export_github_pages_site.py",
             "--config",
             args.config,
             "--today-config",
