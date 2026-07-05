@@ -31,6 +31,16 @@ assert PUBLISH_SPEC.loader is not None
 sys.modules[PUBLISH_SPEC.name] = publisher
 PUBLISH_SPEC.loader.exec_module(publisher)
 
+DOCS_PUBLISH_SPEC = importlib.util.spec_from_file_location(
+    "publish_github_pages",
+    ROOT / "scripts" / "publish_github_pages.py",
+)
+assert DOCS_PUBLISH_SPEC is not None
+docs_publisher = importlib.util.module_from_spec(DOCS_PUBLISH_SPEC)
+assert DOCS_PUBLISH_SPEC.loader is not None
+sys.modules[DOCS_PUBLISH_SPEC.name] = docs_publisher
+DOCS_PUBLISH_SPEC.loader.exec_module(docs_publisher)
+
 
 def test_export_github_pages_site_writes_static_json_and_relative_assets(tmp_path) -> None:
     db_path = tmp_path / "site.duckdb"
@@ -229,6 +239,54 @@ def test_publish_site_blocks_failed_validation_without_allow_empty(tmp_path) -> 
 
     with pytest.raises(ValueError, match="validation failed"):
         publisher.publish_site(site_dir=site, worktree=tmp_path / "gh-pages", dry_run=False, push=False)
+
+
+def test_publish_github_pages_full_dry_run_order() -> None:
+    args = docs_publisher.parse_args(
+        [
+            "--refresh-mode",
+            "full",
+            "--dry-run",
+            "--config",
+            "configs/top50_normal.yaml",
+            "--universe-config",
+            "configs/universe_top50.yaml",
+            "--provider",
+            "fdr_poc",
+            "--target-date",
+            "latest",
+        ]
+    )
+
+    steps = docs_publisher.build_steps(args, run_status=args.refresh_mode)
+    names = [step.name for step in steps]
+    commands = [" ".join(step.command) for step in steps]
+
+    assert names == ["stop_web", "full_local_retrain", "export_docs"]
+    assert "scripts/run_latest_market_impact_retrain.py" in commands[1]
+    assert "--universe-config configs/universe_top50.yaml" in commands[1]
+    assert "--provider fdr_poc" in commands[1]
+    assert "scripts/export_github_pages_site.py" in commands[2]
+    assert "--output docs" in commands[2]
+
+
+def test_publish_github_pages_export_only_skips_refresh() -> None:
+    args = docs_publisher.parse_args(["--refresh-mode", "export-only", "--skip-push"])
+
+    steps = docs_publisher.build_steps(args, run_status=args.refresh_mode)
+
+    assert [step.name for step in steps] == ["stop_web", "export_docs"]
+    assert all("run_latest_market_impact_retrain.py" not in " ".join(step.command) for step in steps)
+
+
+def test_publish_github_pages_skip_refresh_aliases_export_only() -> None:
+    args = docs_publisher.parse_args(["--skip-refresh", "--no-stop-web"])
+    if args.skip_refresh:
+        args.refresh_mode = "export-only"
+
+    steps = docs_publisher.build_steps(args, run_status=args.refresh_mode)
+
+    assert [step.name for step in steps] == ["export_docs"]
 
 
 def _write_config(path: Path, db_path: Path) -> Path:

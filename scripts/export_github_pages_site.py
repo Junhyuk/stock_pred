@@ -214,7 +214,7 @@ def _latest_news_signals(conn) -> dict[str, Any]:
     columns = set(get_table_columns(conn, "news_signal_daily"))
     order_column = "news_negative_attention_score" if "news_negative_attention_score" in columns else "news_attention_score"
     frame = conn.execute(
-        """
+        f"""
         SELECT *
         FROM news_signal_daily
         WHERE signal_date = ?
@@ -223,7 +223,7 @@ def _latest_news_signals(conn) -> dict[str, Any]:
           {order_column} DESC NULLS LAST,
           symbol
         LIMIT 100
-        """.format(order_column=order_column),
+        """,
         [asof],
     ).fetchdf()
     defaults = {

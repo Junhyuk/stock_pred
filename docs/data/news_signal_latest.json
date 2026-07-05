@@ -1,6 +1,6 @@
 {
   "status": "ready",
-  "asof_date": "2026-06-26",
+  "asof_date": "2026-07-03",
   "summary": {
     "count": 1,
     "negative_max": 0.0,
@@ -8,17 +8,17 @@
   },
   "items": [
     {
-      "signal_date": "2026-06-26 00:00:00",
+      "signal_date": "2026-07-03 00:00:00",
       "scope": "market",
       "symbol": "ALL",
       "headline_count_1d": 0,
-      "headline_count_3d": 3,
+      "headline_count_3d": 2,
       "sentiment_avg_3d": 0.5,
       "urgency_avg_3d": 0.0,
       "risk_avg_3d": 0.0,
       "news_headline_count_1d": 0.0,
-      "news_headline_count_3d": 3.0,
-      "news_attention_score": 0.3,
+      "news_headline_count_3d": 2.0,
+      "news_attention_score": 0.2,
       "news_sentiment_score": 0.5,
       "news_urgency_score": 0.0,
       "news_risk_score": 0.0,
@@ -31,13 +31,13 @@
       "news_bias_adjusted_sentiment_score": 0.5,
       "news_source_diversity_score": 0.2,
       "themes_json": "[\"RATE\"]",
-      "evidence_json": "[{\"date\": \"2026-06-25\", \"source\": \"fed_press\", \"title\": \"Federal Reserve Board announces termination of enforcement action with Jiko Group, Inc.\", \"link\": \"https://www.federalreserve.gov/newsevents/pressreleases/enforcement20260625a.htm\", \"negative\": false, \"negative_keywords\": []}, {\"date\": \"2026-06-25\", \"source\": \"fed_press\", \"title\": \"Federal Reserve Board issues enforcement action with employee of Bank of Eufaula and S N B Bancshares, Inc.\", \"link\": \"https://www.federalreserve.gov/newsevents/pressreleases/enforcement20260625b.htm\", \"negative\": false, \"negative_keywords\": []}, {\"date\": \"2026-06-24\", \"source\": \"fed_press\", \"title\": \"Federal Reserve Board's annual bank stress test confirms that large banks are well positioned to weather a severe recession and able to continue to lend to hou...\", \"link\": \"https://www.federalreserve.gov/newsevents/pressreleases/bcreg20260624a.htm\", \"negative\": false, \"negative_keywords\": []}]",
-      "created_at": "2026-06-28 06:51:35.834356",
-      "x_news_count_24h": null,
-      "x_news_count_3d": null,
-      "x_news_negative_count_3d": null,
-      "x_news_negative_attention_score": null,
-      "x_news_bias_adjusted_sentiment_score": null
+      "evidence_json": "[{\"date\": \"2026-07-02\", \"source\": \"fed_press\", \"title\": \"Federal Reserve Board issues enforcement action with Small Business Bank and announces termination enforcement actions with BNP Paribas S.A., BNP Paribas USA,...\", \"link\": \"https://www.federalreserve.gov/newsevents/pressreleases/enforcement20260702a.htm\", \"negative\": false, \"negative_keywords\": []}, {\"date\": \"2026-07-01\", \"source\": \"fed_press\", \"title\": \"Federal Reserve issues initial findings from its 2025 triennial payments study\", \"link\": \"https://www.federalreserve.gov/newsevents/pressreleases/other20260701a.htm\", \"negative\": false, \"negative_keywords\": []}]",
+      "created_at": "2026-07-05 12:55:41.506700",
+      "x_news_count_24h": 0.0,
+      "x_news_count_3d": 0.0,
+      "x_news_negative_count_3d": 0.0,
+      "x_news_negative_attention_score": 0.0,
+      "x_news_bias_adjusted_sentiment_score": 0.5
     }
   ],
   "messages": []

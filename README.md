@@ -277,40 +277,49 @@ Naver API 키가 없으면 종목별 뉴스는 fake 없이 건너뛰고, 공식 
 
 ### Daily GitHub Pages Publish
 
-로컬 또는 개인 서버에서 장마감 후 최신 Top50 재학습을 실행하고, 공개용 정적 대시보드만
-GitHub Pages용 `gh-pages` branch에 배포합니다. DuckDB, 모델 파일, `.env` 값은 배포하지
-않고 `reports/github_pages_site/`의 `index.html`, `assets/`, `data/*.json`만 복사합니다.
+권장 운영 경로는 로컬/Cafe24에서 장마감 후 전체 Top50 재학습을 실행하고, 공개용
+정적 산출물인 `docs/`만 `master`에 push하는 방식입니다. 기존 GitHub Actions workflow는
+`docs/**` push를 감지해 Pages deploy만 수행합니다. DuckDB, 모델 파일, `.env`, 원본
+reports는 커밋하지 않습니다.
+
+전체 로컬 재학습 + `docs/` export + commit/push:
 
 ```bash
-.venv/bin/python scripts/run_daily_pages_publish.py --publish
+.venv/bin/python scripts/publish_github_pages.py --refresh-mode full
 ```
 
-배포 없이 산출물과 대상 파일 목록만 확인하려면:
+로컬 검증만 하고 commit/push를 하지 않으려면:
 
 ```bash
-.venv/bin/python scripts/run_daily_pages_publish.py --dry-run
+.venv/bin/python scripts/publish_github_pages.py --refresh-mode export-only --skip-push
 ```
 
-빈 데이터 검증을 무시하고 로컬 preview만 만들 때는 `--allow-empty`를 붙입니다. 실제
-`--publish`에서는 `validation.json`이 publish 가능 상태가 아니면 push를 막습니다.
-
-정적 site만 별도로 생성하려면:
+명령 순서만 확인하려면:
 
 ```bash
-.venv/bin/python scripts/export_github_pages_site.py \
-  --config configs/top50_normal.yaml \
-  --today-config configs/today_update.yaml \
-  --output reports/github_pages_site
+.venv/bin/python scripts/publish_github_pages.py --refresh-mode full --dry-run
 ```
+
+옵션:
+
+- `--refresh-mode full`: Universe refresh, 가격/지수/수급/글로벌/뉴스, feature, LightGBM `2M/3M/6M/9M/1Y`, 추천, long/short, backtest, dashboard snapshot 후 `docs/` export
+- `--refresh-mode light`: 공식 RSS/오늘 snapshot/market up-down 중심 경량 갱신 후 export
+- `--refresh-mode export-only`: 현재 DuckDB snapshot으로 `docs/`만 재생성
+- `--skip-push`: export와 `validation.json` 확인까지만 수행하고 git stage/commit/push는 생략
+- `--restart-web`: 완료 후 FastAPI/Streamlit을 다시 시작
+
+`docs/data/validation.json`의 `can_publish`가 `true`가 아니면 push를 막습니다.
+빈 데이터 검증을 무시한 로컬 preview가 꼭 필요할 때만 `--allow-empty`를 사용하세요.
 
 로컬 cron 예시:
 
 ```cron
-30 18 * * 1-5 cd /home/joon/work/coding/AI/stock_pred && .venv/bin/python scripts/run_daily_pages_publish.py --publish >> logs/daily_pages_publish.log 2>&1
+35 18 * * 1-5 cd /home/joon/work/coding/AI/stock_pred && .venv/bin/python scripts/publish_github_pages.py --refresh-mode full >> logs/github_pages_full_update.log 2>&1
+30 20 * * 1-5 cd /home/joon/work/coding/AI/stock_pred && .venv/bin/python scripts/publish_github_pages.py --refresh-mode full >> logs/github_pages_full_update_retry.log 2>&1
 ```
 
-GitHub Pages publish source는 `gh-pages` branch root로 설정합니다. 기본 remote는
-`origin`, 기본 worktree는 저장소 밖의 `../stock_pred_gh_pages`입니다.
+`scripts/run_daily_pages_publish.py`의 `gh-pages` worktree 방식은 legacy 경로로 남겨 두되,
+기본 운영은 `docs/` push + `.github/workflows/github-pages.yml` deploy를 사용합니다.
 
 KORU는 미국 상장 한국시장 일간 3배 레버리지 ETF로, 장기 알파가 아니라 단기 한국시장
 레버리지 심리/충격 feature로만 사용합니다. latest runner는 미국장이 한국시간 심야·새벽에
