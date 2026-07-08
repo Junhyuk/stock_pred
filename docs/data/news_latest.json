@@ -1,6 +1,22 @@
 {
   "items": [
     {
+      "article_id": "54babd6ea13fad4c244dc0fc9f711847e6900063c2faa1fe857ef9c631af5cb7",
+      "source": "fed_press",
+      "category": "macro",
+      "title": "Federal Reserve Board requests comment on a proposal to amend its requirements for banks to maintain anti-money laundering programs",
+      "summary": "Federal Reserve Board requests comment on a proposal to amend its requirements for banks to maintain anti-money laundering programs",
+      "link": "https://www.federalreserve.gov/newsevents/pressreleases/bcreg20260707a.htm",
+      "pub_date": "2026-07-07 19:00:00",
+      "tickers_json": "[]",
+      "themes_json": "[\"RATE\", \"SEMICONDUCTOR\"]",
+      "sentiment_score": 0.5,
+      "collected_at": "2026-07-08 12:20:29.510073",
+      "kind": "market_news",
+      "source_name": "fed_press",
+      "description": "Federal Reserve Board requests comment on a proposal to amend its requirements for banks to maintain anti-money laundering programs"
+    },
+    {
       "article_id": "a5f93e8d6806353da4ece6a0faf79e97cb602c4d5c2d8341dda6aa718c93c6ef",
       "source": "fed_press",
       "category": "macro",
@@ -11,7 +27,7 @@
       "tickers_json": "[\"A\", \"BNP\", \"S\"]",
       "themes_json": "[\"RATE\"]",
       "sentiment_score": 0.5,
-      "collected_at": "2026-07-05 12:55:39.597874",
+      "collected_at": "2026-07-08 12:20:29.510073",
       "kind": "market_news",
       "source_name": "fed_press",
       "description": "Federal Reserve Board issues enforcement action with Small Business Bank and announces termination enforcement actions with BNP Paribas S.A., BNP Paribas USA, Inc., BNP Paribas Securities Corp., and Community Bankshares, Inc."
@@ -27,7 +43,7 @@
       "tickers_json": "[]",
       "themes_json": "[\"RATE\"]",
       "sentiment_score": 0.5,
-      "collected_at": "2026-07-05 12:55:39.597874",
+      "collected_at": "2026-07-08 12:20:29.510073",
       "kind": "market_news",
       "source_name": "fed_press",
       "description": "Federal Reserve issues initial findings from its 2025 triennial payments study"
@@ -43,7 +59,7 @@
       "tickers_json": "[]",
       "themes_json": "[]",
       "sentiment_score": 0.5,
-      "collected_at": "2026-07-05 12:55:39.597874",
+      "collected_at": "2026-07-08 12:20:29.510073",
       "kind": "market_news",
       "source_name": "fed_press",
       "description": "Agencies release list of distressed or underserved nonmetropolitan middle-income geographies"
@@ -59,26 +75,10 @@
       "tickers_json": "[]",
       "themes_json": "[\"FLOW\", \"PENSION_FLOW\"]",
       "sentiment_score": 0.5,
-      "collected_at": "2026-07-05 12:55:39.661184",
+      "collected_at": "2026-07-08 12:20:29.777026",
       "kind": "market_news",
       "source_name": "curated_kr_flow",
       "description": "6/21 보도된 국민연금 국내주식 비중(30%) 초과와 다음달 리밸런싱 재개 가능성이 6/28 기준 Top50 PoC 대시보드의 핵심 거시·수급 리스크 플래그로 유지."
-    },
-    {
-      "article_id": "db181d6bd193d57616daed5f2a14f09db8368d8320a1b2f94bcb2a90ba802c9a",
-      "source": "fed_press",
-      "category": "macro",
-      "title": "Federal Reserve Board issues enforcement action with employee of Bank of Eufaula and S N B Bancshares, Inc.",
-      "summary": "Federal Reserve Board issues enforcement action with employee of Bank of Eufaula and S N B Bancshares, Inc.",
-      "link": "https://www.federalreserve.gov/newsevents/pressreleases/enforcement20260625b.htm",
-      "pub_date": "2026-06-25 15:00:00",
-      "tickers_json": "[\"B\", \"N\", \"S\"]",
-      "themes_json": "[\"RATE\"]",
-      "sentiment_score": 0.5,
-      "collected_at": "2026-07-05 12:55:39.597874",
-      "kind": "market_news",
-      "source_name": "fed_press",
-      "description": "Federal Reserve Board issues enforcement action with employee of Bank of Eufaula and S N B Bancshares, Inc."
     },
     {
       "article_id": "17bef886675995cbda113360c8ee5cb9d0f6e6cfe6da59060e76f36320970bfd",
@@ -91,10 +91,26 @@
       "tickers_json": "[]",
       "themes_json": "[\"RATE\"]",
       "sentiment_score": 0.5,
-      "collected_at": "2026-07-05 12:55:39.597874",
+      "collected_at": "2026-07-08 12:20:29.510073",
       "kind": "market_news",
       "source_name": "fed_press",
       "description": "Federal Reserve Board announces termination of enforcement action with Jiko Group, Inc."
+    },
+    {
+      "article_id": "db181d6bd193d57616daed5f2a14f09db8368d8320a1b2f94bcb2a90ba802c9a",
+      "source": "fed_press",
+      "category": "macro",
+      "title": "Federal Reserve Board issues enforcement action with employee of Bank of Eufaula and S N B Bancshares, Inc.",
+      "summary": "Federal Reserve Board issues enforcement action with employee of Bank of Eufaula and S N B Bancshares, Inc.",
+      "link": "https://www.federalreserve.gov/newsevents/pressreleases/enforcement20260625b.htm",
+      "pub_date": "2026-06-25 15:00:00",
+      "tickers_json": "[\"B\", \"N\", \"S\"]",
+      "themes_json": "[\"RATE\"]",
+      "sentiment_score": 0.5,
+      "collected_at": "2026-07-08 12:20:29.510073",
+      "kind": "market_news",
+      "source_name": "fed_press",
+      "description": "Federal Reserve Board issues enforcement action with employee of Bank of Eufaula and S N B Bancshares, Inc."
     },
     {
       "article_id": "b22a287ec0096900d6edac31baa91e30ce796c68540330c073e01e7cd23e9576",
@@ -107,26 +123,10 @@
       "tickers_json": "[]",
       "themes_json": "[\"RATE\"]",
       "sentiment_score": 0.5,
-      "collected_at": "2026-07-05 12:55:39.597874",
+      "collected_at": "2026-07-08 12:20:29.510073",
       "kind": "market_news",
       "source_name": "fed_press",
       "description": "Federal Reserve Board's annual bank stress test confirms that large banks are well positioned to weather a severe recession and able to continue to lend to households and businesses"
-    },
-    {
-      "article_id": "ad7333e64edb0a8d6ebe828ae9644e87b0a64005a1a95de5eb04233c549041ef",
-      "source": "curated_global_tech",
-      "category": "sector",
-      "title": "South Korean stock index slumps after chip sell-off",
-      "summary": "2026-06-23 한국 KOSPI 급락은 삼성전자·SK하이닉스 등 반도체 대형주 매도, AI 관련주 과열 부담, 레버리지 ETF 경계가 결합된 시장 충격으로 보도됨.",
-      "link": "https://www.marketwatch.com/livecoverage/stock-market-today-dow-s-p-500-nasdaq-tech-sell-off-oil-prices-us-waiving-oil-sanctions-iran/card/south-korean-stock-index-slumps-10-day-after-record-close-iW6zJl4Eu6fcEdDMmVrO",
-      "pub_date": "2026-06-23 00:00:00",
-      "tickers_json": "[\"000660\", \"005930\", \"KOSPI\", \"SK\"]",
-      "themes_json": "[\"SEMICONDUCTOR\"]",
-      "sentiment_score": 0.0,
-      "collected_at": "2026-07-05 12:55:39.661184",
-      "kind": "market_news",
-      "source_name": "curated_global_tech",
-      "description": "2026-06-23 한국 KOSPI 급락은 삼성전자·SK하이닉스 등 반도체 대형주 매도, AI 관련주 과열 부담, 레버리지 ETF 경계가 결합된 시장 충격으로 보도됨."
     },
     {
       "article_id": "91577990b420964f95e70c6c8755365689c23469c53953cf97dea66bc8a90c8d",
@@ -139,7 +139,7 @@
       "tickers_json": "[]",
       "themes_json": "[\"SEMICONDUCTOR\"]",
       "sentiment_score": 0.5,
-      "collected_at": "2026-07-05 12:55:39.661184",
+      "collected_at": "2026-07-08 12:20:29.777026",
       "kind": "market_news",
       "source_name": "curated_kr_market",
       "description": "반도체·기술주 단기 급등 뒤 레버리지 ETF, 신용잔고, 유동성 축소가 하락 변동성을 키운 요인으로 언급됨."
@@ -155,7 +155,7 @@
       "tickers_json": "[\"000660\", \"005930\", \"KOSPI\", \"SK\"]",
       "themes_json": "[\"SEMICONDUCTOR\"]",
       "sentiment_score": 0.0,
-      "collected_at": "2026-07-05 12:55:39.661184",
+      "collected_at": "2026-07-08 12:20:29.777026",
       "kind": "market_news",
       "source_name": "curated_kr_market",
       "description": "장중 KOSPI 급락 과정에서 SK하이닉스와 삼성전자 등 반도체 대표주가 큰 폭으로 하락하며 시장 하락을 주도했다는 보도."
@@ -171,7 +171,7 @@
       "tickers_json": "[\"000660\", \"005930\", \"SK\"]",
       "themes_json": "[\"FLOW\", \"SEMICONDUCTOR\"]",
       "sentiment_score": 0.0,
-      "collected_at": "2026-07-05 12:55:39.661184",
+      "collected_at": "2026-07-08 12:20:29.777026",
       "kind": "market_news",
       "source_name": "curated_kr_market",
       "description": "2026-06-23 국내 증시는 삼성전자·SK하이닉스 급락, 외국인 매도, 연초 이후 급등 부담, 대형 반도체주 쏠림으로 변동성이 확대됐다는 보도."
@@ -187,7 +187,7 @@
       "tickers_json": "[]",
       "themes_json": "[\"SEMICONDUCTOR\"]",
       "sentiment_score": 0.0,
-      "collected_at": "2026-07-05 12:55:39.661184",
+      "collected_at": "2026-07-08 12:20:29.777026",
       "kind": "market_news",
       "source_name": "curated_global_tech",
       "description": "AI와 반도체 관련주의 급등 이후 밸류에이션 부담과 실적 기대 경계가 커지며 한국 반도체주와 미국 반도체주가 동반 약세를 보였다는 시장 설명."
@@ -203,10 +203,26 @@
       "tickers_json": "[]",
       "themes_json": "[\"FLOW\", \"SEMICONDUCTOR\"]",
       "sentiment_score": 0.0,
-      "collected_at": "2026-07-05 12:55:39.661184",
+      "collected_at": "2026-07-08 12:20:29.777026",
       "kind": "market_news",
       "source_name": "curated_global_tech",
       "description": "글로벌 기술주 매도세와 함께 외국인 투자자가 주요 반도체주 차익실현에 나섰고, 원화 약세가 국내 증시 부담으로 언급됨."
+    },
+    {
+      "article_id": "ad7333e64edb0a8d6ebe828ae9644e87b0a64005a1a95de5eb04233c549041ef",
+      "source": "curated_global_tech",
+      "category": "sector",
+      "title": "South Korean stock index slumps after chip sell-off",
+      "summary": "2026-06-23 한국 KOSPI 급락은 삼성전자·SK하이닉스 등 반도체 대형주 매도, AI 관련주 과열 부담, 레버리지 ETF 경계가 결합된 시장 충격으로 보도됨.",
+      "link": "https://www.marketwatch.com/livecoverage/stock-market-today-dow-s-p-500-nasdaq-tech-sell-off-oil-prices-us-waiving-oil-sanctions-iran/card/south-korean-stock-index-slumps-10-day-after-record-close-iW6zJl4Eu6fcEdDMmVrO",
+      "pub_date": "2026-06-23 00:00:00",
+      "tickers_json": "[\"000660\", \"005930\", \"KOSPI\", \"SK\"]",
+      "themes_json": "[\"SEMICONDUCTOR\"]",
+      "sentiment_score": 0.0,
+      "collected_at": "2026-07-08 12:20:29.777026",
+      "kind": "market_news",
+      "source_name": "curated_global_tech",
+      "description": "2026-06-23 한국 KOSPI 급락은 삼성전자·SK하이닉스 등 반도체 대형주 매도, AI 관련주 과열 부담, 레버리지 ETF 경계가 결합된 시장 충격으로 보도됨."
     },
     {
       "article_id": "27a2889c562edf23c6d0ce170a99a2a0789255e4465174e63f57187e85dc314e",
@@ -219,7 +235,7 @@
       "tickers_json": "[]",
       "themes_json": "[\"RATE\"]",
       "sentiment_score": 0.5,
-      "collected_at": "2026-07-05 12:55:39.597874",
+      "collected_at": "2026-07-08 12:20:29.510073",
       "kind": "market_news",
       "source_name": "fed_press",
       "description": "Federal Reserve notes with deep sadness the passing of Alan Greenspan"
@@ -235,7 +251,7 @@
       "tickers_json": "[]",
       "themes_json": "[\"FLOW\", \"PENSION_FLOW\"]",
       "sentiment_score": 0.5,
-      "collected_at": "2026-07-05 12:55:39.661184",
+      "collected_at": "2026-07-08 12:20:29.777026",
       "kind": "market_news",
       "source_name": "curated_kr_flow",
       "description": "이달 말까지 한시 유예된 국민연금 국내주식 리밸런싱이 다음달 재개 예정. 국내주식 비중 30% 수준으로 허용치 26.8% 초과, 최대 55조원 규모 순매도 압력 추정."
@@ -251,7 +267,7 @@
       "tickers_json": "[\"B\", \"N\", \"S\"]",
       "themes_json": "[\"RATE\"]",
       "sentiment_score": 0.5,
-      "collected_at": "2026-07-05 12:55:39.597874",
+      "collected_at": "2026-07-08 12:20:29.510073",
       "kind": "market_news",
       "source_name": "fed_press",
       "description": "Federal Reserve Board issues enforcement action with former employee of Bank of Eufaula and S N B Bancshares, Inc."
@@ -267,7 +283,7 @@
       "tickers_json": "[]",
       "themes_json": "[\"RATE\"]",
       "sentiment_score": 0.5,
-      "collected_at": "2026-07-05 12:55:39.597874",
+      "collected_at": "2026-07-08 12:20:29.510073",
       "kind": "market_news",
       "source_name": "fed_press",
       "description": "Federal Reserve Board issues enforcement action with former employee of Manufacturers and Traders Trust Company"
@@ -283,7 +299,7 @@
       "tickers_json": "[]",
       "themes_json": "[\"RATE\", \"SEMICONDUCTOR\"]",
       "sentiment_score": 0.5,
-      "collected_at": "2026-07-05 12:55:39.597874",
+      "collected_at": "2026-07-08 12:20:29.510073",
       "kind": "market_news",
       "source_name": "fed_press",
       "description": "Federal Reserve Board requests comment on proposal to require certain payment stablecoin issuers to maintain an effective customer identification program"
@@ -299,7 +315,7 @@
       "tickers_json": "[]",
       "themes_json": "[\"RATE\"]",
       "sentiment_score": 0.5,
-      "collected_at": "2026-07-05 12:55:39.597874",
+      "collected_at": "2026-07-08 12:20:29.510073",
       "kind": "market_news",
       "source_name": "fed_press",
       "description": "Federal Reserve issues FOMC statement"
@@ -315,7 +331,7 @@
       "tickers_json": "[]",
       "themes_json": "[\"RATE\"]",
       "sentiment_score": 0.5,
-      "collected_at": "2026-07-05 12:55:39.597874",
+      "collected_at": "2026-07-08 12:20:29.510073",
       "kind": "market_news",
       "source_name": "fed_press",
       "description": "Federal Reserve Board and Federal Open Market Committee release economic projections from the June 16-17 FOMC meeting"
@@ -331,7 +347,7 @@
       "tickers_json": "[]",
       "themes_json": "[\"RATE\", \"SEMICONDUCTOR\"]",
       "sentiment_score": 0.5,
-      "collected_at": "2026-07-05 12:55:39.597874",
+      "collected_at": "2026-07-08 12:20:29.510073",
       "kind": "market_news",
       "source_name": "fed_press",
       "description": "Federal Reserve Board announces final rule that establishes data standards for certain information collections"
@@ -347,7 +363,7 @@
       "tickers_json": "[\"EDT\"]",
       "themes_json": "[\"RATE\"]",
       "sentiment_score": 0.5,
-      "collected_at": "2026-07-05 12:55:39.597874",
+      "collected_at": "2026-07-08 12:20:29.510073",
       "kind": "market_news",
       "source_name": "fed_press",
       "description": "Federal Reserve Board announces that results from its annual bank stress test will be released on Wednesday, June 24, at 4 p.m. EDT."
@@ -363,7 +379,7 @@
       "tickers_json": "[]",
       "themes_json": "[]",
       "sentiment_score": 0.5,
-      "collected_at": "2026-07-05 12:55:39.597874",
+      "collected_at": "2026-07-08 12:20:29.510073",
       "kind": "market_news",
       "source_name": "fed_press",
       "description": "Agencies remove additional references to reputation risk"
@@ -379,7 +395,7 @@
       "tickers_json": "[]",
       "themes_json": "[\"RATE\"]",
       "sentiment_score": 0.5,
-      "collected_at": "2026-07-05 12:55:39.597874",
+      "collected_at": "2026-07-08 12:20:29.510073",
       "kind": "market_news",
       "source_name": "fed_press",
       "description": "Federal Reserve Board issues enforcement actions with former employee of Atlantic Union Bank and former employee of Frost Bank"
@@ -395,7 +411,7 @@
       "tickers_json": "[]",
       "themes_json": "[]",
       "sentiment_score": 0.5,
-      "collected_at": "2026-07-05 12:55:39.597874",
+      "collected_at": "2026-07-08 12:20:29.510073",
       "kind": "market_news",
       "source_name": "fed_press",
       "description": "Minutes of the Board's discount rate meeting on April 20 and 29, 2026"
@@ -411,7 +427,7 @@
       "tickers_json": "[]",
       "themes_json": "[\"RATE\", \"SEMICONDUCTOR\"]",
       "sentiment_score": 0.5,
-      "collected_at": "2026-07-05 12:55:39.597874",
+      "collected_at": "2026-07-08 12:20:29.510073",
       "kind": "market_news",
       "source_name": "fed_press",
       "description": "Kevin Warsh takes oath of office as chairman and a member of the Board of Governors of the Federal Reserve System, and the Federal Open Market Committee unanimously selects Warsh as its chairman"
@@ -427,7 +443,7 @@
       "tickers_json": "[]",
       "themes_json": "[\"SEMICONDUCTOR\"]",
       "sentiment_score": 0.5,
-      "collected_at": "2026-07-05 12:55:39.597874",
+      "collected_at": "2026-07-08 12:20:29.510073",
       "kind": "market_news",
       "source_name": "fed_press",
       "description": "Agencies publish resolution plan feedback letters for certain domestic and foreign banking organizations"
