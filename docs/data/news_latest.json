@@ -1,6 +1,22 @@
 {
   "items": [
     {
+      "article_id": "f442c8b15969b71bef738e9842ce8630bd77f5056e8f721baa70616f8db6a4b1",
+      "source": "marketnewsfeed_site",
+      "category": "macro",
+      "title": "Market News Feed — live headlines with live charts",
+      "summary": "MarketNewsFeed site metadata. Headlines are collected through Telegram channel marketfeed and X account MarketNews_Feed; site metadata exposed 2 Telegram links and 0 X links. No hidden JavaScript or private feed endpoints are inferred.",
+      "link": "https://marketnewsfeed.com/",
+      "pub_date": "2026-07-08 13:47:28.242693",
+      "tickers_json": "[]",
+      "themes_json": "[\"MACRO\"]",
+      "sentiment_score": 0.5,
+      "collected_at": "2026-07-08 13:47:28.242693",
+      "kind": "market_news",
+      "source_name": "marketnewsfeed_site",
+      "description": "MarketNewsFeed site metadata. Headlines are collected through Telegram channel marketfeed and X account MarketNews_Feed; site metadata exposed 2 Telegram links and 0 X links. No hidden JavaScript or private feed endpoints are inferred."
+    },
+    {
       "article_id": "54babd6ea13fad4c244dc0fc9f711847e6900063c2faa1fe857ef9c631af5cb7",
       "source": "fed_press",
       "category": "macro",
@@ -129,6 +145,22 @@
       "description": "Federal Reserve Board's annual bank stress test confirms that large banks are well positioned to weather a severe recession and able to continue to lend to households and businesses"
     },
     {
+      "article_id": "ad7333e64edb0a8d6ebe828ae9644e87b0a64005a1a95de5eb04233c549041ef",
+      "source": "curated_global_tech",
+      "category": "sector",
+      "title": "South Korean stock index slumps after chip sell-off",
+      "summary": "2026-06-23 한국 KOSPI 급락은 삼성전자·SK하이닉스 등 반도체 대형주 매도, AI 관련주 과열 부담, 레버리지 ETF 경계가 결합된 시장 충격으로 보도됨.",
+      "link": "https://www.marketwatch.com/livecoverage/stock-market-today-dow-s-p-500-nasdaq-tech-sell-off-oil-prices-us-waiving-oil-sanctions-iran/card/south-korean-stock-index-slumps-10-day-after-record-close-iW6zJl4Eu6fcEdDMmVrO",
+      "pub_date": "2026-06-23 00:00:00",
+      "tickers_json": "[\"000660\", \"005930\", \"KOSPI\", \"SK\"]",
+      "themes_json": "[\"SEMICONDUCTOR\"]",
+      "sentiment_score": 0.0,
+      "collected_at": "2026-07-08 12:20:29.777026",
+      "kind": "market_news",
+      "source_name": "curated_global_tech",
+      "description": "2026-06-23 한국 KOSPI 급락은 삼성전자·SK하이닉스 등 반도체 대형주 매도, AI 관련주 과열 부담, 레버리지 ETF 경계가 결합된 시장 충격으로 보도됨."
+    },
+    {
       "article_id": "91577990b420964f95e70c6c8755365689c23469c53953cf97dea66bc8a90c8d",
       "source": "curated_kr_market",
       "category": "sector",
@@ -207,22 +239,6 @@
       "kind": "market_news",
       "source_name": "curated_global_tech",
       "description": "글로벌 기술주 매도세와 함께 외국인 투자자가 주요 반도체주 차익실현에 나섰고, 원화 약세가 국내 증시 부담으로 언급됨."
-    },
-    {
-      "article_id": "ad7333e64edb0a8d6ebe828ae9644e87b0a64005a1a95de5eb04233c549041ef",
-      "source": "curated_global_tech",
-      "category": "sector",
-      "title": "South Korean stock index slumps after chip sell-off",
-      "summary": "2026-06-23 한국 KOSPI 급락은 삼성전자·SK하이닉스 등 반도체 대형주 매도, AI 관련주 과열 부담, 레버리지 ETF 경계가 결합된 시장 충격으로 보도됨.",
-      "link": "https://www.marketwatch.com/livecoverage/stock-market-today-dow-s-p-500-nasdaq-tech-sell-off-oil-prices-us-waiving-oil-sanctions-iran/card/south-korean-stock-index-slumps-10-day-after-record-close-iW6zJl4Eu6fcEdDMmVrO",
-      "pub_date": "2026-06-23 00:00:00",
-      "tickers_json": "[\"000660\", \"005930\", \"KOSPI\", \"SK\"]",
-      "themes_json": "[\"SEMICONDUCTOR\"]",
-      "sentiment_score": 0.0,
-      "collected_at": "2026-07-08 12:20:29.777026",
-      "kind": "market_news",
-      "source_name": "curated_global_tech",
-      "description": "2026-06-23 한국 KOSPI 급락은 삼성전자·SK하이닉스 등 반도체 대형주 매도, AI 관련주 과열 부담, 레버리지 ETF 경계가 결합된 시장 충격으로 보도됨."
     },
     {
       "article_id": "27a2889c562edf23c6d0ce170a99a2a0789255e4465174e63f57187e85dc314e",
@@ -305,22 +321,6 @@
       "description": "Federal Reserve Board requests comment on proposal to require certain payment stablecoin issuers to maintain an effective customer identification program"
     },
     {
-      "article_id": "9296952fa056bb1b85e9c1fc2a23697b44b8e4805778c4209c46b1e58fb43b0c",
-      "source": "fed_press",
-      "category": "macro",
-      "title": "Federal Reserve issues FOMC statement",
-      "summary": "Federal Reserve issues FOMC statement",
-      "link": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260617a.htm",
-      "pub_date": "2026-06-17 18:00:00",
-      "tickers_json": "[]",
-      "themes_json": "[\"RATE\"]",
-      "sentiment_score": 0.5,
-      "collected_at": "2026-07-08 12:20:29.510073",
-      "kind": "market_news",
-      "source_name": "fed_press",
-      "description": "Federal Reserve issues FOMC statement"
-    },
-    {
       "article_id": "bd1ddd8be909aef73b54294acb4904c6f624afe9d158ec5f2d3c09728363e44c",
       "source": "fed_press",
       "category": "macro",
@@ -335,6 +335,22 @@
       "kind": "market_news",
       "source_name": "fed_press",
       "description": "Federal Reserve Board and Federal Open Market Committee release economic projections from the June 16-17 FOMC meeting"
+    },
+    {
+      "article_id": "9296952fa056bb1b85e9c1fc2a23697b44b8e4805778c4209c46b1e58fb43b0c",
+      "source": "fed_press",
+      "category": "macro",
+      "title": "Federal Reserve issues FOMC statement",
+      "summary": "Federal Reserve issues FOMC statement",
+      "link": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260617a.htm",
+      "pub_date": "2026-06-17 18:00:00",
+      "tickers_json": "[]",
+      "themes_json": "[\"RATE\"]",
+      "sentiment_score": 0.5,
+      "collected_at": "2026-07-08 12:20:29.510073",
+      "kind": "market_news",
+      "source_name": "fed_press",
+      "description": "Federal Reserve issues FOMC statement"
     },
     {
       "article_id": "56ed01f63e9b17f734e776697a3717e7d80e3668baf10a3e10ae37bca8e4aa38",

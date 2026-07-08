@@ -15045,8 +15045,8 @@
     },
     "weight_decisions": {
       "2M": 0.0,
-      "3M": 0.0,
-      "6M": 0.0
+      "6M": 0.0,
+      "3M": 0.0
     },
     "leverage_warning": "KORU는 일간 3배 레버리지 ETF입니다. 장기 보유 시 기초지수 수익률의 단순 3배와 다르게 움직일 수 있으며, 변동성, 일일 리밸런싱, 복리 효과로 손실이 확대될 수 있습니다. 본 화면은 투자 참고용 분석이며 매수/매도 추천이 아닙니다."
   },
@@ -15086,6 +15086,19 @@
   },
   "disclaimer": "다음 거래일 시장 예측은 연구·정보제공용이며 투자 결과를 보장하지 않습니다.",
   "macro_news": [
+    {
+      "article_id": "f442c8b15969b71bef738e9842ce8630bd77f5056e8f721baa70616f8db6a4b1",
+      "source": "marketnewsfeed_site",
+      "category": "macro",
+      "title": "Market News Feed — live headlines with live charts",
+      "summary": "MarketNewsFeed site metadata. Headlines are collected through Telegram channel marketfeed and X account MarketNews_Feed; site metadata exposed 2 Telegram links and 0 X links. No hidden JavaScript or private feed endpoints are inferred.",
+      "link": "https://marketnewsfeed.com/",
+      "pub_date": "2026-07-08",
+      "themes": [
+        "MACRO"
+      ],
+      "sentiment_score": 0.5
+    },
     {
       "article_id": "54babd6ea13fad4c244dc0fc9f711847e6900063c2faa1fe857ef9c631af5cb7",
       "source": "fed_press",
@@ -15194,6 +15207,14 @@
   "market_context": [
     {
       "kind": "macro_news",
+      "title": "Market News Feed — live headlines with live charts",
+      "source_name": "marketnewsfeed_site",
+      "link": "https://marketnewsfeed.com/",
+      "pub_date": "2026-07-08",
+      "category": "macro"
+    },
+    {
+      "kind": "macro_news",
       "title": "Federal Reserve Board requests comment on a proposal to amend its requirements for banks to maintain anti-money laundering programs",
       "source_name": "fed_press",
       "link": "https://www.federalreserve.gov/newsevents/pressreleases/bcreg20260707a.htm",
@@ -15246,14 +15267,6 @@
       "source_name": "fed_press",
       "link": "https://www.federalreserve.gov/newsevents/pressreleases/enforcement20260625b.htm",
       "pub_date": "2026-06-25",
-      "category": "macro"
-    },
-    {
-      "kind": "macro_news",
-      "title": "Federal Reserve Board's annual bank stress test confirms that large banks are well positioned to weather a severe recession and able to continue to lend to households and businesses",
-      "source_name": "fed_press",
-      "link": "https://www.federalreserve.gov/newsevents/pressreleases/bcreg20260624a.htm",
-      "pub_date": "2026-06-24",
       "category": "macro"
     },
     {

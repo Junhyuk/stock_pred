@@ -2,7 +2,10 @@
   "status": "partial_ready",
   "counts": {
     "news_articles": 0,
-    "market_news_feed": 36,
+    "market_news_feed": 37,
+    "marketnewsfeed_site": 1,
+    "telegram_marketfeed": 0,
+    "x_market_news_feed": 0,
     "bigkinds_issue_daily": 0,
     "global_news_events": 0,
     "dart_disclosures": 0,

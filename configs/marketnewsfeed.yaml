@@ -1,0 +1,13 @@
+paths:
+  database: data/processed/roboquant.duckdb
+
+marketnewsfeed:
+  enabled: true
+  source: marketnewsfeed_site
+  site_url: https://marketnewsfeed.com/
+  telegram_channel: marketfeed
+  x_username: MarketNews_Feed
+  default_category: macro
+  crawl_site_metadata: true
+  request_timeout_seconds: 10
+  poll_interval_minutes: 30

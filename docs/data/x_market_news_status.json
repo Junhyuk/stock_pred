@@ -3,7 +3,7 @@
   "source": "x_marketnews_feed",
   "count": 0,
   "latest_pub_date": null,
-  "latest_failure_at": "2026-07-08 12:20:31.258643",
+  "latest_failure_at": "2026-07-08 13:47:43.850281",
   "messages": [
     "X 뉴스 미수집: X_BEARER_TOKEN 설정 필요"
   ]

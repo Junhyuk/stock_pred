@@ -386,6 +386,9 @@ def _official_news_status(conn) -> dict[str, Any]:
     counts = {
         "news_articles": _table_count(conn, "news_articles"),
         "market_news_feed": _table_count(conn, "market_news_feed"),
+        "marketnewsfeed_site": _market_news_source_count(conn, "marketnewsfeed_site"),
+        "telegram_marketfeed": _telegram_channel_count(conn, "marketfeed"),
+        "x_market_news_feed": _market_news_source_count(conn, "x_marketnews_feed"),
         "bigkinds_issue_daily": _table_count(conn, "bigkinds_issue_daily"),
         "global_news_events": _table_count(conn, "global_news_events"),
         "dart_disclosures": _table_count(conn, "dart_disclosures"),
@@ -453,6 +456,18 @@ def _table_count(conn, table: str) -> int:
     return int(conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0])
 
 
+def _market_news_source_count(conn, source: str) -> int:
+    if not table_exists(conn, "market_news_feed"):
+        return 0
+    return int(conn.execute("SELECT COUNT(*) FROM market_news_feed WHERE source = ?", [source]).fetchone()[0])
+
+
+def _telegram_channel_count(conn, channel: str) -> int:
+    if not table_exists(conn, "telegram_posts"):
+        return 0
+    return int(conn.execute("SELECT COUNT(*) FROM telegram_posts WHERE channel = ?", [channel]).fetchone()[0])
+
+
 def _recent_official_failures(conn) -> list[dict[str, Any]]:
     if not table_exists(conn, "collection_failures"):
         return []
@@ -467,7 +482,8 @@ def _recent_official_failures(conn) -> list[dict[str, Any]]:
           'collect_gdelt_news',
           'collect_dart_disclosures',
           'collect_official_market_prices',
-          'crawl_existing_news_urls'
+          'crawl_existing_news_urls',
+          'collect_marketnewsfeed_site'
         )
         ORDER BY collected_at DESC
         LIMIT 20
@@ -489,6 +505,9 @@ def _validate_payloads(payloads: dict[str, Any]) -> dict[str, Any]:
         "news": len((payloads.get("news_latest") or {}).get("items") or []),
         "news_articles": int(official_counts.get("news_articles") or 0),
         "market_news_feed": int(official_counts.get("market_news_feed") or 0),
+        "marketnewsfeed_site": int(official_counts.get("marketnewsfeed_site") or 0),
+        "telegram_marketfeed": int(official_counts.get("telegram_marketfeed") or 0),
+        "x_market_news_feed": int(official_counts.get("x_market_news_feed") or 0),
         "bigkinds_issues": int(official_counts.get("bigkinds_issue_daily") or 0),
         "gdelt_news": int(official_counts.get("global_news_events") or 0),
         "dart_disclosures": int(official_counts.get("dart_disclosures") or 0),
@@ -1033,6 +1052,7 @@ function renderOfficialData(status, crawl) {
   return [
     `<div class="inline-metrics">
       ${inlineMetric("Naver/Stock News", counts.news_articles ?? 0, "news_articles")}
+      ${inlineMetric("MarketNewsFeed", `${counts.marketnewsfeed_site ?? 0}/${counts.telegram_marketfeed ?? 0}/${counts.x_market_news_feed ?? 0}`, "site/tg/x")}
       ${inlineMetric("BIGKinds/GDELT", `${counts.bigkinds_issue_daily ?? 0}/${counts.global_news_events ?? 0}`, "issues/global")}
       ${inlineMetric("DART/Official Price", `${counts.dart_disclosures ?? 0}/${counts.official_market_prices ?? 0}`, "공시/공식시세")}
       ${inlineMetric("URL Crawl", counts.news_url_crawl_cache ?? crawl.summary?.count ?? 0, status.status || crawl.status || "-")}

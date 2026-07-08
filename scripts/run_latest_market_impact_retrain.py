@@ -301,6 +301,11 @@ def build_collection_steps(args: argparse.Namespace, target_date: date) -> list[
                     optional=True,
                 ),
                 Step(
+                    "collect_marketnewsfeed_site",
+                    ["scripts/collect_marketnewsfeed_site.py", "--config", "configs/marketnewsfeed.yaml"],
+                    optional=True,
+                ),
+                Step(
                     "build_news_signal_features",
                     ["scripts/build_news_signal_features.py", "--config", args.config, "--date", target_date.isoformat()],
                     optional=True,

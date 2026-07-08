@@ -37,6 +37,7 @@ def test_latest_market_impact_runner_dry_run_order() -> None:
     assert "collect_official_market_prices" in names
     assert "collect_telegram_signals" in names
     assert "collect_x_market_news" in names
+    assert "collect_marketnewsfeed_site" in names
     assert "build_news_signal_features" in names
     assert "collect_market_credit_balance" in names
     assert names.index("collect_naver_news_top50") < names.index("collect_telegram_signals")
@@ -47,7 +48,8 @@ def test_latest_market_impact_runner_dry_run_order() -> None:
     assert names.index("collect_dart_disclosures") < names.index("collect_official_market_prices")
     assert names.index("collect_official_market_prices") < names.index("build_news_signal_features")
     assert names.index("collect_telegram_signals") < names.index("collect_x_market_news")
-    assert names.index("collect_x_market_news") < names.index("build_news_signal_features")
+    assert names.index("collect_x_market_news") < names.index("collect_marketnewsfeed_site")
+    assert names.index("collect_marketnewsfeed_site") < names.index("build_news_signal_features")
     assert names.index("build_news_signal_features") < names.index("collect_market_credit_balance")
     assert names.index("collect_market_credit_balance") < names.index("freshness_check")
     assert names.index("freshness_check") < names.index("build_us_sector_linkage")

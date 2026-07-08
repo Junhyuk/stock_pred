@@ -262,6 +262,7 @@ function renderOfficialData(status, crawl) {
   return [
     `<div class="inline-metrics">
       ${inlineMetric("Naver/Stock News", counts.news_articles ?? 0, "news_articles")}
+      ${inlineMetric("MarketNewsFeed", `${counts.marketnewsfeed_site ?? 0}/${counts.telegram_marketfeed ?? 0}/${counts.x_market_news_feed ?? 0}`, "site/tg/x")}
       ${inlineMetric("BIGKinds/GDELT", `${counts.bigkinds_issue_daily ?? 0}/${counts.global_news_events ?? 0}`, "issues/global")}
       ${inlineMetric("DART/Official Price", `${counts.dart_disclosures ?? 0}/${counts.official_market_prices ?? 0}`, "공시/공식시세")}
       ${inlineMetric("URL Crawl", counts.news_url_crawl_cache ?? crawl.summary?.count ?? 0, status.status || crawl.status || "-")}

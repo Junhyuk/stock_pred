@@ -2,82 +2,73 @@
 
 ## Current Phase
 
-Official data sources + existing news URL crawl GitHub Pages demo ready
+Learned-results static Pages snapshot exported and ready for GitHub Pages push
 
 ## Completed
 
-- Added official-data DuckDB tables:
-  - `news_url_crawl_cache`
-  - `bigkinds_issue_daily`
-  - `global_news_events`
-  - `dart_disclosures`
-  - `official_market_prices`
-  - `official_data_runs`
-- Expanded Naver Search News collection:
-  - `collect_naver_news.py` now supports `--display`, `--max-pages`, `--deep`, `--since-hours`
-  - Top50 default changed to `display=100`, `max_pages=3`
-- Added official provider config:
-  - `configs/official_data_sources.yaml`
-  - optional env: `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET`, `DATA_GO_KR_SERVICE_KEY`, `DART_API_KEY`, `KRX_AUTH_KEY`
-- Added official collection CLIs:
-  - `scripts/collect_official_news.py`
-  - `scripts/collect_bigkinds_issues.py`
-  - `scripts/collect_gdelt_news.py`
-  - `scripts/collect_dart_disclosures.py`
-  - `scripts/collect_official_market_prices.py`
-- Added existing URL metadata crawler:
-  - `scripts/crawl_existing_news_urls.py`
-  - only uses URLs already in DB/config
-  - respects robots by default
-  - stores metadata and short excerpt, not full article text
-- Integrated optional full publish steps before news feature build:
-  - BIGKinds, GDELT, existing URL crawl, OpenDART, official market prices
-- Extended GitHub Pages export:
-  - `docs/data/official_news_status.json`
-  - `docs/data/news_url_crawl.json`
-  - validation counts for official news/crawl/disclosure/price rows
-  - dashboard section “Official Data & URL Crawl”
-- README updated with usage and safety notes.
-- 2026-07-08 local Pages demo refreshed:
-  - `news_url_crawl_cache=30`
-  - `docs/data/news_url_crawl.json` status `ready`
-  - `docs/data/official_news_status.json` status `partial_ready`
-  - `docs/data/validation.json` `can_publish=true`
-  - local preview: `http://localhost:8787/`
+- Added `configs/marketnewsfeed.yaml`.
+- Added `src/roboquant/data/providers/marketnewsfeed_site.py`.
+  - Fetches only configured `https://marketnewsfeed.com/`.
+  - Extracts title, meta description, public links, Telegram links, X links, loading status.
+  - Does not infer hidden JavaScript/private endpoints.
+  - Writes metadata row to `market_news_feed` with `source=marketnewsfeed_site`.
+- Added CLI:
+  - `scripts/collect_marketnewsfeed_site.py --config configs/marketnewsfeed.yaml`
+- Integrated full retrain order:
+  - `collect_telegram_signals`
+  - `collect_x_market_news`
+  - `collect_marketnewsfeed_site`
+  - `build_news_signal_features`
+- Existing learning path remains:
+  - Telegram `marketfeed` -> `telegram_market_signal_daily` -> feature matrix.
+  - X `MarketNews_Feed` -> `market_news_feed` / `news_signal_daily` -> feature matrix.
+  - Site metadata row is neutral metadata unless headline text is available from Telegram/X.
+- GitHub Pages export now reports:
+  - `marketnewsfeed_site`
+  - `telegram_marketfeed`
+  - `x_market_news_feed`
+- README updated with safe MarketNewsFeed operating notes.
+- Re-exported current learned results to `docs/` with `run-status=export-only`.
+- Started local static preview on `http://localhost:8787/`.
 
 ## Verification
 
-- `.venv/bin/pytest tests/test_schema.py tests/test_naver_news_provider.py tests/test_news_url_crawler.py tests/test_official_data_sources.py tests/test_github_pages_export.py tests/test_latest_market_impact_retrain.py -q`
-  - PASS: 24 passed
-- `.venv/bin/ruff check ...`
+- `.venv/bin/pytest tests/test_marketnewsfeed_site_provider.py tests/test_latest_market_impact_retrain.py tests/test_github_pages_export.py tests/test_telegram_config.py tests/test_telegram_signal_features.py -q`
+  - PASS: 22 passed
+- `.venv/bin/ruff check src/roboquant/data/providers/marketnewsfeed_site.py scripts/collect_marketnewsfeed_site.py scripts/run_latest_market_impact_retrain.py scripts/export_github_pages_site.py tests/test_marketnewsfeed_site_provider.py tests/test_latest_market_impact_retrain.py tests/test_github_pages_export.py README.md`
   - PASS
-- `.venv/bin/python scripts/publish_github_pages.py --refresh-mode full --dry-run --no-stop-web`
-  - PASS: wrapper order confirmed
-- `.venv/bin/python scripts/run_latest_market_impact_retrain.py --config configs/top50_normal.yaml --universe-config configs/universe_top50.yaml --provider fdr_poc --target-date 2026-07-08 --dry-run`
-  - PASS: new optional official-data steps appear before `build_news_signal_features`
-- `.venv/bin/python scripts/export_github_pages_site.py --config configs/top50_normal.yaml --today-config configs/today_update.yaml --output /tmp/... --run-status test`
-  - PASS: `official_news_status.json`, `news_url_crawl.json`, `validation.json` generated
 - `.venv/bin/python -m compileall -q src scripts tests`
   - PASS
-- `.venv/bin/python scripts/crawl_existing_news_urls.py --config configs/top50_normal.yaml --limit 30`
-  - PASS: 30 URL metadata rows cached
-- `.venv/bin/python scripts/collect_gdelt_news.py --config configs/official_data_sources.yaml --date latest`
-  - FAILED twice due network timeout; failure metadata recorded, no fake data
+- `.venv/bin/python scripts/run_latest_market_impact_retrain.py --config configs/top50_normal.yaml --universe-config configs/universe_top50.yaml --provider fdr_poc --target-date 2026-07-08 --dry-run`
+  - PASS: MarketNewsFeed step appears before `build_news_signal_features`.
+- `.venv/bin/python scripts/collect_marketnewsfeed_site.py --config configs/marketnewsfeed.yaml`
+  - PASS: `marketnewsfeed_site` row upserted.
+- `.venv/bin/python scripts/collect_x_market_news.py --config configs/x_market_news.yaml --allow-missing-key`
+  - PASS: skipped without fake data because `X_BEARER_TOKEN` is not configured.
+- `.venv/bin/python scripts/collect_telegram_signals.py --config configs/telegram_signals.yaml`
+  - PASS: skipped without fake data because Telegram credentials are not configured.
+- Temp Pages export:
+  - `official_news_status.counts.marketnewsfeed_site=1`
+  - `telegram_marketfeed=0`
+  - `x_market_news_feed=0`
 - `.venv/bin/python scripts/publish_github_pages.py --refresh-mode export-only --skip-push --no-stop-web`
-  - PASS: `docs/` regenerated
+  - PASS: `docs/` generated with 17 data files
+- `docs/data/validation.json`
+  - PASS: `can_publish=true`, `status=partial_ready`
+  - counts: `top50=50`, `top20=20`, `long_short=20`, `marketnewsfeed_site=1`
 - `curl http://localhost:8787/`
-  - PASS: “Official Data & URL Crawl” section present
+  - PASS: Top20, Top50, Long/Short, Official Data & URL Crawl sections present
 
 ## Known Issues
 
-- `HARNESS_AI_ROBO_STOCK_TOKEN_EFFICIENT.md` is missing from repo root although `AGENTS.md` references it
-- BIGKinds/KRX/Data.go.kr endpoints are intentionally blank until approved endpoint mappings are configured
-- OpenDART key will be provided later; current Pages snapshot correctly shows missing/skipped without fake data
-- GDELT live collection timed out in this run; retry later before a full market/news update
-- URL crawler stores only short excerpts and metadata; no full-text archive is implemented
+- `HARNESS_AI_ROBO_STOCK_TOKEN_EFFICIENT.md` is missing from repo root although `AGENTS.md` references it.
+- Telegram live collection requires `TELEGRAM_API_ID`, `TELEGRAM_API_HASH`, and a session.
+- X live collection requires `X_BEARER_TOKEN`.
+- OpenDART key will be provided later; keep missing/skipped without fake data.
+- DB writer jobs can conflict with running FastAPI/Streamlit/preview processes; stop web before write-heavy pipeline runs.
 
 ## Next Recommended Phase
 
-- Push committed code/docs to `origin master` and confirm GitHub Pages deploy
-- Configure approved `DATA_GO_KR_SERVICE_KEY`, `DART_API_KEY`, `KRX_AUTH_KEY`, and provider endpoints, then run a live optional collection smoke test
-- Continue with close-loop 1Y retrain/gate phase if desired
+- Push staged code + `docs/` snapshot to `origin master` and confirm GitHub Pages deploy.
+- Run full local retrain later if needed:
+  `.venv/bin/python scripts/publish_github_pages.py --refresh-mode full --skip-push --no-stop-web`

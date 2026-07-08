@@ -305,6 +305,30 @@ GitHub Pages export는 `official_news_status.json`, `news_url_crawl.json`과 val
   --date latest
 ```
 
+### MarketNewsFeed Safe Metadata
+
+`https://marketnewsfeed.com/`은 공개 HTML에 `loading…` 상태와 `t.me/marketfeed`
+headline 링크를 노출합니다. 숨은 JavaScript endpoint나 private API는 추측 호출하지 않고,
+사이트 메타데이터만 `market_news_feed`에 `source=marketnewsfeed_site`로 저장합니다.
+실제 headline text는 기존 승인 경로인 Telegram `marketfeed`와 X `MarketNews_Feed`에서
+수집해 `telegram_market_signal_daily`, `news_signal_daily`, feature matrix로 연결합니다.
+
+```bash
+.venv/bin/python scripts/collect_marketnewsfeed_site.py \
+  --config configs/marketnewsfeed.yaml
+
+.venv/bin/python scripts/collect_telegram_signals.py \
+  --config configs/telegram_signals.yaml
+
+.venv/bin/python scripts/collect_x_market_news.py \
+  --config configs/x_market_news.yaml \
+  --allow-missing-key
+```
+
+`TELEGRAM_API_ID`/`TELEGRAM_API_HASH` 또는 `X_BEARER_TOKEN`이 없으면 해당 live 수집만
+fake 없이 건너뜁니다. GitHub Pages validation은 `marketnewsfeed_site`,
+`telegram_marketfeed`, `x_market_news_feed` count를 표시합니다.
+
 ### Daily GitHub Pages Publish
 
 권장 운영 경로는 로컬/Cafe24에서 장마감 후 전체 Top50 재학습을 실행하고, 공개용
