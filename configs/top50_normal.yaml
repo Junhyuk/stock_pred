@@ -224,7 +224,8 @@ news:
   enabled: true
   provider: naver_search_api
   query_template: "{name} 주가"
-  display: 10
+  display: 100
+  max_pages: 3
   sort: date
 
 pipeline:

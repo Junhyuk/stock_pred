@@ -125,6 +125,8 @@ def _build_payloads(conn, today_config: dict[str, Any]) -> dict[str, Any]:
     }
     payloads["x_market_news_status"] = _safe_payload(lambda: _x_market_news_status(conn))
     payloads["news_signal_latest"] = _safe_payload(lambda: _latest_news_signals(conn))
+    payloads["official_news_status"] = _safe_payload(lambda: _official_news_status(conn))
+    payloads["news_url_crawl"] = _safe_payload(lambda: _news_url_crawl_payload(conn))
     payloads["x_news_top20_impact"] = _safe_payload(lambda: _x_news_top20_impact(conn))
     payloads["x_market_outlook_impact"] = _safe_payload(lambda: _x_market_outlook_impact(conn))
     payloads["validation"] = _validate_payloads(payloads)
@@ -380,14 +382,119 @@ def _empty_x_impact_payload(message: str) -> dict[str, Any]:
     }
 
 
+def _official_news_status(conn) -> dict[str, Any]:
+    counts = {
+        "news_articles": _table_count(conn, "news_articles"),
+        "market_news_feed": _table_count(conn, "market_news_feed"),
+        "bigkinds_issue_daily": _table_count(conn, "bigkinds_issue_daily"),
+        "global_news_events": _table_count(conn, "global_news_events"),
+        "dart_disclosures": _table_count(conn, "dart_disclosures"),
+        "official_market_prices": _table_count(conn, "official_market_prices"),
+        "news_url_crawl_cache": _table_count(conn, "news_url_crawl_cache"),
+    }
+    failures = _recent_official_failures(conn)
+    missing = [
+        item
+        for item in failures
+        if "required" in str(item.get("error_message", "")).lower()
+        or "requires" in str(item.get("error_message", "")).lower()
+        or "not configured" in str(item.get("error_message", "")).lower()
+    ]
+    status = "ready" if any(counts.values()) and not missing else "partial_ready" if any(counts.values()) else "not_collected"
+    messages = [f"{item.get('source')}: {item.get('error_message')}" for item in missing[:5]]
+    return {
+        "status": status,
+        "counts": counts,
+        "missing_credentials": len(missing),
+        "messages": messages,
+        "failures": failures[:20],
+    }
+
+
+def _news_url_crawl_payload(conn, *, limit: int = 50) -> dict[str, Any]:
+    if not table_exists(conn, "news_url_crawl_cache"):
+        return {"status": "not_collected", "items": [], "summary": {"count": 0}, "messages": ["news_url_crawl_cache 테이블이 없습니다."]}
+    frame = conn.execute(
+        """
+        SELECT
+          source_table,
+          source_article_id,
+          source_url,
+          canonical_url,
+          domain,
+          crawl_status,
+          http_status,
+          content_type,
+          title,
+          meta_description,
+          published_at,
+          excerpt,
+          robots_allowed,
+          error_message,
+          fetched_at
+        FROM news_url_crawl_cache
+        ORDER BY fetched_at DESC NULLS LAST
+        LIMIT ?
+        """,
+        [int(limit)],
+    ).fetchdf()
+    items = frame.to_dict(orient="records")
+    return {
+        "status": "ready" if items else "not_collected",
+        "summary": {"count": _table_count(conn, "news_url_crawl_cache"), "shown": len(items)},
+        "items": items,
+        "messages": [] if items else ["기존 뉴스 URL 크롤링 결과가 없습니다."],
+    }
+
+
+def _table_count(conn, table: str) -> int:
+    if not table_exists(conn, table):
+        return 0
+    return int(conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0])
+
+
+def _recent_official_failures(conn) -> list[dict[str, Any]]:
+    if not table_exists(conn, "collection_failures"):
+        return []
+    frame = conn.execute(
+        """
+        SELECT collected_at, step, source, target_date, error_message
+        FROM collection_failures
+        WHERE step IN (
+          'collect_naver_news',
+          'collect_official_news',
+          'collect_bigkinds_issues',
+          'collect_gdelt_news',
+          'collect_dart_disclosures',
+          'collect_official_market_prices',
+          'crawl_existing_news_urls'
+        )
+        ORDER BY collected_at DESC
+        LIMIT 20
+        """
+    ).fetchdf()
+    return frame.to_dict(orient="records")
+
+
 def _validate_payloads(payloads: dict[str, Any]) -> dict[str, Any]:
     x_status = payloads.get("x_market_news_status") or {}
+    official_status = payloads.get("official_news_status") or {}
+    official_counts = official_status.get("counts") or {}
+    crawl_summary = (payloads.get("news_url_crawl") or {}).get("summary") or {}
     counts = {
         "top20": len((payloads.get("top20_upside_3M") or {}).get("items") or []),
         "top50": len((payloads.get("top50_3M") or {}).get("items") or []),
         "long_short": len((payloads.get("long_short_2M") or {}).get("long_leg") or [])
         + len((payloads.get("long_short_2M") or {}).get("short_leg") or []),
         "news": len((payloads.get("news_latest") or {}).get("items") or []),
+        "news_articles": int(official_counts.get("news_articles") or 0),
+        "market_news_feed": int(official_counts.get("market_news_feed") or 0),
+        "bigkinds_issues": int(official_counts.get("bigkinds_issue_daily") or 0),
+        "gdelt_news": int(official_counts.get("global_news_events") or 0),
+        "dart_disclosures": int(official_counts.get("dart_disclosures") or 0),
+        "official_price_rows": int(official_counts.get("official_market_prices") or 0),
+        "news_url_crawl": int(crawl_summary.get("count") or official_counts.get("news_url_crawl_cache") or 0),
+        "missing_news_credentials": int(official_status.get("missing_credentials") or 0),
         "x_marketnews_feed": int(x_status.get("count") or 0),
         "news_signals": len((payloads.get("news_signal_latest") or {}).get("items") or []),
         "x_news_top20_impact": len((payloads.get("x_news_top20_impact") or {}).get("items") or []),
@@ -408,6 +515,10 @@ def _validate_payloads(payloads: dict[str, Any]) -> dict[str, Any]:
         errors.append("모든 주요 섹션이 비어 있어 publish를 막았습니다.")
     if counts["news"] == 0:
         warnings.append("뉴스 미수집: NAVER_CLIENT_ID/SECRET 또는 공식 RSS 설정 필요")
+    if counts["missing_news_credentials"]:
+        warnings.append("공식 뉴스/공시 일부 미수집: API 키 또는 endpoint 설정 필요")
+    if counts["news_url_crawl"] == 0:
+        warnings.append("기존 뉴스 URL 크롤링 결과가 없습니다.")
     if counts["news_signals"] == 0:
         warnings.append("뉴스 신호 미생성: build_news_signal_features.py 실행 필요")
     if counts["top20"] == 0:
@@ -463,6 +574,7 @@ def _index_html(version: str) -> str:
       <a href="#long-short-section">롱·숏</a>
       <a href="#tomorrow-section">내일 예측</a>
       <a href="#x-impact-section">X 뉴스 영향도</a>
+      <a href="#official-data-section">공식 데이터</a>
       <a href="#moves-section">시장 설명</a>
       <a href="#news-section">뉴스</a>
       <a href="#quality-section">데이터 품질</a>
@@ -488,6 +600,10 @@ def _index_html(version: str) -> str:
       <article id="x-impact-section" class="panel wide">
         <h2>X News Impact</h2>
         <div id="xImpact" class="stack"></div>
+      </article>
+      <article id="official-data-section" class="panel wide">
+        <h2>Official Data & URL Crawl</h2>
+        <div id="officialData" class="stack"></div>
       </article>
       <article id="quality-section" class="panel">
         <h2>Market Quality</h2>
@@ -702,7 +818,7 @@ function statusBadge(status) {
 }
 
 async function boot() {
-  const [manifest, dashboard, today, tomorrow, top20, top50, longShort, moves, news, newsSignals, xTop20Impact, xMarketImpact, validation] = await Promise.all([
+  const [manifest, dashboard, today, tomorrow, top20, top50, longShort, moves, news, newsSignals, officialStatus, newsUrlCrawl, xTop20Impact, xMarketImpact, validation] = await Promise.all([
     load("manifest"),
     load("dashboard"),
     load("today"),
@@ -713,6 +829,8 @@ async function boot() {
     load("market_move_explanations"),
     load("news_latest"),
     load("news_signal_latest"),
+    load("official_news_status"),
+    load("news_url_crawl"),
     load("x_news_top20_impact"),
     load("x_market_outlook_impact"),
     load("validation"),
@@ -740,6 +858,7 @@ async function boot() {
   document.getElementById("longShort").innerHTML = renderLongShort(longShort);
   document.getElementById("tomorrow").innerHTML = renderTomorrow(tomorrow);
   document.getElementById("xImpact").innerHTML = renderXImpact(xTop20Impact, xMarketImpact);
+  document.getElementById("officialData").innerHTML = renderOfficialData(officialStatus, newsUrlCrawl);
   document.getElementById("quality").innerHTML = renderQuality(todayQuality, validation);
   document.getElementById("newsSignals").innerHTML = renderNewsSignals(newsSignals);
   document.getElementById("moves").innerHTML = table([...(moves.market || []), ...(moves.top50 || [])].slice(0, 20), [
@@ -905,6 +1024,27 @@ function impactBadge(value) {
   const level = String(value || "low");
   const cls = level === "high" ? "badge risk" : level === "medium" ? "badge warn" : "badge";
   return `<span class="${cls}">${esc(level)}</span>`;
+}
+
+function renderOfficialData(status, crawl) {
+  const counts = status.counts || {};
+  const crawlItems = crawl.items || [];
+  const messages = [...(status.messages || []), ...(crawl.messages || [])].slice(0, 4);
+  return [
+    `<div class="inline-metrics">
+      ${inlineMetric("Naver/Stock News", counts.news_articles ?? 0, "news_articles")}
+      ${inlineMetric("BIGKinds/GDELT", `${counts.bigkinds_issue_daily ?? 0}/${counts.global_news_events ?? 0}`, "issues/global")}
+      ${inlineMetric("DART/Official Price", `${counts.dart_disclosures ?? 0}/${counts.official_market_prices ?? 0}`, "공시/공식시세")}
+      ${inlineMetric("URL Crawl", counts.news_url_crawl_cache ?? crawl.summary?.count ?? 0, status.status || crawl.status || "-")}
+    </div>`,
+    messages.length ? messages.map((message) => `<p class="muted">${esc(message)}</p>`).join("") : "",
+    table(crawlItems.slice(0, 8), [
+      { key: "domain", label: "Domain" },
+      { key: "crawl_status", label: "Status" },
+      { key: "title", label: "Title", format: (value, row) => `<a href="${esc(row.canonical_url || row.source_url || "#")}" target="_blank" rel="noopener noreferrer">${esc(value || row.source_url || "-")}</a>` },
+      { key: "excerpt", label: "Excerpt", format: (value) => esc(value || "-") },
+    ]),
+  ].join("");
 }
 
 function renderNewsSignals(data) {

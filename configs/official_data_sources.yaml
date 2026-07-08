@@ -1,0 +1,52 @@
+paths:
+  database: data/processed/roboquant.duckdb
+  report_dir: reports
+
+universe:
+  rule: prediction_top_market_cap
+
+official_news:
+  naver:
+    enabled: true
+    display: 100
+    max_pages: 3
+    sort: date
+    query_template: "{name} 주가"
+  bigkinds:
+    enabled: true
+    endpoint: ""
+    service_key_env: DATA_GO_KR_SERVICE_KEY
+  gdelt:
+    enabled: true
+    endpoint: "https://api.gdeltproject.org/api/v2/doc/doc"
+    max_records: 75
+    timespan: "1d"
+    queries:
+      - "Korea semiconductor"
+      - "Samsung Electronics"
+      - "SK hynix"
+      - "KOSPI"
+      - "KOSDAQ"
+  dart:
+    enabled: true
+    endpoint: "https://opendart.fss.or.kr/api/list.json"
+    api_key_env: DART_API_KEY
+    days: 7
+  krx:
+    enabled: true
+    endpoint: ""
+    auth_key_env: KRX_AUTH_KEY
+  data_go_kr_prices:
+    enabled: true
+    endpoint: ""
+    service_key_env: DATA_GO_KR_SERVICE_KEY
+
+news_url_crawl:
+  enabled: true
+  limit: 100
+  refresh_hours: 24
+  timeout_seconds: 10
+  max_bytes: 1048576
+  excerpt_chars: 700
+  sleep_seconds: 0.5
+  respect_robots: true

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from datetime import date, datetime
+from urllib.parse import parse_qs, urlparse
 
 import pandas as pd
 import pytest
@@ -48,6 +49,42 @@ def test_naver_news_provider_normalizes_mock_response() -> None:
     assert frame.iloc[0]["description"] == "반도체 & 환율 영향"
     assert frame.iloc[0]["symbol"] == "005930"
     assert frame.iloc[0]["source_name"] == "naver_search_api"
+
+
+def test_naver_news_provider_paginates_with_start_window() -> None:
+    starts: list[int] = []
+
+    def opener(request):
+        params = parse_qs(urlparse(request.full_url).query)
+        start = int(params["start"][0])
+        starts.append(start)
+        return json.dumps(
+            {
+                "total": 350,
+                "items": [
+                    {
+                        "title": f"뉴스 {start}",
+                        "description": "내용",
+                        "originallink": f"https://example.com/{start}",
+                        "link": f"https://news.naver.com/{start}",
+                        "pubDate": "Wed, 10 Jun 2026 09:00:00 +0900",
+                    }
+                ]
+                * 100,
+            }
+        )
+
+    provider = NaverNewsProvider(env={"NAVER_CLIENT_ID": "client", "NAVER_CLIENT_SECRET": "secret"}, opener=opener)
+
+    frame = provider.fetch_articles(
+        [NaverNewsQuery(symbol="005930", name="삼성전자", query="삼성전자 주가")],
+        query_date=date(2026, 6, 10),
+        display=100,
+        max_pages=3,
+    )
+
+    assert starts == [1, 101, 201]
+    assert len(frame) == 300
 
 
 def test_news_articles_deduplicate_by_article_hash(tmp_path) -> None:

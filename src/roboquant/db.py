@@ -787,6 +787,104 @@ SCHEMA_SQL = [
     )
     """,
     """
+    CREATE TABLE IF NOT EXISTS news_url_crawl_cache (
+      url_hash VARCHAR PRIMARY KEY,
+      source_table VARCHAR,
+      source_article_id VARCHAR,
+      source_url VARCHAR,
+      canonical_url VARCHAR,
+      domain VARCHAR,
+      crawl_status VARCHAR,
+      http_status INTEGER,
+      content_type VARCHAR,
+      title VARCHAR,
+      meta_description VARCHAR,
+      published_at TIMESTAMP,
+      excerpt VARCHAR,
+      text_hash VARCHAR,
+      robots_allowed BOOLEAN,
+      error_message VARCHAR,
+      fetched_at TIMESTAMP
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS bigkinds_issue_daily (
+      issue_date DATE,
+      period VARCHAR,
+      rank INTEGER,
+      article_count INTEGER,
+      title VARCHAR,
+      source VARCHAR,
+      raw_json VARCHAR,
+      collected_at TIMESTAMP,
+      PRIMARY KEY (issue_date, period, rank)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS global_news_events (
+      event_id VARCHAR PRIMARY KEY,
+      query VARCHAR,
+      title VARCHAR,
+      url VARCHAR,
+      domain VARCHAR,
+      source_country VARCHAR,
+      language VARCHAR,
+      seendate TIMESTAMP,
+      tone DOUBLE,
+      source VARCHAR,
+      raw_json VARCHAR,
+      collected_at TIMESTAMP
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS dart_disclosures (
+      disclosure_id VARCHAR PRIMARY KEY,
+      symbol VARCHAR,
+      corp_code VARCHAR,
+      corp_name VARCHAR,
+      report_name VARCHAR,
+      receipt_no VARCHAR,
+      receipt_date DATE,
+      submitter VARCHAR,
+      disclosure_url VARCHAR,
+      disclosure_type VARCHAR,
+      source VARCHAR,
+      raw_json VARCHAR,
+      collected_at TIMESTAMP
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS official_market_prices (
+      date DATE,
+      symbol VARCHAR,
+      market VARCHAR,
+      open DOUBLE,
+      high DOUBLE,
+      low DOUBLE,
+      close DOUBLE,
+      volume DOUBLE,
+      trading_value DOUBLE,
+      change_rate DOUBLE,
+      source VARCHAR,
+      raw_json VARCHAR,
+      collected_at TIMESTAMP,
+      PRIMARY KEY (date, symbol, source)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS official_data_runs (
+      run_id VARCHAR PRIMARY KEY,
+      run_date DATE,
+      step VARCHAR,
+      source VARCHAR,
+      status VARCHAR,
+      rows INTEGER,
+      message VARCHAR,
+      started_at TIMESTAMP,
+      completed_at TIMESTAMP
+    )
+    """,
+    """
     CREATE TABLE IF NOT EXISTS news_signal_daily (
       signal_date DATE,
       scope VARCHAR,
@@ -1087,6 +1185,30 @@ SCHEMA_SQL = [
     """
     CREATE INDEX IF NOT EXISTS idx_market_news_feed_category_pub_date
     ON market_news_feed(category, pub_date)
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_news_url_crawl_domain_status
+    ON news_url_crawl_cache(domain, crawl_status, fetched_at)
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_bigkinds_issue_daily_date
+    ON bigkinds_issue_daily(issue_date, rank)
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_global_news_events_query_date
+    ON global_news_events(query, seendate)
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_dart_disclosures_symbol_date
+    ON dart_disclosures(symbol, receipt_date)
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_official_market_prices_symbol_date
+    ON official_market_prices(symbol, date)
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_official_data_runs_date_source
+    ON official_data_runs(run_date, step, source)
     """,
     """
     CREATE INDEX IF NOT EXISTS idx_news_signal_daily_date_symbol

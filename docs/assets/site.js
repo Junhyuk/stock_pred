@@ -47,7 +47,7 @@ function statusBadge(status) {
 }
 
 async function boot() {
-  const [manifest, dashboard, today, tomorrow, top20, top50, longShort, moves, news, newsSignals, xTop20Impact, xMarketImpact, validation] = await Promise.all([
+  const [manifest, dashboard, today, tomorrow, top20, top50, longShort, moves, news, newsSignals, officialStatus, newsUrlCrawl, xTop20Impact, xMarketImpact, validation] = await Promise.all([
     load("manifest"),
     load("dashboard"),
     load("today"),
@@ -58,6 +58,8 @@ async function boot() {
     load("market_move_explanations"),
     load("news_latest"),
     load("news_signal_latest"),
+    load("official_news_status"),
+    load("news_url_crawl"),
     load("x_news_top20_impact"),
     load("x_market_outlook_impact"),
     load("validation"),
@@ -85,6 +87,7 @@ async function boot() {
   document.getElementById("longShort").innerHTML = renderLongShort(longShort);
   document.getElementById("tomorrow").innerHTML = renderTomorrow(tomorrow);
   document.getElementById("xImpact").innerHTML = renderXImpact(xTop20Impact, xMarketImpact);
+  document.getElementById("officialData").innerHTML = renderOfficialData(officialStatus, newsUrlCrawl);
   document.getElementById("quality").innerHTML = renderQuality(todayQuality, validation);
   document.getElementById("newsSignals").innerHTML = renderNewsSignals(newsSignals);
   document.getElementById("moves").innerHTML = table([...(moves.market || []), ...(moves.top50 || [])].slice(0, 20), [
@@ -250,6 +253,27 @@ function impactBadge(value) {
   const level = String(value || "low");
   const cls = level === "high" ? "badge risk" : level === "medium" ? "badge warn" : "badge";
   return `<span class="${cls}">${esc(level)}</span>`;
+}
+
+function renderOfficialData(status, crawl) {
+  const counts = status.counts || {};
+  const crawlItems = crawl.items || [];
+  const messages = [...(status.messages || []), ...(crawl.messages || [])].slice(0, 4);
+  return [
+    `<div class="inline-metrics">
+      ${inlineMetric("Naver/Stock News", counts.news_articles ?? 0, "news_articles")}
+      ${inlineMetric("BIGKinds/GDELT", `${counts.bigkinds_issue_daily ?? 0}/${counts.global_news_events ?? 0}`, "issues/global")}
+      ${inlineMetric("DART/Official Price", `${counts.dart_disclosures ?? 0}/${counts.official_market_prices ?? 0}`, "공시/공식시세")}
+      ${inlineMetric("URL Crawl", counts.news_url_crawl_cache ?? crawl.summary?.count ?? 0, status.status || crawl.status || "-")}
+    </div>`,
+    messages.length ? messages.map((message) => `<p class="muted">${esc(message)}</p>`).join("") : "",
+    table(crawlItems.slice(0, 8), [
+      { key: "domain", label: "Domain" },
+      { key: "crawl_status", label: "Status" },
+      { key: "title", label: "Title", format: (value, row) => `<a href="${esc(row.canonical_url || row.source_url || "#")}" target="_blank" rel="noopener noreferrer">${esc(value || row.source_url || "-")}</a>` },
+      { key: "excerpt", label: "Excerpt", format: (value) => esc(value || "-") },
+    ]),
+  ].join("");
 }
 
 function renderNewsSignals(data) {

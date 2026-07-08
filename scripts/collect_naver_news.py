@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import argparse
 import sys
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -28,6 +28,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--symbols", default=None, help="Comma-separated local stock symbols.")
     parser.add_argument("--universe-rule", default=None, help="Use current prediction universe when focus_stocks are absent.")
     parser.add_argument("--allow-missing-key", action="store_true")
+    parser.add_argument("--display", type=int, default=None, help="Naver API display size; clamped to 1..100.")
+    parser.add_argument("--max-pages", type=int, default=None, help="Pagination pages per query.")
+    parser.add_argument("--deep", action="store_true", help="Collect the full 1000-result Naver search window per query.")
+    parser.add_argument("--since-hours", type=int, default=None, help="Drop articles older than this many hours by pubDate.")
     return parser.parse_args()
 
 
@@ -62,14 +66,25 @@ def main() -> None:
                 return
             raise
 
+        display = int(args.display if args.display is not None else news_cfg.get("display", 10))
+        max_pages = int(args.max_pages if args.max_pages is not None else news_cfg.get("max_pages", 1))
+        if args.deep:
+            display = 100
+            max_pages = 10
+        since = None
+        if args.since_hours is not None:
+            since = datetime.now(UTC).replace(tzinfo=None) - timedelta(hours=max(0, int(args.since_hours)))
         frame = provider.fetch_articles(
             queries,
             query_date=query_date,
-            display=int(news_cfg.get("display", 10)),
+            display=display,
+            max_pages=max_pages,
             sort=str(news_cfg.get("sort", "date")),
+            since=since,
         )
         append_dedup_table(conn, "news_articles", frame, ["article_id"])
-        print(f"news_articles rows upserted: {len(frame)}")
+        query_count = len(queries) * max(1, min(10, max_pages))
+        print(f"news_articles rows upserted: {len(frame)} queries={len(queries)} api_calls_estimate={query_count}")
     except Exception as exc:
         append_dedup_table(
             conn,

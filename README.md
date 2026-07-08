@@ -269,6 +269,36 @@ Naver API 키가 없으면 종목별 뉴스는 fake 없이 건너뛰고, 공식 
 경로 안에서 `Samsung Electronics`, `SK hynix`, `LG Electronics`, `SL Corp` alias를
 국내 종목 코드로 매핑합니다.
 
+### Official News And URL Crawl
+
+공식 데이터 확장 경로는 `configs/official_data_sources.yaml`을 사용합니다. Naver Search
+News는 Top50 종목별 pagination 기본값 `display=100`, `max_pages=3`으로 수집하고,
+BIGKinds/GDELT/OpenDART/KRX/Data.go.kr는 API key 또는 endpoint가 있을 때만 실행합니다.
+키가 없으면 fake 데이터 없이 `collection_failures`와 Pages validation warning에 남깁니다.
+
+```bash
+.venv/bin/python scripts/collect_naver_news.py \
+  --config configs/top50_normal.yaml \
+  --universe-rule prediction_top_market_cap \
+  --display 100 --max-pages 3 --allow-missing-key
+
+.venv/bin/python scripts/collect_bigkinds_issues.py --config configs/official_data_sources.yaml --allow-missing-key
+.venv/bin/python scripts/collect_gdelt_news.py --config configs/official_data_sources.yaml
+.venv/bin/python scripts/collect_dart_disclosures.py --config configs/official_data_sources.yaml --allow-missing-key
+.venv/bin/python scripts/collect_official_market_prices.py --config configs/official_data_sources.yaml --allow-missing-key
+```
+
+기존 뉴스 URL 크롤러는 DB/config에 이미 저장된 URL만 대상으로 하며 robots.txt를 확인하고
+title/meta/canonical/짧은 발췌만 저장합니다. 원문 전문 저장, paywall·로그인·캡차 우회,
+포털/언론사 대량 크롤링은 하지 않습니다.
+
+```bash
+.venv/bin/python scripts/crawl_existing_news_urls.py --config configs/top50_normal.yaml --limit 100
+```
+
+GitHub Pages export는 `official_news_status.json`, `news_url_crawl.json`과 validation count를
+함께 생성합니다.
+
 ```bash
 .venv/bin/python scripts/build_news_signal_features.py \
   --config configs/top50_normal.yaml \

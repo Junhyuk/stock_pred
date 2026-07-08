@@ -1,0 +1,127 @@
+{
+  "status": "partial_ready",
+  "counts": {
+    "news_articles": 0,
+    "market_news_feed": 36,
+    "bigkinds_issue_daily": 0,
+    "global_news_events": 0,
+    "dart_disclosures": 0,
+    "official_market_prices": 0,
+    "news_url_crawl_cache": 30
+  },
+  "missing_credentials": 13,
+  "messages": [
+    "naver_search_api: NAVER_CLIENT_ID and NAVER_CLIENT_SECRET are required for Naver News Search API.",
+    "naver_search_api: NAVER_CLIENT_ID and NAVER_CLIENT_SECRET are required for Naver News Search API.",
+    "naver_search_api: NAVER_CLIENT_ID and NAVER_CLIENT_SECRET are required for Naver News Search API.",
+    "naver_search_api: NAVER_CLIENT_ID and NAVER_CLIENT_SECRET are required for Naver News Search API.",
+    "naver_search_api: NAVER_CLIENT_ID and NAVER_CLIENT_SECRET are required for Naver News Search API."
+  ],
+  "failures": [
+    {
+      "collected_at": "2026-07-08 13:36:34.269413",
+      "step": "collect_gdelt_news",
+      "source": "gdelt_doc_api",
+      "target_date": "2026-07-08 00:00:00",
+      "error_message": "gdelt request failed: timed out"
+    },
+    {
+      "collected_at": "2026-07-08 13:36:07.849350",
+      "step": "collect_gdelt_news",
+      "source": "gdelt_doc_api",
+      "target_date": "2026-07-08 00:00:00",
+      "error_message": "gdelt request failed: _ssl.c:983: The handshake operation timed out"
+    },
+    {
+      "collected_at": "2026-07-08 12:20:30.361109",
+      "step": "collect_naver_news",
+      "source": "naver_search_api",
+      "target_date": "2026-07-08 00:00:00",
+      "error_message": "NAVER_CLIENT_ID and NAVER_CLIENT_SECRET are required for Naver News Search API."
+    },
+    {
+      "collected_at": "2026-07-05 12:55:40.187710",
+      "step": "collect_naver_news",
+      "source": "naver_search_api",
+      "target_date": "2026-07-03 00:00:00",
+      "error_message": "NAVER_CLIENT_ID and NAVER_CLIENT_SECRET are required for Naver News Search API."
+    },
+    {
+      "collected_at": "2026-06-28 07:33:42.143800",
+      "step": "collect_naver_news",
+      "source": "naver_search_api",
+      "target_date": "2026-06-28 00:00:00",
+      "error_message": "NAVER_CLIENT_ID and NAVER_CLIENT_SECRET are required for Naver News Search API."
+    },
+    {
+      "collected_at": "2026-06-28 07:33:26.497201",
+      "step": "collect_naver_news",
+      "source": "naver_search_api",
+      "target_date": "2026-06-28 00:00:00",
+      "error_message": "NAVER_CLIENT_ID and NAVER_CLIENT_SECRET are required for Naver News Search API."
+    },
+    {
+      "collected_at": "2026-06-28 06:51:35.021835",
+      "step": "collect_naver_news",
+      "source": "naver_search_api",
+      "target_date": "2026-06-26 00:00:00",
+      "error_message": "NAVER_CLIENT_ID and NAVER_CLIENT_SECRET are required for Naver News Search API."
+    },
+    {
+      "collected_at": "2026-06-26 12:01:59.996778",
+      "step": "collect_naver_news",
+      "source": "naver_search_api",
+      "target_date": "2026-06-26 00:00:00",
+      "error_message": "NAVER_CLIENT_ID and NAVER_CLIENT_SECRET are required for Naver News Search API."
+    },
+    {
+      "collected_at": "2026-06-26 11:31:04.305956",
+      "step": "collect_naver_news",
+      "source": "naver_search_api",
+      "target_date": "2026-06-26 00:00:00",
+      "error_message": "NAVER_CLIENT_ID and NAVER_CLIENT_SECRET are required for Naver News Search API."
+    },
+    {
+      "collected_at": "2026-06-26 09:24:47.678062",
+      "step": "collect_naver_news",
+      "source": "naver_search_api",
+      "target_date": "2026-06-26 00:00:00",
+      "error_message": "NAVER_CLIENT_ID and NAVER_CLIENT_SECRET are required for Naver News Search API."
+    },
+    {
+      "collected_at": "2026-06-26 08:58:12.359087",
+      "step": "collect_naver_news",
+      "source": "naver_search_api",
+      "target_date": "2026-06-25 00:00:00",
+      "error_message": "NAVER_CLIENT_ID and NAVER_CLIENT_SECRET are required for Naver News Search API."
+    },
+    {
+      "collected_at": "2026-06-26 08:17:30.058214",
+      "step": "collect_naver_news",
+      "source": "naver_search_api",
+      "target_date": "2026-06-25 00:00:00",
+      "error_message": "NAVER_CLIENT_ID and NAVER_CLIENT_SECRET are required for Naver News Search API."
+    },
+    {
+      "collected_at": "2026-06-23 20:30:14.610165",
+      "step": "collect_naver_news",
+      "source": "naver_search_api",
+      "target_date": "2026-06-23 00:00:00",
+      "error_message": "NAVER_CLIENT_ID and NAVER_CLIENT_SECRET are required for Naver News Search API."
+    },
+    {
+      "collected_at": "2026-06-23 15:40:33.272148",
+      "step": "collect_naver_news",
+      "source": "naver_search_api",
+      "target_date": "2026-06-24 00:00:00",
+      "error_message": "NAVER_CLIENT_ID and NAVER_CLIENT_SECRET are required for Naver News Search API."
+    },
+    {
+      "collected_at": "2026-06-10 10:24:31.857716",
+      "step": "collect_naver_news",
+      "source": "naver_search_api",
+      "target_date": "2026-06-10 00:00:00",
+      "error_message": "NAVER_CLIENT_ID and NAVER_CLIENT_SECRET are required for Naver News Search API."
+    }
+  ]
+}

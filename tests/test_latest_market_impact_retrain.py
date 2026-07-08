@@ -30,11 +30,22 @@ def test_latest_market_impact_runner_dry_run_order() -> None:
     assert "global_market_regime" in names
     assert "collect_market_news" in names
     assert "collect_naver_news_top50" in names
+    assert "collect_bigkinds_issues" in names
+    assert "collect_gdelt_news" in names
+    assert "crawl_existing_news_urls" in names
+    assert "collect_dart_disclosures" in names
+    assert "collect_official_market_prices" in names
     assert "collect_telegram_signals" in names
     assert "collect_x_market_news" in names
     assert "build_news_signal_features" in names
     assert "collect_market_credit_balance" in names
     assert names.index("collect_naver_news_top50") < names.index("collect_telegram_signals")
+    assert names.index("collect_naver_news_top50") < names.index("collect_bigkinds_issues")
+    assert names.index("collect_bigkinds_issues") < names.index("collect_gdelt_news")
+    assert names.index("collect_gdelt_news") < names.index("crawl_existing_news_urls")
+    assert names.index("crawl_existing_news_urls") < names.index("collect_dart_disclosures")
+    assert names.index("collect_dart_disclosures") < names.index("collect_official_market_prices")
+    assert names.index("collect_official_market_prices") < names.index("build_news_signal_features")
     assert names.index("collect_telegram_signals") < names.index("collect_x_market_news")
     assert names.index("collect_x_market_news") < names.index("build_news_signal_features")
     assert names.index("build_news_signal_features") < names.index("collect_market_credit_balance")

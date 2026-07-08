@@ -67,6 +67,8 @@ def test_export_github_pages_site_writes_static_json_and_relative_assets(tmp_pat
     assert (output / "data" / "today.json").exists()
     assert (output / "data" / "tomorrow.json").exists()
     assert (output / "data" / "news_signal_latest.json").exists()
+    assert (output / "data" / "official_news_status.json").exists()
+    assert (output / "data" / "news_url_crawl.json").exists()
     assert (output / "data" / "x_market_news_status.json").exists()
     assert (output / "data" / "x_news_top20_impact.json").exists()
     assert (output / "data" / "x_market_outlook_impact.json").exists()
@@ -85,12 +87,16 @@ def test_export_github_pages_site_writes_static_json_and_relative_assets(tmp_pat
     assert 'href="#long-short-section"' in html
     assert 'href="#tomorrow-section"' in html
     assert 'href="#x-impact-section"' in html
+    assert 'href="#official-data-section"' in html
     assert 'load("top50_3M")' in js
     assert 'load("long_short_2M")' in js
+    assert 'load("official_news_status")' in js
+    assert 'load("news_url_crawl")' in js
     assert 'load("x_news_top20_impact")' in js
     assert 'load("x_market_outlook_impact")' in js
     assert "function renderLongShort" in js
     assert "function renderXImpact" in js
+    assert "function renderOfficialData" in js
     assert "function representativesByMarket" in js
     assert "KOSPI LONG" in js
     assert "No data" not in js
@@ -101,6 +107,11 @@ def test_export_github_pages_site_writes_static_json_and_relative_assets(tmp_pat
     assert "news_signals" in validation["counts"]
     assert "long_short" in validation["counts"]
     assert "x_marketnews_feed" in validation["counts"]
+    assert "news_url_crawl" in validation["counts"]
+    assert "bigkinds_issues" in validation["counts"]
+    assert "gdelt_news" in validation["counts"]
+    assert "dart_disclosures" in validation["counts"]
+    assert "official_price_rows" in validation["counts"]
     assert "x_news_top20_impact" in validation["counts"]
     assert "x_market_outlook_impact" in validation["counts"]
     x_impact = json.loads((output / "data" / "x_news_top20_impact.json").read_text(encoding="utf-8"))

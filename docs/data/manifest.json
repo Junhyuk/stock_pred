@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-07-08T12:29:23Z",
-  "status": "ready",
+  "generated_at": "2026-07-08T13:36:42Z",
+  "status": "export-only",
   "disclaimer": "연구·정보제공용 대시보드입니다. 투자 판단과 책임은 사용자 본인에게 있으며 수익을 보장하지 않습니다.",
   "source": {
     "config": "configs/top50_normal.yaml",
@@ -14,6 +14,8 @@
     "market_move_explanations.json",
     "news_latest.json",
     "news_signal_latest.json",
+    "news_url_crawl.json",
+    "official_news_status.json",
     "today.json",
     "tomorrow.json",
     "top20_price_forecast.json",

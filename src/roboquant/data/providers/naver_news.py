@@ -16,6 +16,9 @@ from urllib.request import Request, urlopen
 
 import pandas as pd
 
+NAVER_DISPLAY_MAX = 100
+NAVER_START_MAX = 1000
+
 
 class NaverNewsConfigurationError(RuntimeError):
     """Raised when Naver Search API credentials are not configured."""
@@ -57,22 +60,39 @@ class NaverNewsProvider:
         *,
         query_date: date,
         display: int = 10,
+        max_pages: int = 1,
         sort: str = "date",
+        since: datetime | None = None,
     ) -> pd.DataFrame:
         rows = []
         collected_at = datetime.now(UTC).replace(tzinfo=None)
+        page_size = _clamp_display(display)
+        pages = max(1, int(max_pages))
         for item in queries:
-            response = self._request(query=item.query, display=display, sort=sort)
-            for article in response.get("items", []):
-                rows.append(normalize_article(item, article, query_date, collected_at))
+            for page_index in range(pages):
+                start = 1 + page_index * page_size
+                if start > NAVER_START_MAX:
+                    break
+                response = self._request(query=item.query, display=page_size, start=start, sort=sort)
+                articles = list(response.get("items", []))
+                for article in articles:
+                    normalized = normalize_article(item, article, query_date, collected_at)
+                    if since is not None:
+                        pub_date = normalized.get("pub_date")
+                        if pub_date is not None and pub_date < since:
+                            continue
+                    rows.append(normalized)
+                total = int(response.get("total") or 0)
+                if len(articles) < page_size or (total and start + page_size > min(total, NAVER_START_MAX)):
+                    break
         return pd.DataFrame(rows)
 
-    def _request(self, *, query: str, display: int, sort: str) -> dict[str, Any]:
+    def _request(self, *, query: str, display: int, start: int, sort: str) -> dict[str, Any]:
         params = urlencode(
             {
                 "query": query,
-                "display": max(1, min(100, int(display))),
-                "start": 1,
+                "display": _clamp_display(display),
+                "start": _clamp_start(start),
                 "sort": sort,
             }
         )
@@ -181,3 +201,11 @@ def _parse_pub_date(value: object) -> datetime | None:
     if parsed.tzinfo is not None:
         return parsed.astimezone(UTC).replace(tzinfo=None)
     return parsed
+
+
+def _clamp_display(value: int) -> int:
+    return max(1, min(NAVER_DISPLAY_MAX, int(value)))
+
+
+def _clamp_start(value: int) -> int:
+    return max(1, min(NAVER_START_MAX, int(value)))
