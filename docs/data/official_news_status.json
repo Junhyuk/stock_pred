@@ -2,25 +2,60 @@
   "status": "partial_ready",
   "counts": {
     "news_articles": 0,
-    "market_news_feed": 37,
+    "market_news_feed": 38,
     "marketnewsfeed_site": 1,
     "telegram_marketfeed": 0,
     "x_market_news_feed": 0,
     "bigkinds_issue_daily": 0,
     "global_news_events": 0,
-    "dart_disclosures": 0,
+    "dart_disclosures": 18,
     "official_market_prices": 0,
-    "news_url_crawl_cache": 30
+    "news_url_crawl_cache": 37
   },
-  "missing_credentials": 13,
+  "missing_credentials": 17,
   "messages": [
-    "naver_search_api: NAVER_CLIENT_ID and NAVER_CLIENT_SECRET are required for Naver News Search API.",
-    "naver_search_api: NAVER_CLIENT_ID and NAVER_CLIENT_SECRET are required for Naver News Search API.",
-    "naver_search_api: NAVER_CLIENT_ID and NAVER_CLIENT_SECRET are required for Naver News Search API.",
+    "data_go_kr_prices: data_go_kr_prices price API requires endpoint.",
+    "krx: krx price API requires endpoint.",
+    "bigkinds_issue_top10: BIGKinds issue API requires endpoint.",
     "naver_search_api: NAVER_CLIENT_ID and NAVER_CLIENT_SECRET are required for Naver News Search API.",
     "naver_search_api: NAVER_CLIENT_ID and NAVER_CLIENT_SECRET are required for Naver News Search API."
   ],
   "failures": [
+    {
+      "collected_at": "2026-07-09 14:40:48.257748",
+      "step": "collect_official_market_prices",
+      "source": "data_go_kr_prices",
+      "target_date": "2026-07-09 00:00:00",
+      "error_message": "data_go_kr_prices price API requires endpoint."
+    },
+    {
+      "collected_at": "2026-07-09 14:40:48.238912",
+      "step": "collect_official_market_prices",
+      "source": "krx",
+      "target_date": "2026-07-09 00:00:00",
+      "error_message": "krx price API requires endpoint."
+    },
+    {
+      "collected_at": "2026-07-09 14:40:39.026677",
+      "step": "collect_gdelt_news",
+      "source": "gdelt_doc_api",
+      "target_date": "2026-07-09 00:00:00",
+      "error_message": "gdelt request failed: _ssl.c:983: The handshake operation timed out"
+    },
+    {
+      "collected_at": "2026-07-09 14:40:05.462607",
+      "step": "collect_bigkinds_issues",
+      "source": "bigkinds_issue_top10",
+      "target_date": "2026-07-09 00:00:00",
+      "error_message": "BIGKinds issue API requires endpoint."
+    },
+    {
+      "collected_at": "2026-07-09 14:40:04.978453",
+      "step": "collect_naver_news",
+      "source": "naver_search_api",
+      "target_date": "2026-07-09 00:00:00",
+      "error_message": "NAVER_CLIENT_ID and NAVER_CLIENT_SECRET are required for Naver News Search API."
+    },
     {
       "collected_at": "2026-07-08 13:36:34.269413",
       "step": "collect_gdelt_news",
