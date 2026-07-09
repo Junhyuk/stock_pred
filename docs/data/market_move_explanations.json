@@ -12768,13 +12768,13 @@
   },
   "freshness": {
     "status": "ready",
-    "expected_latest_date": "2026-07-08",
-    "latest_date": "2026-07-08",
+    "expected_latest_date": "2026-07-09",
+    "latest_date": "2026-07-09",
     "age_days": 0,
     "stale": false,
     "reason": null,
     "messages": [
-      "가격 최신성 확인: 2026-07-08"
+      "가격 최신성 확인: 2026-07-09"
     ]
   }
 }

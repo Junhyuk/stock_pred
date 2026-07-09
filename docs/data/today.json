@@ -1,31 +1,31 @@
 {
-  "snapshot_date": "2026-07-08",
+  "snapshot_date": "2026-07-09",
   "status": "partial_ready",
   "focus_prices": [
     {
-      "date": "2026-07-08T00:00:00",
+      "date": "2026-07-09T00:00:00",
       "symbol": "005930",
       "name": "삼성전자",
       "market": "KOSPI",
       "sector": "통신 및 방송 장비 제조업",
-      "close": 277500.0,
-      "volume": 33377869.0,
-      "trading_value": 9262358647500.0,
+      "close": 278000.0,
+      "volume": 28796159.0,
+      "trading_value": 8005332202000.0,
       "source": "finance_data_reader",
-      "collected_at": "2026-07-08T12:18:19.512679",
+      "collected_at": "2026-07-09T14:30:23.646491",
       "status": "ready"
     },
     {
-      "date": "2026-07-08T00:00:00",
+      "date": "2026-07-09T00:00:00",
       "symbol": "000660",
       "name": "SK하이닉스",
       "market": "KOSPI",
       "sector": "반도체 제조업",
-      "close": 2076000.0,
-      "volume": 6681924.0,
-      "trading_value": 13871674224000.0,
+      "close": 2186000.0,
+      "volume": 5615826.0,
+      "trading_value": 12276195636000.0,
       "source": "finance_data_reader",
-      "collected_at": "2026-07-08T12:18:19.771326",
+      "collected_at": "2026-07-09T14:30:23.807933",
       "status": "ready"
     },
     {
@@ -47,8 +47,8 @@
       "yahoo_symbol": "005930.KS",
       "symbol": "005930",
       "asset_type": "stock",
-      "date": "2026-07-08T00:00:00",
-      "close": 277500.0,
+      "date": "2026-07-09T00:00:00",
+      "close": 278000.0,
       "currency": "KRW",
       "source": "domestic_prices_daily",
       "underlying_source": "finance_data_reader",
@@ -58,8 +58,8 @@
       "yahoo_symbol": "000660.KS",
       "symbol": "000660",
       "asset_type": "stock",
-      "date": "2026-07-08T00:00:00",
-      "close": 2076000.0,
+      "date": "2026-07-09T00:00:00",
+      "close": 2186000.0,
       "currency": "KRW",
       "source": "domestic_prices_daily",
       "underlying_source": "finance_data_reader",
@@ -14715,13 +14715,13 @@
     },
     "freshness": {
       "status": "ready",
-      "expected_latest_date": "2026-07-08",
-      "latest_date": "2026-07-08",
+      "expected_latest_date": "2026-07-09",
+      "latest_date": "2026-07-09",
       "age_days": 0,
       "stale": false,
       "reason": null,
       "messages": [
-        "가격 최신성 확인: 2026-07-08"
+        "가격 최신성 확인: 2026-07-09"
       ]
     }
   },
@@ -15216,9 +15216,9 @@
       }
     },
     "weight_decisions": {
-      "6M": 0.0,
       "3M": 0.0,
-      "2M": 0.0
+      "2M": 0.0,
+      "6M": 0.0
     },
     "leverage_warning": "KORU는 일간 3배 레버리지 ETF입니다. 장기 보유 시 기초지수 수익률의 단순 3배와 다르게 움직일 수 있으며, 변동성, 일일 리밸런싱, 복리 효과로 손실이 확대될 수 있습니다. 본 화면은 투자 참고용 분석이며 매수/매도 추천이 아닙니다."
   },
@@ -15230,22 +15230,22 @@
       "supply_flows": "missing",
       "market_regime": "ready",
       "global_markets": "ready",
-      "news": "ready"
+      "news": "stale"
     },
     "messages": [
       "Yahoo/yfinance 원본 가격이 오래되어 국내/글로벌 최신 데이터로 대체 표시",
-      "거시 뉴스 피드 기준(종목별 네이버 뉴스 없음)",
+      "거시·수급 뉴스가 최신 기준보다 오래됨",
       "수급 데이터 미수집: KOSPI: \"None of [Index(['종가', '시가총액', '거래량', '거래대금'], dtype='object')] are in the [columns]\"; KOSDAQ: \"None of [Index(['종가', '시가총액', '거래량', '거래대금'], dtype='obje"
     ],
     "freshness": {
       "status": "ready",
-      "expected_latest_date": "2026-07-08",
-      "latest_date": "2026-07-08",
+      "expected_latest_date": "2026-07-09",
+      "latest_date": "2026-07-09",
       "age_days": 0,
       "stale": false,
       "reason": null,
       "messages": [
-        "가격 최신성 확인: 2026-07-08"
+        "가격 최신성 확인: 2026-07-09"
       ]
     }
   },
@@ -15350,19 +15350,6 @@
       "summary": "Federal Reserve Board issues enforcement action with employee of Bank of Eufaula and S N B Bancshares, Inc.",
       "link": "https://www.federalreserve.gov/newsevents/pressreleases/enforcement20260625b.htm",
       "pub_date": "2026-06-25",
-      "themes": [
-        "RATE"
-      ],
-      "sentiment_score": 0.5
-    },
-    {
-      "article_id": "b22a287ec0096900d6edac31baa91e30ce796c68540330c073e01e7cd23e9576",
-      "source": "fed_press",
-      "category": "macro",
-      "title": "Federal Reserve Board's annual bank stress test confirms that large banks are well positioned to weather a severe recession and able to continue to lend to households and businesses",
-      "summary": "Federal Reserve Board's annual bank stress test confirms that large banks are well positioned to weather a severe recession and able to continue to lend to households and businesses",
-      "link": "https://www.federalreserve.gov/newsevents/pressreleases/bcreg20260624a.htm",
-      "pub_date": "2026-06-24",
       "themes": [
         "RATE"
       ],
