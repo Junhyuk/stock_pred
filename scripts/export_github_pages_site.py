@@ -387,6 +387,7 @@ def _official_news_status(conn) -> dict[str, Any]:
         "news_articles": _table_count(conn, "news_articles"),
         "market_news_feed": _table_count(conn, "market_news_feed"),
         "marketnewsfeed_site": _market_news_source_count(conn, "marketnewsfeed_site"),
+        "marketnewsfeed_headlines": _table_count(conn, "marketnewsfeed_headlines"),
         "telegram_marketfeed": _telegram_channel_count(conn, "marketfeed"),
         "x_market_news_feed": _market_news_source_count(conn, "x_marketnews_feed"),
         "bigkinds_issue_daily": _table_count(conn, "bigkinds_issue_daily"),
@@ -408,6 +409,7 @@ def _official_news_status(conn) -> dict[str, Any]:
     return {
         "status": status,
         "counts": counts,
+      "marketnewsfeed_headlines": _latest_marketnewsfeed_headlines(conn),
         "missing_credentials": len(missing),
         "messages": messages,
         "failures": failures[:20],
@@ -462,6 +464,28 @@ def _market_news_source_count(conn, source: str) -> int:
     return int(conn.execute("SELECT COUNT(*) FROM market_news_feed WHERE source = ?", [source]).fetchone()[0])
 
 
+def _latest_marketnewsfeed_headlines(conn, *, limit: int = 8) -> list[dict[str, Any]]:
+    if not table_exists(conn, "marketnewsfeed_headlines"):
+        return []
+    frame = conn.execute(
+        """
+        SELECT
+          published_at,
+          site_category,
+          importance,
+          title,
+          source_name,
+          source_url,
+          tickers_json
+        FROM marketnewsfeed_headlines
+        ORDER BY published_at DESC, collected_at DESC
+        LIMIT ?
+        """,
+        [int(max(1, limit))],
+    ).fetchdf()
+    return frame.to_dict(orient="records")
+
+
 def _telegram_channel_count(conn, channel: str) -> int:
     if not table_exists(conn, "telegram_posts"):
         return 0
@@ -506,6 +530,7 @@ def _validate_payloads(payloads: dict[str, Any]) -> dict[str, Any]:
         "news_articles": int(official_counts.get("news_articles") or 0),
         "market_news_feed": int(official_counts.get("market_news_feed") or 0),
         "marketnewsfeed_site": int(official_counts.get("marketnewsfeed_site") or 0),
+        "marketnewsfeed_headlines": int(official_counts.get("marketnewsfeed_headlines") or 0),
         "telegram_marketfeed": int(official_counts.get("telegram_marketfeed") or 0),
         "x_market_news_feed": int(official_counts.get("x_market_news_feed") or 0),
         "bigkinds_issues": int(official_counts.get("bigkinds_issue_daily") or 0),
@@ -828,7 +853,7 @@ function table(items, columns) {
     const value = column.format ? column.format(raw, item) : esc(raw ?? "-");
     return `<td>${value}</td>`;
   }).join("")}</tr>`).join("");
-  return `<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+  return `<div class="table"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
 }
 function statusBadge(status) {
   const value = String(status || "-");
@@ -1047,17 +1072,25 @@ function impactBadge(value) {
 
 function renderOfficialData(status, crawl) {
   const counts = status.counts || {};
+  const marketNewsFeedHeadlines = status.marketnewsfeed_headlines || [];
   const crawlItems = crawl.items || [];
   const messages = [...(status.messages || []), ...(crawl.messages || [])].slice(0, 4);
   return [
     `<div class="inline-metrics">
       ${inlineMetric("Naver/Stock News", counts.news_articles ?? 0, "news_articles")}
-      ${inlineMetric("MarketNewsFeed", `${counts.marketnewsfeed_site ?? 0}/${counts.telegram_marketfeed ?? 0}/${counts.x_market_news_feed ?? 0}`, "site/tg/x")}
+      ${inlineMetric("MarketNewsFeed", `${counts.marketnewsfeed_site ?? 0}/${counts.marketnewsfeed_headlines ?? 0}/${counts.telegram_marketfeed ?? 0}/${counts.x_market_news_feed ?? 0}`, "site/headlines/tg/x")}
       ${inlineMetric("BIGKinds/GDELT", `${counts.bigkinds_issue_daily ?? 0}/${counts.global_news_events ?? 0}`, "issues/global")}
       ${inlineMetric("DART/Official Price", `${counts.dart_disclosures ?? 0}/${counts.official_market_prices ?? 0}`, "공시/공식시세")}
       ${inlineMetric("URL Crawl", counts.news_url_crawl_cache ?? crawl.summary?.count ?? 0, status.status || crawl.status || "-")}
     </div>`,
     messages.length ? messages.map((message) => `<p class="muted">${esc(message)}</p>`).join("") : "",
+    table(marketNewsFeedHeadlines, [
+      { key: "published_at", label: "UTC", format: (value) => esc(value ? String(value).replace("T", " ").slice(0, 19) : "-") },
+      { key: "site_category", label: "Category" },
+      { key: "importance", label: "Importance", format: (value) => esc(value == null ? "-" : `${value}/5`) },
+      { key: "title", label: "MarketNewsFeed Shadow", format: (value, row) => `<a href="${esc(row.source_url || "#")}" target="_blank" rel="noopener noreferrer">${esc(value || "-")}</a>` },
+      { key: "source_name", label: "Source" },
+    ]),
     table(crawlItems.slice(0, 8), [
       { key: "domain", label: "Domain" },
       { key: "crawl_status", label: "Status" },

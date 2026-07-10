@@ -9,7 +9,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from roboquant.data.freshness import KST, expected_latest_trading_day, local_today
+from roboquant.data.freshness import expected_latest_trading_day, local_today
 from roboquant.db import append_dedup_table, table_exists
 from roboquant.signals.news_signals import (
     DEFAULT_NEGATIVE_BUSINESS_KEYWORDS,
@@ -19,8 +19,11 @@ from roboquant.signals.news_signals import (
 MARKETS = ("KOSPI", "KOSDAQ")
 OUTLOOK_HORIZONS = ("TODAY", "WEEK")
 SHOCK_THRESHOLD = -0.02
-MODEL_VERSION_PREFIX = "market-outlook-v1"
+MODEL_VERSION_PREFIX = "market-outlook-v2"
 NEWS_WINDOW_HOURS = 24
+MIN_FEATURE_SUPPORT_ROWS = 60
+MIN_FEATURE_SUPPORT_FRACTION = 0.05
+MAX_STANDARDIZED_FEATURE_VALUE = 5.0
 
 INDEX_FEATURE_COLUMNS = [
     "index_return_1d",
@@ -379,6 +382,36 @@ def default_market_outlook_model_path(config: dict[str, Any]) -> Path:
 
 
 def _fit_market_horizon(subset: pd.DataFrame) -> dict[str, Any]:
+    train, validation = _chronological_holdout(subset)
+    validation_spec = _fit_market_horizon_spec(train)
+    validation_fitted = _predict_subset(validation, validation_spec)
+    validation_label = pd.to_numeric(validation.get("label_return"), errors="coerce")
+
+    spec = _fit_market_horizon_spec(subset)
+    spec["validation_sample_count"] = int(len(validation))
+    if not validation_fitted.empty and validation_label.notna().any():
+        valid = validation_label.notna()
+        actual = validation_label.loc[valid].to_numpy(dtype=float)
+        predicted = validation_fitted.loc[valid].to_numpy(dtype=float)
+        spec["validation_direction_accuracy"] = float(
+            np.mean(np.sign(predicted) == np.sign(actual))
+        )
+        spec["validation_rmse"] = float(np.sqrt(np.mean((predicted - actual) ** 2)))
+    else:
+        spec["validation_direction_accuracy"] = None
+        spec["validation_rmse"] = None
+
+    fitted = _predict_subset(subset, spec)
+    if not fitted.empty and len(fitted) > 1:
+        label = pd.to_numeric(subset["label_return"], errors="coerce")
+        direction = np.sign(fitted.to_numpy(dtype=float)) == np.sign(label.to_numpy(dtype=float))
+        spec["direction_accuracy"] = float(np.nanmean(direction)) if len(direction) else None
+    else:
+        spec["direction_accuracy"] = None
+    return spec
+
+
+def _fit_market_horizon_spec(subset: pd.DataFrame) -> dict[str, Any]:
     sample_count = int(len(subset))
     label = pd.to_numeric(subset.get("label_return"), errors="coerce").dropna()
     fallback_mean = float(label.mean()) if not label.empty else 0.0
@@ -397,11 +430,25 @@ def _fit_market_horizon(subset: pd.DataFrame) -> dict[str, Any]:
         sigma = float(np.nanstd(residual.to_numpy(dtype=float)))
         if math.isfinite(sigma) and sigma > 0:
             spec["residual_std"] = float(max(0.006, min(0.08, sigma)))
-        direction = np.sign(fitted.to_numpy(dtype=float)) == np.sign(pd.to_numeric(subset["label_return"], errors="coerce").to_numpy(dtype=float))
-        spec["direction_accuracy"] = float(np.nanmean(direction)) if len(direction) else None
-    else:
-        spec["direction_accuracy"] = None
     return spec
+
+
+def _chronological_holdout(
+    subset: pd.DataFrame,
+    validation_fraction: float = 0.2,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    if subset.empty:
+        return subset.copy(), subset.copy()
+    dates = sorted(pd.to_datetime(subset["asof_date"], errors="coerce").dropna().unique())
+    if len(dates) < 10:
+        return subset.copy(), subset.iloc[0:0].copy()
+    split_index = min(len(dates) - 1, max(1, int(len(dates) * (1.0 - validation_fraction))))
+    validation_dates = set(dates[split_index:])
+    date_values = pd.to_datetime(subset["asof_date"], errors="coerce")
+    return (
+        subset[~date_values.isin(validation_dates)].copy(),
+        subset[date_values.isin(validation_dates)].copy(),
+    )
 
 
 def _fit_linear_spec(subset: pd.DataFrame, features: list[str], fallback: float) -> dict[str, Any]:
@@ -416,6 +463,28 @@ def _fit_linear_spec(subset: pd.DataFrame, features: list[str], fallback: float)
     valid = y.notna()
     if int(valid.sum()) < 8:
         return {"features": features, "intercept": float(fallback), "coef": [0.0] * len(features), "mean": {}, "std": {}}
+    support_threshold = max(
+        MIN_FEATURE_SUPPORT_ROWS,
+        int(math.ceil(int(valid.sum()) * MIN_FEATURE_SUPPORT_FRACTION)),
+    )
+    support = matrix.loc[valid].sub(fill_values).abs().gt(1e-12).sum()
+    active_features = [
+        feature for feature in features if int(support.get(feature, 0)) >= support_threshold
+    ]
+    blocked_features = [feature for feature in features if feature not in active_features]
+    if not active_features:
+        return {
+            "features": [],
+            "intercept": float(y.loc[valid].mean()),
+            "coef": [],
+            "mean": {},
+            "std": {},
+            "fill": {},
+            "support_threshold": support_threshold,
+            "blocked_features": blocked_features,
+        }
+    matrix = matrix[active_features]
+    fill_values = fill_values.reindex(active_features)
     x = matrix.loc[valid].to_numpy(dtype=float)
     yv = y.loc[valid].to_numpy(dtype=float)
     mean = np.nanmean(x, axis=0)
@@ -431,12 +500,14 @@ def _fit_linear_spec(subset: pd.DataFrame, features: list[str], fallback: float)
     except np.linalg.LinAlgError:
         beta = np.linalg.pinv(x_design.T @ x_design + penalty) @ x_design.T @ yv
     return {
-        "features": features,
+        "features": active_features,
         "intercept": float(beta[0]),
         "coef": [float(item) for item in beta[1:]],
-        "mean": {feature: float(value) for feature, value in zip(features, mean, strict=False)},
-        "std": {feature: float(value) for feature, value in zip(features, std, strict=False)},
-        "fill": {feature: float(fill_values.get(feature, 0.0)) for feature in features},
+        "mean": {feature: float(value) for feature, value in zip(active_features, mean, strict=False)},
+        "std": {feature: float(value) for feature, value in zip(active_features, std, strict=False)},
+        "fill": {feature: float(fill_values.get(feature, 0.0)) for feature in active_features},
+        "support_threshold": support_threshold,
+        "blocked_features": blocked_features,
     }
 
 
@@ -504,7 +575,12 @@ def _linear_predict(row: dict[str, Any], spec: dict[str, Any]) -> float:
         std = _safe_float(stds.get(feature), 1.0) or 1.0
         if abs(std) < 1e-9:
             std = 1.0
-        value += float(coef) * ((float(raw or 0.0) - mean) / std)
+        standardized = (float(raw or 0.0) - mean) / std
+        standardized = max(
+            -MAX_STANDARDIZED_FEATURE_VALUE,
+            min(MAX_STANDARDIZED_FEATURE_VALUE, standardized),
+        )
+        value += float(coef) * standardized
     return float(value)
 
 

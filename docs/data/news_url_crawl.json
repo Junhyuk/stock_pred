@@ -1,10 +1,44 @@
 {
   "status": "ready",
   "summary": {
-    "count": 37,
-    "shown": 37
+    "count": 39,
+    "shown": 39
   },
   "items": [
+    {
+      "source_table": "market_news_feed",
+      "source_article_id": "9d74b2a78e5959372a82132bfe9d541cdd0cb33f3fbf24e6c5bd45b3a3a3b103",
+      "source_url": "https://www.federalreserve.gov/newsevents/pressreleases/enforcement20260709a.htm",
+      "canonical_url": null,
+      "domain": "www.federalreserve.gov",
+      "crawl_status": "skipped_robots",
+      "http_status": null,
+      "content_type": null,
+      "title": null,
+      "meta_description": null,
+      "published_at": "NaT",
+      "excerpt": null,
+      "robots_allowed": false,
+      "error_message": null,
+      "fetched_at": "2026-07-10 12:25:28.972594"
+    },
+    {
+      "source_table": "market_news_feed",
+      "source_article_id": "81a6b96e8c0aaabff115ee51c91332a1cacb3f79c898ef6d1bf435bad0a4de90",
+      "source_url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260709a.htm",
+      "canonical_url": null,
+      "domain": "www.federalreserve.gov",
+      "crawl_status": "skipped_robots",
+      "http_status": null,
+      "content_type": null,
+      "title": null,
+      "meta_description": null,
+      "published_at": "NaT",
+      "excerpt": null,
+      "robots_allowed": false,
+      "error_message": null,
+      "fetched_at": "2026-07-10 12:25:28.932877"
+    },
     {
       "source_table": "market_news_feed",
       "source_article_id": "d6dd03442bb7f828f4f5d216f81cc3a2a260cda97393ade3e1b0be61d75d419b",

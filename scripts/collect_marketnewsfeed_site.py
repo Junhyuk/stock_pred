@@ -14,6 +14,8 @@ from roboquant.config import ensure_project_dirs, get_database_path, load_config
 from roboquant.data.collectors.failures import collection_failure_row
 from roboquant.data.providers.marketnewsfeed_site import (
     MarketNewsFeedSiteProvider,
+    render_marketnewsfeed_dom,
+    rendered_headlines_to_frame,
     settings_from_config,
 )
 from roboquant.db import append_dedup_table, connect_database
@@ -49,26 +51,60 @@ def run_collection(config_path: str | Path, *, dry_run: bool = False) -> str:
                 f"site_url: {settings.site_url}",
                 f"telegram_channel: {settings.telegram_channel}",
                 f"x_username: {settings.x_username}",
-                "mode: site_metadata_only",
+                f"crawl_site_metadata: {settings.crawl_site_metadata}",
+                f"crawl_rendered_headlines: {settings.crawl_rendered_headlines}",
+                "mode: public_dom_shadow",
             ]
         )
-    if not settings.enabled or not settings.crawl_site_metadata:
+    if not settings.enabled or not (
+        settings.crawl_site_metadata or settings.crawl_rendered_headlines
+    ):
         return "marketnewsfeed_site disabled; skipped without fake data."
 
     conn = connect_database(database)
     try:
         provider = MarketNewsFeedSiteProvider(timeout=float(raw.get("request_timeout_seconds", 10)))
+        metadata_rows = 0
         try:
             frame = provider.fetch_metadata(settings=settings, config=config)
         except Exception as exc:
             _record_failure(conn, settings.source, exc)
             raise
-        append_dedup_table(conn, "market_news_feed", frame, ["article_id"])
+        if not frame.empty:
+            append_dedup_table(conn, "market_news_feed", frame, ["article_id"])
+            metadata_rows = len(frame)
+
+        headline_rows = 0
+        headline_error = None
+        if settings.crawl_rendered_headlines:
+            try:
+                rendered_html = render_marketnewsfeed_dom(
+                    settings.site_url,
+                    chrome_path=settings.chrome_path,
+                    timeout_seconds=float(raw.get("render_timeout_seconds", 20)),
+                )
+                headlines = rendered_headlines_to_frame(
+                    rendered_html,
+                    base_url=settings.site_url,
+                ).head(settings.max_headlines)
+                if not headlines.empty:
+                    append_dedup_table(
+                        conn,
+                        "marketnewsfeed_headlines",
+                        headlines,
+                        ["headline_id"],
+                    )
+                    headline_rows = len(headlines)
+            except Exception as exc:
+                headline_error = str(exc)
+                _record_failure(conn, "marketnewsfeed_site_shadow", exc)
         return json.dumps(
             {
-                "status": "ready",
+                "status": "ready" if headline_rows or not settings.crawl_rendered_headlines else "partial_ready",
                 "source": settings.source,
-                "rows": len(frame),
+                "metadata_rows": metadata_rows,
+                "headline_rows": headline_rows,
+                "headline_error": headline_error,
                 "site_url": settings.site_url,
             },
             ensure_ascii=False,

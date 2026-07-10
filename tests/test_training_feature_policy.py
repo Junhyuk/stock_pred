@@ -23,6 +23,8 @@ def test_long_horizons_exclude_short_horizon_koru_telegram_and_us_sector_feature
         "news_sentiment_score",
         "x_news_count_3d",
         "x_news_negative_attention_score",
+        "dart_disclosure_count_7d",
+        "dart_material_count_30d",
         "us_sector_impact_score",
         "us_sector_return_1d",
     ]

@@ -7,7 +7,10 @@ import pandas as pd
 from roboquant.dashboard.dashboard_service import get_market_outlook
 from roboquant.db import append_dedup_table, connect_database
 from roboquant.market_outlook import (
+    _fit_linear_spec,
+    _linear_predict,
     build_market_outlook_dataset,
+    fit_market_outlook_model,
     normal_cdf,
     refresh_market_outlook_forecasts,
     target_dates_for_run,
@@ -154,6 +157,49 @@ def test_market_outlook_shock_probability_uses_minus_two_percent_threshold() -> 
 
     assert bearish > 0.80
     assert flat < 0.05
+
+
+def test_market_outlook_model_reports_chronological_validation_metrics(tmp_path) -> None:
+    conn = connect_database(tmp_path / "outlook_validation.duckdb")
+    _seed_benchmark(conn)
+    dataset = build_market_outlook_dataset(conn, asof_date="2026-06-23")
+
+    model = fit_market_outlook_model(dataset)
+    spec = model["models"]["KOSPI|TODAY"]
+
+    assert spec["validation_sample_count"] > 0
+    assert 0.0 <= spec["validation_direction_accuracy"] <= 1.0
+    assert spec["validation_rmse"] >= 0.0
+
+
+def test_market_outlook_model_blocks_sparse_features() -> None:
+    frame = pd.DataFrame(
+        {
+            "label_return": [0.01 if index % 2 else -0.01 for index in range(100)],
+            "sparse": [50.0] * 95 + [0.0] * 5,
+            "supported": [float(index) for index in range(100)],
+        }
+    )
+
+    spec = _fit_linear_spec(frame, ["sparse", "supported"], 0.0)
+
+    assert spec["features"] == ["supported"]
+    assert spec["blocked_features"] == ["sparse"]
+    assert spec["support_threshold"] == 60
+
+
+def test_market_outlook_model_caps_standardized_feature_values() -> None:
+    spec = {
+        "features": ["signal"],
+        "intercept": 0.0,
+        "coef": [0.01],
+        "mean": {"signal": 0.0},
+        "std": {"signal": 1.0},
+        "fill": {"signal": 0.0},
+    }
+
+    assert _linear_predict({"signal": 100.0}, spec) == 0.05
+    assert _linear_predict({"signal": -100.0}, spec) == -0.05
 
 
 def test_market_outlook_forecasts_four_rows_and_partial_quality(tmp_path) -> None:

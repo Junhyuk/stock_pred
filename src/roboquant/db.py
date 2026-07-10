@@ -134,6 +134,12 @@ SCHEMA_SQL = [
       x_news_negative_count_3d DOUBLE,
       x_news_negative_attention_score DOUBLE,
       x_news_bias_adjusted_sentiment_score DOUBLE,
+      dart_disclosure_count_1d DOUBLE,
+      dart_disclosure_count_7d DOUBLE,
+      dart_disclosure_count_30d DOUBLE,
+      dart_material_count_7d DOUBLE,
+      dart_material_count_30d DOUBLE,
+      dart_report_diversity_30d DOUBLE,
       us_sector_return_1d DOUBLE,
       us_sector_return_5d DOUBLE,
       us_sector_zscore_20d DOUBLE,
@@ -787,6 +793,22 @@ SCHEMA_SQL = [
     )
     """,
     """
+    CREATE TABLE IF NOT EXISTS marketnewsfeed_headlines (
+      headline_id VARCHAR PRIMARY KEY,
+      source VARCHAR,
+      site_category VARCHAR,
+      title VARCHAR,
+      source_url VARCHAR,
+      source_name VARCHAR,
+      published_at TIMESTAMP,
+      tickers_json VARCHAR,
+      importance INTEGER,
+      channel VARCHAR,
+      collected_at TIMESTAMP,
+      raw_json VARCHAR
+    )
+    """,
+    """
     CREATE TABLE IF NOT EXISTS news_url_crawl_cache (
       url_hash VARCHAR PRIMARY KEY,
       source_table VARCHAR,
@@ -1418,6 +1440,12 @@ MIGRATION_SQL = [
     "ALTER TABLE features_daily ADD COLUMN IF NOT EXISTS x_news_negative_count_3d DOUBLE",
     "ALTER TABLE features_daily ADD COLUMN IF NOT EXISTS x_news_negative_attention_score DOUBLE",
     "ALTER TABLE features_daily ADD COLUMN IF NOT EXISTS x_news_bias_adjusted_sentiment_score DOUBLE",
+    "ALTER TABLE features_daily ADD COLUMN IF NOT EXISTS dart_disclosure_count_1d DOUBLE",
+    "ALTER TABLE features_daily ADD COLUMN IF NOT EXISTS dart_disclosure_count_7d DOUBLE",
+    "ALTER TABLE features_daily ADD COLUMN IF NOT EXISTS dart_disclosure_count_30d DOUBLE",
+    "ALTER TABLE features_daily ADD COLUMN IF NOT EXISTS dart_material_count_7d DOUBLE",
+    "ALTER TABLE features_daily ADD COLUMN IF NOT EXISTS dart_material_count_30d DOUBLE",
+    "ALTER TABLE features_daily ADD COLUMN IF NOT EXISTS dart_report_diversity_30d DOUBLE",
     "ALTER TABLE news_signal_daily ADD COLUMN IF NOT EXISTS news_negative_count_3d DOUBLE",
     "ALTER TABLE news_signal_daily ADD COLUMN IF NOT EXISTS news_negative_ratio_3d DOUBLE",
     "ALTER TABLE news_signal_daily ADD COLUMN IF NOT EXISTS news_negative_attention_score DOUBLE",

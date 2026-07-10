@@ -2,25 +2,135 @@
   "status": "partial_ready",
   "counts": {
     "news_articles": 0,
-    "market_news_feed": 38,
+    "market_news_feed": 40,
     "marketnewsfeed_site": 1,
+    "marketnewsfeed_headlines": 50,
     "telegram_marketfeed": 0,
     "x_market_news_feed": 0,
     "bigkinds_issue_daily": 0,
     "global_news_events": 0,
-    "dart_disclosures": 18,
+    "dart_disclosures": 61,
     "official_market_prices": 0,
-    "news_url_crawl_cache": 37
+    "news_url_crawl_cache": 39
   },
-  "missing_credentials": 17,
+  "marketnewsfeed_headlines": [
+    {
+      "published_at": "2026-07-10 13:37:57",
+      "site_category": "OTHER",
+      "importance": 2,
+      "title": "MARGIN TRADING ARRIVES ON POLYMARKET: WILL POLYMARKET HOOVER ALL HYPERLIQUID LIQUIDITY?",
+      "source_name": "tradingview.com ↗",
+      "source_url": "https://www.tradingview.com/news/99Bitcoins:a3a6366cf094b:0-margin-trading-arrives-on-polymarket-will-polymarket-hoover-all-hyperliquid-liquidity/",
+      "tickers_json": "[]"
+    },
+    {
+      "published_at": "2026-07-10 13:37:56",
+      "site_category": "STOCKS",
+      "importance": 3,
+      "title": "COINBASE CLO AND GRAYSCALE CFO BOTH EXIT AS CRYPTO REGULATION ERA BEGINS",
+      "source_name": "tradingview.com ↗",
+      "source_url": "https://www.tradingview.com/news/99Bitcoins:77e83052c094b:0-coinbase-clo-and-grayscale-cfo-both-exit-as-crypto-regulation-era-begins/",
+      "tickers_json": "[\"COIN\", \"GBTC\", \"BTCUSDT\"]"
+    },
+    {
+      "published_at": "2026-07-10 13:37:55",
+      "site_category": "CRYPTO",
+      "importance": 3,
+      "title": "WILL THE CRYPTO LOBBY'S $189M CAMPAIGN GET CLARITY OVER THE LINE?",
+      "source_name": "tradingview.com ↗",
+      "source_url": "https://www.tradingview.com/news/cointelegraph:1702a499e094b:0-will-the-crypto-lobby-s-189m-campaign-get-clarity-over-the-line/",
+      "tickers_json": "[\"BTCUSDT\", \"ETHUSDT\"]"
+    },
+    {
+      "published_at": "2026-07-10 13:37:54",
+      "site_category": "CRYPTO",
+      "importance": 2,
+      "title": "VANECK ETHEREUM ETF UPDATE ADDS MORE FEE PRESSURE TO THE FUND LAUNCH RACE",
+      "source_name": "tradingview.com ↗",
+      "source_url": "https://www.tradingview.com/news/newsbtc:a50cf9df2094b:0-vaneck-ethereum-etf-update-adds-more-fee-pressure-to-the-fund-launch-race/",
+      "tickers_json": "[\"ETHUSDT\"]"
+    },
+    {
+      "published_at": "2026-07-10 13:33:20",
+      "site_category": "STOCKS",
+      "importance": 3,
+      "title": "JUST IN: 🇺🇸 PRESIDENT TRUMP SAYS HE WILL NOT SIGN THE HOUSING BILL PASSED BY CONGRESS.",
+      "source_name": "@WatcherGuru ↗",
+      "source_url": "https://x.com/WatcherGuru/status/2075574004954325387",
+      "tickers_json": "[\"DHI\", \"XHB\"]"
+    },
+    {
+      "published_at": "2026-07-10 13:31:35",
+      "site_category": "MACRO",
+      "importance": 2,
+      "title": "DOW JONES UP 140.19 POINTS, OR 0.27 PERCENT, AT 52,627.60 AFTER MARKET OPEN S&P 500 UP 5.46 POINTS, OR 0.07 %, AT 7,549.10 AFTER MARKET OPEN NASDAQ DOWN 30.50 POINTS, OR 0.12 PERCENT, AT 26,176.40 AFTER MARKET OPEN",
+      "source_name": "@FirstSquawk ↗",
+      "source_url": "https://x.com/FirstSquawk/status/2075573637017653594",
+      "tickers_json": "[\"ES=F\"]"
+    },
+    {
+      "published_at": "2026-07-10 13:31:20",
+      "site_category": "MACRO",
+      "importance": 3,
+      "title": "🔴 MOO IMBALANCE S&P 500: 164.5 MLN NASDAQ 100: -42.7 MLN DOW 30: -22.1 MLN MAG 7: -41.4 MLN $MACRO",
+      "source_name": "@financialjuice ↗",
+      "source_url": "https://x.com/financialjuice/status/2075573500450939102",
+      "tickers_json": "[\"ES=F\", \"NQ=F\"]"
+    },
+    {
+      "published_at": "2026-07-10 13:28:34",
+      "site_category": "CRYPTO",
+      "importance": 3,
+      "title": "VITALIK BUTERIN’S SINGLE SLOT FINALITY PLAN SHOWS ETHEREUM STILL HAS A SETTLEMENT-SPEED PROBLEM TO SOLVE",
+      "source_name": "tradingview.com ↗",
+      "source_url": "https://www.tradingview.com/news/newsbtc:9336305b2094b:0-vitalik-buterin-s-single-slot-finality-plan-shows-ethereum-still-has-a-settlement-speed-problem-to-solve/",
+      "tickers_json": "[\"ETHUSDT\"]"
+    }
+  ],
+  "missing_credentials": 16,
   "messages": [
     "data_go_kr_prices: data_go_kr_prices price API requires endpoint.",
     "krx: krx price API requires endpoint.",
     "bigkinds_issue_top10: BIGKinds issue API requires endpoint.",
     "naver_search_api: NAVER_CLIENT_ID and NAVER_CLIENT_SECRET are required for Naver News Search API.",
-    "naver_search_api: NAVER_CLIENT_ID and NAVER_CLIENT_SECRET are required for Naver News Search API."
+    "data_go_kr_prices: data_go_kr_prices price API requires endpoint."
   ],
   "failures": [
+    {
+      "collected_at": "2026-07-10 12:25:32.377224",
+      "step": "collect_official_market_prices",
+      "source": "data_go_kr_prices",
+      "target_date": "2026-07-10 00:00:00",
+      "error_message": "data_go_kr_prices price API requires endpoint."
+    },
+    {
+      "collected_at": "2026-07-10 12:25:32.359725",
+      "step": "collect_official_market_prices",
+      "source": "krx",
+      "target_date": "2026-07-10 00:00:00",
+      "error_message": "krx price API requires endpoint."
+    },
+    {
+      "collected_at": "2026-07-10 12:25:28.409452",
+      "step": "collect_gdelt_news",
+      "source": "gdelt_doc_api",
+      "target_date": "2026-07-10 00:00:00",
+      "error_message": "gdelt HTTP 429"
+    },
+    {
+      "collected_at": "2026-07-10 12:25:16.127165",
+      "step": "collect_bigkinds_issues",
+      "source": "bigkinds_issue_top10",
+      "target_date": "2026-07-10 00:00:00",
+      "error_message": "BIGKinds issue API requires endpoint."
+    },
+    {
+      "collected_at": "2026-07-10 12:25:15.637884",
+      "step": "collect_naver_news",
+      "source": "naver_search_api",
+      "target_date": "2026-07-10 00:00:00",
+      "error_message": "NAVER_CLIENT_ID and NAVER_CLIENT_SECRET are required for Naver News Search API."
+    },
     {
       "collected_at": "2026-07-09 14:40:48.257748",
       "step": "collect_official_market_prices",
@@ -124,41 +234,6 @@
       "step": "collect_naver_news",
       "source": "naver_search_api",
       "target_date": "2026-06-26 00:00:00",
-      "error_message": "NAVER_CLIENT_ID and NAVER_CLIENT_SECRET are required for Naver News Search API."
-    },
-    {
-      "collected_at": "2026-06-26 08:58:12.359087",
-      "step": "collect_naver_news",
-      "source": "naver_search_api",
-      "target_date": "2026-06-25 00:00:00",
-      "error_message": "NAVER_CLIENT_ID and NAVER_CLIENT_SECRET are required for Naver News Search API."
-    },
-    {
-      "collected_at": "2026-06-26 08:17:30.058214",
-      "step": "collect_naver_news",
-      "source": "naver_search_api",
-      "target_date": "2026-06-25 00:00:00",
-      "error_message": "NAVER_CLIENT_ID and NAVER_CLIENT_SECRET are required for Naver News Search API."
-    },
-    {
-      "collected_at": "2026-06-23 20:30:14.610165",
-      "step": "collect_naver_news",
-      "source": "naver_search_api",
-      "target_date": "2026-06-23 00:00:00",
-      "error_message": "NAVER_CLIENT_ID and NAVER_CLIENT_SECRET are required for Naver News Search API."
-    },
-    {
-      "collected_at": "2026-06-23 15:40:33.272148",
-      "step": "collect_naver_news",
-      "source": "naver_search_api",
-      "target_date": "2026-06-24 00:00:00",
-      "error_message": "NAVER_CLIENT_ID and NAVER_CLIENT_SECRET are required for Naver News Search API."
-    },
-    {
-      "collected_at": "2026-06-10 10:24:31.857716",
-      "step": "collect_naver_news",
-      "source": "naver_search_api",
-      "target_date": "2026-06-10 00:00:00",
       "error_message": "NAVER_CLIENT_ID and NAVER_CLIENT_SECRET are required for Naver News Search API."
     }
   ]

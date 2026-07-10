@@ -86,6 +86,14 @@ def load_news_signals(conn) -> pd.DataFrame:
     return conn.execute("SELECT * FROM news_signal_daily ORDER BY signal_date, scope, symbol").fetchdf()
 
 
+def load_dart_disclosures(conn) -> pd.DataFrame:
+    if not table_exists(conn, "dart_disclosures"):
+        return pd.DataFrame()
+    return conn.execute(
+        "SELECT * FROM dart_disclosures ORDER BY receipt_date, symbol, receipt_no"
+    ).fetchdf()
+
+
 def load_us_sector_linkage(conn) -> pd.DataFrame:
     if not table_exists(conn, "us_sector_linkage_daily"):
         return pd.DataFrame()

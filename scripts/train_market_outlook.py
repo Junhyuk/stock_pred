@@ -37,7 +37,9 @@ def main() -> None:
     for key, spec in sorted(specs.items()):
         print(
             f"{key}: samples={spec.get('sample_count', 0)} "
-            f"sigma={spec.get('residual_std')} direction_accuracy={spec.get('direction_accuracy')}"
+            f"sigma={spec.get('residual_std')} "
+            f"validation_direction_accuracy={spec.get('validation_direction_accuracy')} "
+            f"validation_rmse={spec.get('validation_rmse')}"
         )
 
 

@@ -305,13 +305,18 @@ GitHub Pages export는 `official_news_status.json`, `news_url_crawl.json`과 val
   --date latest
 ```
 
-### MarketNewsFeed Safe Metadata
+### MarketNewsFeed Public Headline Shadow
 
 `https://marketnewsfeed.com/`은 공개 HTML에 `loading…` 상태와 `t.me/marketfeed`
-headline 링크를 노출합니다. 숨은 JavaScript endpoint나 private API는 추측 호출하지 않고,
-사이트 메타데이터만 `market_news_feed`에 `source=marketnewsfeed_site`로 저장합니다.
-실제 headline text는 기존 승인 경로인 Telegram `marketfeed`와 X `MarketNews_Feed`에서
-수집해 `telegram_market_signal_daily`, `news_signal_daily`, feature matrix로 연결합니다.
+headline 링크를 노출합니다. 로컬 Chrome이 있으면 공개 렌더 DOM의 최신 카드에서 제목,
+UTC 시각, 공개 원문 링크, 카테고리, 관련 자산, 중요도만 `marketnewsfeed_headlines`에
+shadow 데이터로 저장합니다. 기사 전문, 차트 반응값, 숨은 JavaScript endpoint와 private
+API는 수집하지 않습니다. Chrome 또는 렌더 수집이 실패하면 기존 사이트 메타데이터 1행만
+`market_news_feed`에 `source=marketnewsfeed_site`로 유지합니다.
+
+Shadow headline은 화면과 coverage 점검에만 사용하며 `news_signal_daily`, feature matrix,
+추천 점수에는 연결하지 않습니다. 충분한 이력과 walk-forward A/B gate 통과 전에는
+production 모델에 반영하지 않습니다.
 
 ```bash
 .venv/bin/python scripts/collect_marketnewsfeed_site.py \
@@ -327,7 +332,7 @@ headline 링크를 노출합니다. 숨은 JavaScript endpoint나 private API는
 
 `TELEGRAM_API_ID`/`TELEGRAM_API_HASH` 또는 `X_BEARER_TOKEN`이 없으면 해당 live 수집만
 fake 없이 건너뜁니다. GitHub Pages validation은 `marketnewsfeed_site`,
-`telegram_marketfeed`, `x_market_news_feed` count를 표시합니다.
+`marketnewsfeed_headlines`, `telegram_marketfeed`, `x_market_news_feed` count를 표시합니다.
 
 ### Daily GitHub Pages Publish
 

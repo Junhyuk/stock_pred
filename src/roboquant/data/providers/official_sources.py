@@ -178,24 +178,39 @@ def collect_dart_disclosures(
     if not key:
         raise OfficialDataConfigurationError(f"OpenDART requires {key_name}.")
     start_date = target_date - timedelta(days=max(1, int(days)))
+    page_count = max(1, min(100, int(settings.get("page_count", 100))))
+    max_pages = max(1, int(settings.get("max_pages", 10)))
     provider = OfficialJsonProvider(opener=opener)
-    payload = provider.request_json(
-        OfficialRequestSettings(
-            source="opendart",
-            endpoint=endpoint,
-            params={
-                "crtfc_key": key,
-                "bgn_de": start_date.strftime("%Y%m%d"),
-                "end_de": target_date.strftime("%Y%m%d"),
-                "page_no": 1,
-                "page_count": 100,
-            },
+    items: list[Mapping[str, Any]] = []
+    for page_no in range(1, max_pages + 1):
+        payload = provider.request_json(
+            OfficialRequestSettings(
+                source="opendart",
+                endpoint=endpoint,
+                params={
+                    "crtfc_key": key,
+                    "bgn_de": start_date.strftime("%Y%m%d"),
+                    "end_de": target_date.strftime("%Y%m%d"),
+                    "page_no": page_no,
+                    "page_count": page_count,
+                },
+            )
         )
-    )
+        status = str(payload.get("status") or "").strip()
+        if status and status != "000":
+            if status == "013":
+                break
+            message = str(payload.get("message") or "unknown error")
+            raise RuntimeError(f"opendart status {status}: {message}")
+        page_items = list(payload.get("list", []) or [])
+        items.extend(page_items)
+        total_page = _to_int(payload.get("total_page")) or page_no
+        if page_no >= total_page or not page_items:
+            break
     symbol_set = {str(symbol).zfill(6) for symbol in symbols}
     rows = []
     collected_at = _utcnow()
-    for item in payload.get("list", []) or []:
+    for item in items:
         symbol = str(item.get("stock_code") or "").zfill(6)
         if symbol_set and symbol not in symbol_set:
             continue

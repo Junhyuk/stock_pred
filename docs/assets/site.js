@@ -38,7 +38,7 @@ function table(items, columns) {
     const value = column.format ? column.format(raw, item) : esc(raw ?? "-");
     return `<td>${value}</td>`;
   }).join("")}</tr>`).join("");
-  return `<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+  return `<div class="table"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
 }
 function statusBadge(status) {
   const value = String(status || "-");
@@ -257,17 +257,25 @@ function impactBadge(value) {
 
 function renderOfficialData(status, crawl) {
   const counts = status.counts || {};
+  const marketNewsFeedHeadlines = status.marketnewsfeed_headlines || [];
   const crawlItems = crawl.items || [];
   const messages = [...(status.messages || []), ...(crawl.messages || [])].slice(0, 4);
   return [
     `<div class="inline-metrics">
       ${inlineMetric("Naver/Stock News", counts.news_articles ?? 0, "news_articles")}
-      ${inlineMetric("MarketNewsFeed", `${counts.marketnewsfeed_site ?? 0}/${counts.telegram_marketfeed ?? 0}/${counts.x_market_news_feed ?? 0}`, "site/tg/x")}
+      ${inlineMetric("MarketNewsFeed", `${counts.marketnewsfeed_site ?? 0}/${counts.marketnewsfeed_headlines ?? 0}/${counts.telegram_marketfeed ?? 0}/${counts.x_market_news_feed ?? 0}`, "site/headlines/tg/x")}
       ${inlineMetric("BIGKinds/GDELT", `${counts.bigkinds_issue_daily ?? 0}/${counts.global_news_events ?? 0}`, "issues/global")}
       ${inlineMetric("DART/Official Price", `${counts.dart_disclosures ?? 0}/${counts.official_market_prices ?? 0}`, "공시/공식시세")}
       ${inlineMetric("URL Crawl", counts.news_url_crawl_cache ?? crawl.summary?.count ?? 0, status.status || crawl.status || "-")}
     </div>`,
     messages.length ? messages.map((message) => `<p class="muted">${esc(message)}</p>`).join("") : "",
+    table(marketNewsFeedHeadlines, [
+      { key: "published_at", label: "UTC", format: (value) => esc(value ? String(value).replace("T", " ").slice(0, 19) : "-") },
+      { key: "site_category", label: "Category" },
+      { key: "importance", label: "Importance", format: (value) => esc(value == null ? "-" : `${value}/5`) },
+      { key: "title", label: "MarketNewsFeed Shadow", format: (value, row) => `<a href="${esc(row.source_url || "#")}" target="_blank" rel="noopener noreferrer">${esc(value || "-")}</a>` },
+      { key: "source_name", label: "Source" },
+    ]),
     table(crawlItems.slice(0, 8), [
       { key: "domain", label: "Domain" },
       { key: "crawl_status", label: "Status" },

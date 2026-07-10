@@ -107,6 +107,12 @@ features:
     - x_news_negative_count_3d
     - x_news_negative_attention_score
     - x_news_bias_adjusted_sentiment_score
+    - dart_disclosure_count_1d
+    - dart_disclosure_count_7d
+    - dart_disclosure_count_30d
+    - dart_material_count_7d
+    - dart_material_count_30d
+    - dart_report_diversity_30d
     - us_sector_return_1d
     - us_sector_return_5d
     - us_sector_zscore_20d
@@ -129,6 +135,9 @@ news_signals:
   positive_weight: 0.75
   negative_sentiment_threshold: 0.45
   positive_sentiment_threshold: 0.60
+
+dart_disclosures:
+  include_6m_features: false
 
 us_sector_linkage:
   include_6m_features: false

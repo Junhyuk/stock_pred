@@ -109,6 +109,7 @@ def test_export_github_pages_site_writes_static_json_and_relative_assets(tmp_pat
     assert "x_marketnews_feed" in validation["counts"]
     assert "x_market_news_feed" in validation["counts"]
     assert "marketnewsfeed_site" in validation["counts"]
+    assert "marketnewsfeed_headlines" in validation["counts"]
     assert "telegram_marketfeed" in validation["counts"]
     assert "news_url_crawl" in validation["counts"]
     assert "bigkinds_issues" in validation["counts"]

@@ -82,6 +82,73 @@ def test_dart_provider_filters_top50_symbols() -> None:
     assert "20260708000001" in frame.iloc[0]["disclosure_url"]
 
 
+def test_dart_provider_reads_pages_until_total_page() -> None:
+    seen_urls = []
+
+    def opener(request):
+        seen_urls.append(request.full_url)
+        if "page_no=1" in request.full_url:
+            return json.dumps(
+                {
+                    "status": "000",
+                    "total_page": 2,
+                    "list": [
+                        {
+                            "stock_code": "005930",
+                            "corp_code": "00126380",
+                            "corp_name": "삼성전자",
+                            "report_nm": "분기보고서",
+                            "rcept_no": "20260708000001",
+                            "rcept_dt": "20260708",
+                        }
+                    ],
+                }
+            )
+        return json.dumps(
+            {
+                "status": "000",
+                "total_page": 2,
+                "list": [
+                    {
+                        "stock_code": "005930",
+                        "corp_code": "00126380",
+                        "corp_name": "삼성전자",
+                        "report_nm": "주요사항보고서",
+                        "rcept_no": "20260709000001",
+                        "rcept_dt": "20260709",
+                    }
+                ],
+            }
+        )
+
+    frame = collect_dart_disclosures(
+        config={"dart": {"endpoint": "https://dart.example/list", "api_key_env": "DART_API_KEY"}},
+        symbols=["005930"],
+        days=7,
+        target_date=date(2026, 7, 9),
+        env={"DART_API_KEY": "key"},
+        opener=opener,
+    )
+
+    assert len(frame) == 2
+    assert len(seen_urls) == 2
+
+
+def test_dart_provider_raises_on_error_status() -> None:
+    def opener(request):
+        return json.dumps({"status": "010", "message": "등록되지 않은 키입니다."})
+
+    with pytest.raises(RuntimeError, match="opendart status 010"):
+        collect_dart_disclosures(
+            config={"dart": {"endpoint": "https://dart.example/list", "api_key_env": "DART_API_KEY"}},
+            symbols=["005930"],
+            days=7,
+            target_date=date(2026, 7, 9),
+            env={"DART_API_KEY": "key"},
+            opener=opener,
+        )
+
+
 def test_official_market_price_provider_normalizes_public_schema() -> None:
     def opener(request):
         return json.dumps({"response": {"body": {"items": {"item": [{"basDt": "20260708", "srtnCd": "005930", "clpr": "90000", "trqu": "100"}]}}}})

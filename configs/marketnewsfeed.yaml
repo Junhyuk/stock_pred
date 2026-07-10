@@ -9,5 +9,8 @@ marketnewsfeed:
   x_username: MarketNews_Feed
   default_category: macro
   crawl_site_metadata: true
+  crawl_rendered_headlines: true
   request_timeout_seconds: 10
+  render_timeout_seconds: 20
+  max_headlines: 50
   poll_interval_minutes: 30
