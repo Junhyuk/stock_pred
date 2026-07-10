@@ -22,6 +22,7 @@
     "news_signals": 1,
     "x_news_top20_impact": 0,
     "x_market_outlook_impact": 0,
+    "premarket_shadow_forecasts": 2,
     "market_moves": 43,
     "tomorrow_markets": 2
   },

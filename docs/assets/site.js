@@ -47,11 +47,12 @@ function statusBadge(status) {
 }
 
 async function boot() {
-  const [manifest, dashboard, today, tomorrow, top20, top50, longShort, moves, news, newsSignals, officialStatus, newsUrlCrawl, xTop20Impact, xMarketImpact, validation] = await Promise.all([
+  const [manifest, dashboard, today, tomorrow, premarketShadow, top20, top50, longShort, moves, news, newsSignals, officialStatus, newsUrlCrawl, xTop20Impact, xMarketImpact, validation] = await Promise.all([
     load("manifest"),
     load("dashboard"),
     load("today"),
     load("tomorrow"),
+    load("premarket_shadow"),
     load("top20_upside_3M"),
     load("top50_3M"),
     load("long_short_2M"),
@@ -86,6 +87,7 @@ async function boot() {
   document.getElementById("top50").innerHTML = renderTop50(top50);
   document.getElementById("longShort").innerHTML = renderLongShort(longShort);
   document.getElementById("tomorrow").innerHTML = renderTomorrow(tomorrow);
+  document.getElementById("premarketShadow").innerHTML = renderPremarketShadow(premarketShadow);
   document.getElementById("xImpact").innerHTML = renderXImpact(xTop20Impact, xMarketImpact);
   document.getElementById("officialData").innerHTML = renderOfficialData(officialStatus, newsUrlCrawl);
   document.getElementById("quality").innerHTML = renderQuality(todayQuality, validation);
@@ -202,6 +204,41 @@ function representativesByMarket(items) {
     if (!["KOSPI", "KOSDAQ"].includes(market)) ordered.push(selected[market]);
   }
   return ordered;
+}
+
+function renderPremarketShadow(data) {
+  const stages = data.stages || [];
+  const sections = stages.map((stage) => {
+    const items = representativesByMarket(stage.items || []);
+    const cards = items.map((item) => `<section class="market-card">
+      <h3>${esc(item.market)}</h3>
+      <div class="row"><span>Ridge 총수익</span><b>${pct(item.ridge_expected_return)}</b></div>
+      <div class="row"><span>Overnight gap</span><b>${pct(item.ridge_gap_return)}</b></div>
+      <div class="row"><span>장중 수익률</span><b>${pct(item.ridge_intraday_return)}</b></div>
+      <div class="row"><span>Gap + 장중</span><b>${pct(item.component_expected_return)}</b></div>
+      <div class="row"><span>상승 확률 / 분류</span><b>${pct(item.up_probability)} / ${esc(item.classifier_direction)}</b></div>
+      <div class="row"><span>Ridge 방향 / 일치</span><b>${esc(item.ridge_direction)} / ${item.direction_agreement ? "일치" : "불일치"}</b></div>
+      <div class="row"><span>Risk gate / 현금</span><b>${esc(item.risk_gate_status || "-")} / ${pct(item.recommended_cash_ratio)}</b></div>
+    </section>`).join("");
+    const waiting = stage.stage === "final_premarket" && !stage.is_final_close
+      ? "미국장 최종 종가가 확인되면 08:00 KST 최종 shadow 예측을 생성합니다."
+      : "해당 stage 예측이 아직 생성되지 않았습니다.";
+    return `<section class="subsection">
+      <h3>${esc(stage.label || stage.stage)}</h3>
+      <div class="row"><span>Status</span><b>${statusBadge(stage.status)}</b></div>
+      <div class="row"><span>Target / cutoff</span><b>${shortDate(stage.prediction_date)} / ${esc(stage.prediction_cutoff || "-")}</b></div>
+      <div class="subgrid">${cards}</div>
+      ${cards ? "" : `<div class="empty">${esc(waiting)}</div>`}
+    </section>`;
+  }).join("");
+  return [
+    `<div class="inline-metrics">
+      ${inlineMetric("운영 반영 비중", pct(data.production_weight), "shadow only")}
+      ${inlineMetric("상태", data.status || "not_ready", "별도 검증 경로")}
+    </div>`,
+    sections,
+    `<p class="muted">${esc(data.message || "검증 중인 shadow 예측입니다.")}</p>`,
+  ].join("");
 }
 
 function renderQuality(quality, validation) {

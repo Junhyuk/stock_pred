@@ -348,6 +348,19 @@ def build_training_steps(args: argparse.Namespace) -> list[Step]:
             Step("build_market_outlook_features", ["scripts/build_market_outlook_features.py", "--config", args.config, "--date", "latest"]),
             Step("train_market_outlook", ["scripts/train_market_outlook.py", "--config", args.config, "--date", "latest"]),
             Step("generate_market_outlook", ["scripts/generate_market_outlook.py", "--config", args.config, "--date", "latest"]),
+            Step(
+                "premarket_shadow_preliminary",
+                [
+                    "scripts/run_premarket_shadow.py",
+                    "--config",
+                    args.config,
+                    "--stage",
+                    "preliminary_after_close",
+                    "--date",
+                    "latest",
+                ],
+                optional=True,
+            ),
             Step("build_x_news_impact_analysis", ["scripts/build_x_news_impact_analysis.py", "--config", args.config, "--date", "latest"]),
         ]
     )

@@ -409,6 +409,30 @@ latest runner는 `build_feature_matrix` 이후 KOSPI/KOSDAQ 단기 전망도 생
 .venv/bin/python scripts/generate_market_outlook.py --config configs/top50_normal.yaml --date latest
 ```
 
+### Cutoff-aware Premarket Shadow
+
+장마감 `18:00 KST` preliminary와 다음 거래일 `08:00 KST` final premarket을 별도
+shadow 행으로 저장합니다. Point return은 direct Ridge, overnight gap과 open-to-close는
+별도 Ridge 진단 head, 방향확률은 LightGBM classifier가 생성합니다.
+
+```bash
+.venv/bin/python scripts/run_premarket_shadow.py \
+  --config configs/top50_normal.yaml \
+  --stage preliminary_after_close \
+  --date latest
+
+.venv/bin/python scripts/run_premarket_global_pipeline.py \
+  --config configs/global_market.yaml \
+  --top50-config configs/top50_normal.yaml \
+  --cutoff latest \
+  --prediction-date latest
+```
+
+`final_premarket`은 target 직전 완결 미국 종가가 없으면 forecast를 저장하지 않습니다.
+S&P500/Nasdaq/SOX/VIX/EWY/KORU/USD-KRW의 signed return만 모델에 사용하며,
+`global_risk_score`는 cash/risk gate 필드로만 저장합니다. 두 stage 모두
+`production_weight=0.0`이며 기존 `market_outlook_forecasts`를 변경하지 않습니다.
+
 API와 화면:
 
 - `http://localhost:8000/api/market-outlook?date=latest&horizon=all`

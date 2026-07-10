@@ -129,8 +129,97 @@ def _build_payloads(conn, today_config: dict[str, Any]) -> dict[str, Any]:
     payloads["news_url_crawl"] = _safe_payload(lambda: _news_url_crawl_payload(conn))
     payloads["x_news_top20_impact"] = _safe_payload(lambda: _x_news_top20_impact(conn))
     payloads["x_market_outlook_impact"] = _safe_payload(lambda: _x_market_outlook_impact(conn))
+    payloads["premarket_shadow"] = _safe_payload(lambda: _premarket_shadow_payload(conn))
     payloads["validation"] = _validate_payloads(payloads)
     return payloads
+
+
+def _premarket_shadow_payload(conn) -> dict[str, Any]:
+    stages = []
+    for stage, label in (
+        ("preliminary_after_close", "장마감 예비"),
+        ("final_premarket", "미국장 마감 최종"),
+    ):
+        feature_state = None
+        if table_exists(conn, "premarket_features_daily"):
+            feature_state = conn.execute(
+                """
+                SELECT
+                  prediction_date,
+                  MAX(asof_date) AS asof_date,
+                  BOOL_AND(COALESCE(is_final_close, FALSE)) AS is_final_close,
+                  MAX(prediction_cutoff) AS prediction_cutoff
+                FROM premarket_features_daily
+                WHERE forecast_stage = ?
+                GROUP BY prediction_date
+                ORDER BY prediction_date DESC
+                LIMIT 1
+                """,
+                [stage],
+            ).fetchone()
+        items: list[dict[str, Any]] = []
+        if table_exists(conn, "premarket_shadow_forecasts"):
+            frame = conn.execute(
+                """
+                SELECT
+                  prediction_date,
+                  asof_date,
+                  market,
+                  prediction_cutoff,
+                  available_at,
+                  is_final_close,
+                  ridge_expected_return,
+                  ridge_gap_return,
+                  ridge_intraday_return,
+                  component_expected_return,
+                  up_probability,
+                  classifier_direction,
+                  ridge_direction,
+                  direction_agreement,
+                  global_risk_score,
+                  regime,
+                  recommended_cash_ratio,
+                  risk_gate_status,
+                  model_version,
+                  feature_version,
+                  created_at
+                FROM premarket_shadow_forecasts
+                WHERE forecast_stage = ?
+                QUALIFY ROW_NUMBER() OVER (
+                  PARTITION BY market
+                  ORDER BY prediction_date DESC, created_at DESC
+                ) = 1
+                ORDER BY CASE market WHEN 'KOSPI' THEN 1 WHEN 'KOSDAQ' THEN 2 ELSE 3 END, market
+                """,
+                [stage],
+            ).fetchdf()
+            items = frame.to_dict(orient="records")
+        prediction_date = feature_state[0] if feature_state else None
+        asof_date = feature_state[1] if feature_state else None
+        is_final_close = bool(feature_state[2]) if feature_state and feature_state[2] is not None else False
+        prediction_cutoff = feature_state[3] if feature_state else None
+        if items:
+            prediction_date = items[0].get("prediction_date") or prediction_date
+            asof_date = items[0].get("asof_date") or asof_date
+            prediction_cutoff = items[0].get("prediction_cutoff") or prediction_cutoff
+        stages.append(
+            {
+                "stage": stage,
+                "label": label,
+                "status": "ready" if items else "not_ready",
+                "prediction_date": prediction_date,
+                "asof_date": asof_date,
+                "prediction_cutoff": prediction_cutoff,
+                "is_final_close": is_final_close,
+                "items": items,
+            }
+        )
+    return {
+        "status": "ready" if any(stage["items"] for stage in stages) else "not_ready",
+        "production_weight": 0.0,
+        "stages": stages,
+        "message": "검증 중인 shadow 예측이며 production 추천에는 반영되지 않습니다.",
+    }
 
 
 def _latest_news_items(conn, *, limit: int = 50) -> list[dict[str, Any]]:
@@ -543,6 +632,9 @@ def _validate_payloads(payloads: dict[str, Any]) -> dict[str, Any]:
         "news_signals": len((payloads.get("news_signal_latest") or {}).get("items") or []),
         "x_news_top20_impact": len((payloads.get("x_news_top20_impact") or {}).get("items") or []),
         "x_market_outlook_impact": len((payloads.get("x_market_outlook_impact") or {}).get("items") or []),
+        "premarket_shadow_forecasts": sum(
+          len(stage.get("items") or []) for stage in (payloads.get("premarket_shadow") or {}).get("stages") or []
+        ),
         "market_moves": len((payloads.get("market_move_explanations") or {}).get("market") or [])
         + len((payloads.get("market_move_explanations") or {}).get("top50") or []),
         "tomorrow_markets": len(((payloads.get("tomorrow") or {}).get("market_outlook") or {}).get("items") or []),
@@ -617,6 +709,7 @@ def _index_html(version: str) -> str:
       <a href="#top50-section">Top50</a>
       <a href="#long-short-section">롱·숏</a>
       <a href="#tomorrow-section">내일 예측</a>
+      <a href="#premarket-shadow-section">Premarket Shadow</a>
       <a href="#x-impact-section">X 뉴스 영향도</a>
       <a href="#official-data-section">공식 데이터</a>
       <a href="#moves-section">시장 설명</a>
@@ -640,6 +733,10 @@ def _index_html(version: str) -> str:
       <article id="tomorrow-section" class="panel wide">
         <h2>KOSPI/KOSDAQ Tomorrow Range</h2>
         <div id="tomorrow" class="stack"></div>
+      </article>
+      <article id="premarket-shadow-section" class="panel wide">
+        <h2>Premarket Shadow Forecast</h2>
+        <div id="premarketShadow" class="stack"></div>
       </article>
       <article id="x-impact-section" class="panel wide">
         <h2>X News Impact</h2>
@@ -862,11 +959,12 @@ function statusBadge(status) {
 }
 
 async function boot() {
-  const [manifest, dashboard, today, tomorrow, top20, top50, longShort, moves, news, newsSignals, officialStatus, newsUrlCrawl, xTop20Impact, xMarketImpact, validation] = await Promise.all([
+  const [manifest, dashboard, today, tomorrow, premarketShadow, top20, top50, longShort, moves, news, newsSignals, officialStatus, newsUrlCrawl, xTop20Impact, xMarketImpact, validation] = await Promise.all([
     load("manifest"),
     load("dashboard"),
     load("today"),
     load("tomorrow"),
+    load("premarket_shadow"),
     load("top20_upside_3M"),
     load("top50_3M"),
     load("long_short_2M"),
@@ -901,6 +999,7 @@ async function boot() {
   document.getElementById("top50").innerHTML = renderTop50(top50);
   document.getElementById("longShort").innerHTML = renderLongShort(longShort);
   document.getElementById("tomorrow").innerHTML = renderTomorrow(tomorrow);
+  document.getElementById("premarketShadow").innerHTML = renderPremarketShadow(premarketShadow);
   document.getElementById("xImpact").innerHTML = renderXImpact(xTop20Impact, xMarketImpact);
   document.getElementById("officialData").innerHTML = renderOfficialData(officialStatus, newsUrlCrawl);
   document.getElementById("quality").innerHTML = renderQuality(todayQuality, validation);
@@ -1017,6 +1116,41 @@ function representativesByMarket(items) {
     if (!["KOSPI", "KOSDAQ"].includes(market)) ordered.push(selected[market]);
   }
   return ordered;
+}
+
+function renderPremarketShadow(data) {
+  const stages = data.stages || [];
+  const sections = stages.map((stage) => {
+    const items = representativesByMarket(stage.items || []);
+    const cards = items.map((item) => `<section class="market-card">
+      <h3>${esc(item.market)}</h3>
+      <div class="row"><span>Ridge 총수익</span><b>${pct(item.ridge_expected_return)}</b></div>
+      <div class="row"><span>Overnight gap</span><b>${pct(item.ridge_gap_return)}</b></div>
+      <div class="row"><span>장중 수익률</span><b>${pct(item.ridge_intraday_return)}</b></div>
+      <div class="row"><span>Gap + 장중</span><b>${pct(item.component_expected_return)}</b></div>
+      <div class="row"><span>상승 확률 / 분류</span><b>${pct(item.up_probability)} / ${esc(item.classifier_direction)}</b></div>
+      <div class="row"><span>Ridge 방향 / 일치</span><b>${esc(item.ridge_direction)} / ${item.direction_agreement ? "일치" : "불일치"}</b></div>
+      <div class="row"><span>Risk gate / 현금</span><b>${esc(item.risk_gate_status || "-")} / ${pct(item.recommended_cash_ratio)}</b></div>
+    </section>`).join("");
+    const waiting = stage.stage === "final_premarket" && !stage.is_final_close
+      ? "미국장 최종 종가가 확인되면 08:00 KST 최종 shadow 예측을 생성합니다."
+      : "해당 stage 예측이 아직 생성되지 않았습니다.";
+    return `<section class="subsection">
+      <h3>${esc(stage.label || stage.stage)}</h3>
+      <div class="row"><span>Status</span><b>${statusBadge(stage.status)}</b></div>
+      <div class="row"><span>Target / cutoff</span><b>${shortDate(stage.prediction_date)} / ${esc(stage.prediction_cutoff || "-")}</b></div>
+      <div class="subgrid">${cards}</div>
+      ${cards ? "" : `<div class="empty">${esc(waiting)}</div>`}
+    </section>`;
+  }).join("");
+  return [
+    `<div class="inline-metrics">
+      ${inlineMetric("운영 반영 비중", pct(data.production_weight), "shadow only")}
+      ${inlineMetric("상태", data.status || "not_ready", "별도 검증 경로")}
+    </div>`,
+    sections,
+    `<p class="muted">${esc(data.message || "검증 중인 shadow 예측입니다.")}</p>`,
+  ].join("");
 }
 
 function renderQuality(quality, validation) {

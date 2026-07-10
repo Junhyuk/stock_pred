@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-MarketNewsFeed public headline shadow collection and Pages snapshot completed
+Premarket shadow v1 implemented; July 13 preliminary ready and final US-close input pending
 
 ## Completed
 
@@ -29,6 +29,17 @@ MarketNewsFeed public headline shadow collection and Pages snapshot completed
 - Collector falls back to the existing neutral metadata row if Chrome rendering fails.
 - Headline rows are not connected to `news_signal_daily`, feature matrix, or recommendation scores.
 - Pages Official Data now displays shadow count and latest 8 public headline links.
+- Reconstructed the valid 2026-07-10 KOSPI forecast comparison.
+  - Live forecast: -3.0250%; actual close-to-close: +2.5238%; error: 5.5487%p.
+  - Overnight gap: +3.5735%; open-to-close: -1.0136%.
+  - The later +0.5850% forecast was generated after market close and is counterfactual only.
+- Root cause: 23:49 KST run used early US-session snapshots, downside-only regime zeros, and sparse defaults.
+- Shadow A/B with correctly target-aligned final US closes improved all 10 expanding folds.
+- Added cutoff-aware `premarket_features_daily` and isolated `premarket_shadow_forecasts`.
+- Added 18:00 preliminary and 08:00 final stages with availability/source timestamp metadata.
+- Added direct/gap/intraday Ridge heads plus LightGBM direction classifier; production weight remains 0.
+- Risk/regime fields are stored only as gates and are excluded from `MODEL_FEATURE_COLUMNS`.
+- Wired preliminary into latest-market retrain and final into the premarket global pipeline.
 
 ## Verification
 
@@ -52,8 +63,15 @@ MarketNewsFeed public headline shadow collection and Pages snapshot completed
   - PASS: 28 passed
 - MarketNewsFeed live collection: PASS, 50 rows / 50 distinct IDs, all with public source URLs.
 - MarketNewsFeed integration Ruff check: PASS.
-- Pages export: PASS, `can_publish=true`, `marketnewsfeed_headlines=50`.
-- Local browser: PASS at `http://localhost:8787/`; desktop/mobile overflow checks passed.
+- Pages export: PASS, `can_publish=true`, `marketnewsfeed_headlines=50`, `premarket_shadow_forecasts=2`.
+- Local browser: PASS at `http://localhost:8787/`; shadow panel and mobile overflow checks passed.
+- 600-day expanding A/B, current vs Ridge + final US features:
+  - MAE 1.3151% -> 1.1927%; RMSE 2.0622% -> 1.8167%; direction 52.33% -> 62.17%.
+  - 3% move-day MAE 5.2995% -> 4.1913%; direction 55.36% -> 69.64%.
+- Premarket shadow relevant regressions: PASS, 32 tests; Ruff/config parse/compile/diff checks PASS.
+- Real preliminary: 3694 features per stage, 2 forecasts for 2026-07-13, production weight 0.
+- Final KOSPI holdout accepted: MAE 2.0493% -> 1.8653%, direction 61.68% -> 65.89%.
+- Final KOSDAQ holdout rejected; final forecast correctly blocked until the completed US close arrives.
 
 - `.venv/bin/pytest tests/test_marketnewsfeed_site_provider.py tests/test_latest_market_impact_retrain.py tests/test_github_pages_export.py tests/test_telegram_config.py tests/test_telegram_signal_features.py -q`
   - PASS: 22 passed
@@ -88,13 +106,14 @@ MarketNewsFeed public headline shadow collection and Pages snapshot completed
 - X live collection requires `X_BEARER_TOKEN`.
 - DART/global/news history is too short for training; sparse inputs are now blocked until support gates pass.
 - MarketNewsFeed headlines are shadow-only until sufficient history and A/B validation exist.
+- KOSDAQ premarket candidate is rejected; KOSPI candidate remains shadow-only despite passing holdout.
 - GDELT collection failed as an optional source; no synthetic replacement was used.
 - DB writer jobs can conflict with running FastAPI/Streamlit/preview processes; stop web before write-heavy pipeline runs.
 
 ## Next Recommended Phase
 
-- Backfill approved global-market history through existing provider adapters, then run a walk-forward
-  baseline-vs-global ablation. Keep gated features disabled unless direction accuracy and RMSE pass.
+- Run the scheduled 2026-07-13 08:00 KST final stage after the 2026-07-10 US close is complete.
+- Keep KOSPI weight at 0 until expanding walk-forward and shock gates pass; keep KOSDAQ rejected.
 - Accumulate at least 60 trading days of MarketNewsFeed shadow history, then evaluate a Korea-relevance
   filtered baseline-vs-news ablation; do not promote raw headline counts directly.
 - Accumulate DART disclosures and labels; do not enable DART model weight until coverage and A/B gates pass.

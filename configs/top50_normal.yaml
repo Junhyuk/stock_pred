@@ -218,6 +218,14 @@ market_outlook:
   use_pykrx_calendar: true
   krx_holidays: []
 
+premarket_shadow:
+  enabled: true
+  preliminary_cutoff_kst: "18:00"
+  final_cutoff_kst: "08:00"
+  production_weight: 0.0
+  feature_version: premarket_signed_global_v1
+  model_version: premarket_shadow_v1
+
 market_credit_balance:
   enabled: true
   source: data_go_kr_kofia

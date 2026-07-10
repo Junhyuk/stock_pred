@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run global premarket collection and regime pipeline.")
     parser.add_argument("--config", default="configs/global_market.yaml")
+    parser.add_argument("--top50-config", default="configs/top50_normal.yaml")
     parser.add_argument("--from-date", default="2022-01-01")
     parser.add_argument("--to-date", default="latest")
     parser.add_argument("--cutoff", default="latest")
@@ -19,9 +20,8 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def main() -> None:
-    args = parse_args()
-    commands = [
+def build_commands(args: argparse.Namespace) -> list[list[str]]:
+    return [
         [
             sys.executable,
             "scripts/collect_global_market_daily.py",
@@ -50,7 +50,22 @@ def main() -> None:
             "--cutoff",
             args.cutoff,
         ],
+        [
+            sys.executable,
+            "scripts/run_premarket_shadow.py",
+            "--config",
+            args.top50_config,
+            "--stage",
+            "final_premarket",
+            "--date",
+            "latest",
+        ],
     ]
+
+
+def main() -> None:
+    args = parse_args()
+    commands = build_commands(args)
     for command in commands:
         print("$ " + " ".join(command))
         subprocess.run(command, cwd=ROOT, check=True)

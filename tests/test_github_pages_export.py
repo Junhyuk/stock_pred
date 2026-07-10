@@ -72,6 +72,7 @@ def test_export_github_pages_site_writes_static_json_and_relative_assets(tmp_pat
     assert (output / "data" / "x_market_news_status.json").exists()
     assert (output / "data" / "x_news_top20_impact.json").exists()
     assert (output / "data" / "x_market_outlook_impact.json").exists()
+    assert (output / "data" / "premarket_shadow.json").exists()
     assert (output / "data" / "validation.json").exists()
 
     manifest = json.loads((output / "data" / "manifest.json").read_text(encoding="utf-8"))
@@ -86,6 +87,7 @@ def test_export_github_pages_site_writes_static_json_and_relative_assets(tmp_pat
     assert 'href="#top50-section"' in html
     assert 'href="#long-short-section"' in html
     assert 'href="#tomorrow-section"' in html
+    assert 'href="#premarket-shadow-section"' in html
     assert 'href="#x-impact-section"' in html
     assert 'href="#official-data-section"' in html
     assert 'load("top50_3M")' in js
@@ -94,9 +96,11 @@ def test_export_github_pages_site_writes_static_json_and_relative_assets(tmp_pat
     assert 'load("news_url_crawl")' in js
     assert 'load("x_news_top20_impact")' in js
     assert 'load("x_market_outlook_impact")' in js
+    assert 'load("premarket_shadow")' in js
     assert "function renderLongShort" in js
     assert "function renderXImpact" in js
     assert "function renderOfficialData" in js
+    assert "function renderPremarketShadow" in js
     assert "function representativesByMarket" in js
     assert "KOSPI LONG" in js
     assert "No data" not in js
@@ -118,12 +122,41 @@ def test_export_github_pages_site_writes_static_json_and_relative_assets(tmp_pat
     assert "official_price_rows" in validation["counts"]
     assert "x_news_top20_impact" in validation["counts"]
     assert "x_market_outlook_impact" in validation["counts"]
+    assert "premarket_shadow_forecasts" in validation["counts"]
+    shadow = json.loads((output / "data" / "premarket_shadow.json").read_text(encoding="utf-8"))
+    assert shadow["status"] == "not_ready"
+    assert shadow["production_weight"] == 0.0
+    assert [stage["stage"] for stage in shadow["stages"]] == ["preliminary_after_close", "final_premarket"]
     x_impact = json.loads((output / "data" / "x_news_top20_impact.json").read_text(encoding="utf-8"))
     assert x_impact["status"] == "not_collected"
     assert "X 뉴스 영향도 미생성" in x_impact["messages"][0]
     combined = "\n".join(path.read_text(encoding="utf-8") for path in output.rglob("*") if path.is_file())
     assert "super-secret" not in combined
     assert "연구·정보제공용" in combined
+
+
+def test_premarket_shadow_readiness_uses_latest_prediction_date(tmp_path) -> None:
+        conn = connect_database(tmp_path / "shadow.duckdb")
+        conn.execute(
+                """
+                INSERT INTO premarket_features_daily (
+                    prediction_date, asof_date, market, forecast_stage, prediction_cutoff,
+                    is_final_close, feature_version, created_at
+                ) VALUES
+                    ('2026-07-10', '2026-07-09', 'KOSPI', 'final_premarket', '2026-07-10 08:00:00',
+                     TRUE, 'premarket_signed_global_v1', CURRENT_TIMESTAMP),
+                    ('2026-07-13', '2026-07-10', 'KOSPI', 'final_premarket', '2026-07-13 08:00:00',
+                     FALSE, 'premarket_signed_global_v1', CURRENT_TIMESTAMP)
+                """
+        )
+
+        payload = exporter._premarket_shadow_payload(conn)
+        conn.close()
+
+        final_stage = next(stage for stage in payload["stages"] if stage["stage"] == "final_premarket")
+        assert str(final_stage["prediction_date"]) == "2026-07-13"
+        assert final_stage["is_final_close"] is False
+        assert final_stage["status"] == "not_ready"
 
 
 def test_export_news_latest_uses_market_news_feed_when_stock_news_empty(tmp_path) -> None:

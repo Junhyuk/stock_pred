@@ -63,6 +63,8 @@ def test_duckdb_schema_contains_required_tables(tmp_path) -> None:
         "official_data_runs",
         "news_signal_daily",
         "market_outlook_forecasts",
+        "premarket_features_daily",
+        "premarket_shadow_forecasts",
         "x_news_prediction_impact_daily",
         "x_market_outlook_impact_daily",
         "koru_korea_linkage",

@@ -1,0 +1,74 @@
+{
+  "status": "ready",
+  "production_weight": 0.0,
+  "stages": [
+    {
+      "stage": "preliminary_after_close",
+      "label": "장마감 예비",
+      "status": "ready",
+      "prediction_date": "2026-07-13 00:00:00",
+      "asof_date": "2026-07-10 00:00:00",
+      "prediction_cutoff": "2026-07-10 18:00:00",
+      "is_final_close": false,
+      "items": [
+        {
+          "prediction_date": "2026-07-13 00:00:00",
+          "asof_date": "2026-07-10 00:00:00",
+          "market": "KOSPI",
+          "prediction_cutoff": "2026-07-10 18:00:00",
+          "available_at": "2026-07-10 06:30:00",
+          "is_final_close": false,
+          "ridge_expected_return": -0.0022150372910979643,
+          "ridge_gap_return": 0.0029249123687533386,
+          "ridge_intraday_return": -0.005013846031257871,
+          "component_expected_return": -0.002103598722776323,
+          "up_probability": 0.5709465248098314,
+          "classifier_direction": "BULLISH",
+          "ridge_direction": "NEUTRAL",
+          "direction_agreement": false,
+          "global_risk_score": 0.0,
+          "regime": "risk_on",
+          "recommended_cash_ratio": 0.05,
+          "risk_gate_status": "risk_on",
+          "model_version": "premarket-shadow-v1-preliminary_after_close-2026-07-10",
+          "feature_version": "premarket_signed_global_v1",
+          "created_at": "2026-07-10 14:13:34.081139"
+        },
+        {
+          "prediction_date": "2026-07-13 00:00:00",
+          "asof_date": "2026-07-10 00:00:00",
+          "market": "KOSDAQ",
+          "prediction_cutoff": "2026-07-10 18:00:00",
+          "available_at": "2026-07-10 06:30:00",
+          "is_final_close": false,
+          "ridge_expected_return": -0.0015033107856190814,
+          "ridge_gap_return": -0.0036359909673687957,
+          "ridge_intraday_return": 0.0022694864705316525,
+          "component_expected_return": -0.001374756329144522,
+          "up_probability": 0.6009877038892193,
+          "classifier_direction": "BULLISH",
+          "ridge_direction": "NEUTRAL",
+          "direction_agreement": false,
+          "global_risk_score": 0.0,
+          "regime": "risk_on",
+          "recommended_cash_ratio": 0.05,
+          "risk_gate_status": "risk_on",
+          "model_version": "premarket-shadow-v1-preliminary_after_close-2026-07-10",
+          "feature_version": "premarket_signed_global_v1",
+          "created_at": "2026-07-10 14:13:34.081139"
+        }
+      ]
+    },
+    {
+      "stage": "final_premarket",
+      "label": "미국장 마감 최종",
+      "status": "not_ready",
+      "prediction_date": "2026-07-13",
+      "asof_date": "2026-07-10",
+      "prediction_cutoff": "2026-07-13 08:00:00",
+      "is_final_close": false,
+      "items": []
+    }
+  ],
+  "message": "검증 중인 shadow 예측이며 production 추천에는 반영되지 않습니다."
+}
