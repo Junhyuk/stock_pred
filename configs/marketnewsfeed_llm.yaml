@@ -1,0 +1,30 @@
+paths:
+  database: data/processed/roboquant.duckdb
+  model_dir: models/marketnewsfeed_llm_shadow
+  report_dir: reports/marketnewsfeed_llm_shadow
+
+marketnewsfeed_llm:
+  enabled: true
+  source: marketnewsfeed_site_shadow
+  ollama_host: http://127.0.0.1:11434
+  model_name: roboquant-news:qwen3.5-27b-q4
+  gguf_path: llm_models/gguf/Qwen3.5-27B-Q4_K_M.gguf
+  prompt_version: marketnewsfeed-v1
+  request_timeout_seconds: 90
+  max_headlines_per_run: 30
+  batch_size: 6
+  max_headline_chars: 280
+  num_ctx: 4096
+  max_output_tokens: 360
+  thinking_mode: auto
+  thinking_importance_threshold: 4
+  market_open_cutoff_kst: "08:00"
+  min_signal_days_for_shadow: 60
+  base_config: configs/top50_normal.yaml
+  shadow:
+    model_name: marketnewsfeed_llm_shadow_v1
+    horizons: ["2M", "3M"]
+    top_k: 20
+    min_mature_dates: 60
+    max_mdd_worsening: 0.02
+    max_turnover_ratio: 1.30

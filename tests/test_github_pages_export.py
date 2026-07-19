@@ -73,6 +73,10 @@ def test_export_github_pages_site_writes_static_json_and_relative_assets(tmp_pat
     assert (output / "data" / "x_news_top20_impact.json").exists()
     assert (output / "data" / "x_market_outlook_impact.json").exists()
     assert (output / "data" / "premarket_shadow.json").exists()
+    assert (output / "data" / "market_anchor_shadow.json").exists()
+    assert (output / "data" / "market_us_linkage_shadow.json").exists()
+    assert (output / "data" / "marketnewsfeed_llm_status.json").exists()
+    assert (output / "data" / "local_llm_news_status.json").exists()
     assert (output / "data" / "validation.json").exists()
 
     manifest = json.loads((output / "data" / "manifest.json").read_text(encoding="utf-8"))
@@ -88,6 +92,10 @@ def test_export_github_pages_site_writes_static_json_and_relative_assets(tmp_pat
     assert 'href="#long-short-section"' in html
     assert 'href="#tomorrow-section"' in html
     assert 'href="#premarket-shadow-section"' in html
+    assert 'href="#anchor-shadow-section"' in html
+    assert 'href="#us-linkage-section"' in html
+    assert 'href="#llm-shadow-section"' in html
+    assert 'href="#local-llm-news-section"' in html
     assert 'href="#x-impact-section"' in html
     assert 'href="#official-data-section"' in html
     assert 'load("top50_3M")' in js
@@ -97,10 +105,18 @@ def test_export_github_pages_site_writes_static_json_and_relative_assets(tmp_pat
     assert 'load("x_news_top20_impact")' in js
     assert 'load("x_market_outlook_impact")' in js
     assert 'load("premarket_shadow")' in js
+    assert 'load("market_anchor_shadow")' in js
+    assert 'load("market_us_linkage_shadow")' in js
+    assert 'load("marketnewsfeed_llm_status")' in js
+    assert 'load("local_llm_news_status")' in js
     assert "function renderLongShort" in js
     assert "function renderXImpact" in js
     assert "function renderOfficialData" in js
     assert "function renderPremarketShadow" in js
+    assert "function renderMarketAnchorShadow" in js
+    assert "function renderMarketUsLinkageShadow" in js
+    assert "function renderMarketNewsFeedLlmShadow" in js
+    assert "function renderLocalLlmNewsShadow" in js
     assert "function representativesByMarket" in js
     assert "KOSPI LONG" in js
     assert "No data" not in js
@@ -123,10 +139,32 @@ def test_export_github_pages_site_writes_static_json_and_relative_assets(tmp_pat
     assert "x_news_top20_impact" in validation["counts"]
     assert "x_market_outlook_impact" in validation["counts"]
     assert "premarket_shadow_forecasts" in validation["counts"]
+    assert "market_anchor_shadow_forecasts" in validation["counts"]
+    assert "market_us_linkage_shadow_forecasts" in validation["counts"]
+    assert "market_us_linkage_feedback" in validation["counts"]
+    assert "marketnewsfeed_llm_assessments" in validation["counts"]
+    assert "marketnewsfeed_llm_signal_days" in validation["counts"]
+    assert "local_llm_news_documents" in validation["counts"]
+    assert "local_llm_news_assessments" in validation["counts"]
+    assert "local_llm_news_signal_days" in validation["counts"]
+    llm_shadow = json.loads((output / "data" / "marketnewsfeed_llm_status.json").read_text(encoding="utf-8"))
+    assert "items" not in llm_shadow
+    assert llm_shadow["production_weight"] == 0.0
+    local_llm = json.loads((output / "data" / "local_llm_news_status.json").read_text(encoding="utf-8"))
+    assert "items" not in local_llm
+    assert "brief" not in local_llm
+    assert "attributions" not in local_llm
+    assert local_llm["production_weight"] == 0.0
     shadow = json.loads((output / "data" / "premarket_shadow.json").read_text(encoding="utf-8"))
     assert shadow["status"] == "not_ready"
     assert shadow["production_weight"] == 0.0
     assert [stage["stage"] for stage in shadow["stages"]] == ["preliminary_after_close", "final_premarket"]
+    anchor_shadow = json.loads((output / "data" / "market_anchor_shadow.json").read_text(encoding="utf-8"))
+    assert anchor_shadow["status"] == "not_ready"
+    assert anchor_shadow["production_weight"] == 0.0
+    linkage_shadow = json.loads((output / "data" / "market_us_linkage_shadow.json").read_text(encoding="utf-8"))
+    assert linkage_shadow["status"] == "not_ready"
+    assert linkage_shadow["production_weight"] == 0.0
     x_impact = json.loads((output / "data" / "x_news_top20_impact.json").read_text(encoding="utf-8"))
     assert x_impact["status"] == "not_collected"
     assert "X 뉴스 영향도 미생성" in x_impact["messages"][0]

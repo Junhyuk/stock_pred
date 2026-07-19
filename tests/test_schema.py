@@ -55,6 +55,19 @@ def test_duckdb_schema_contains_required_tables(tmp_path) -> None:
         "yahoo_fundamentals_snapshot",
         "news_articles",
         "market_news_feed",
+        "marketnewsfeed_headlines",
+        "marketnewsfeed_llm_runs",
+        "marketnewsfeed_llm_assessments",
+        "marketnewsfeed_llm_signal_daily",
+        "marketnewsfeed_llm_shadow_runs",
+        "marketnewsfeed_llm_market_shadow",
+        "local_llm_news_documents",
+        "local_llm_news_runs",
+        "local_llm_news_assessments",
+        "local_llm_news_signal_daily",
+        "local_llm_news_briefs",
+        "market_outlook_ml_shadow_forecasts",
+        "market_outlook_ml_shadow_runs",
         "news_url_crawl_cache",
         "bigkinds_issue_daily",
         "global_news_events",
@@ -63,8 +76,22 @@ def test_duckdb_schema_contains_required_tables(tmp_path) -> None:
         "official_data_runs",
         "news_signal_daily",
         "market_outlook_forecasts",
+        "market_outlook_feature_attributions",
+        "market_investor_flow_runs",
+        "market_investor_flows_daily",
+        "market_investor_top_net_purchases_daily",
+        "market_flow_features_daily",
+        "market_outlook_range_shadow",
+        "market_anchor_constituents_daily",
+        "market_anchor_features_daily",
+        "market_anchor_shadow_forecasts",
+        "market_anchor_shadow_backtest_runs",
         "premarket_features_daily",
         "premarket_shadow_forecasts",
+        "market_us_linkage_features_daily",
+        "market_us_linkage_shadow_forecasts",
+        "market_us_linkage_feedback_daily",
+        "market_us_linkage_backtest_runs",
         "x_news_prediction_impact_daily",
         "x_market_outlook_impact_daily",
         "koru_korea_linkage",
@@ -84,3 +111,21 @@ def test_duckdb_schema_contains_required_tables(tmp_path) -> None:
         ).fetchall()
     }
     assert "current_prediction_universe" in views
+
+    forecast_columns = {
+        row[0]
+        for row in conn.execute(
+            """
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_name = 'market_outlook_forecasts'
+            """
+        ).fetchall()
+    }
+    assert {
+        "prediction_session_date",
+        "domestic_asof_date",
+        "global_cutoff",
+        "forecast_status",
+        "calendar_source",
+    }.issubset(forecast_columns)

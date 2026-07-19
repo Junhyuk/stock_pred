@@ -12,6 +12,7 @@ data/processed/*
 models/*
 reports/*
 logs/
+llm_models/
 !data/raw/.gitkeep
 !data/interim/.gitkeep
 !data/processed/.gitkeep

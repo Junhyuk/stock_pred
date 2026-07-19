@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-10T14:22:45Z",
+  "generated_at": "2026-07-19T15:40:43Z",
   "status": "export-only",
   "disclaimer": "연구·정보제공용 대시보드입니다. 투자 판단과 책임은 사용자 본인에게 있으며 수익을 보장하지 않습니다.",
   "source": {
@@ -10,8 +10,12 @@
   "run_result": {},
   "data_files": [
     "dashboard.json",
+    "local_llm_news_status.json",
     "long_short_2M.json",
+    "market_anchor_shadow.json",
     "market_move_explanations.json",
+    "market_us_linkage_shadow.json",
+    "marketnewsfeed_llm_status.json",
     "news_latest.json",
     "news_signal_latest.json",
     "news_url_crawl.json",

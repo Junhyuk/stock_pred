@@ -17,7 +17,9 @@ from roboquant.data.loaders import (
     load_dart_disclosures,
     load_investor_flows,
     load_koru_linkage,
+    load_local_llm_news_signals,
     load_market_metrics,
+    load_marketnewsfeed_llm_signals,
     load_news_signals,
     load_prices,
     load_symbols,
@@ -53,6 +55,8 @@ def main() -> None:
     koru_linkage = load_koru_linkage(conn)
     telegram_market = load_telegram_market_signals(conn)
     news_signals = load_news_signals(conn)
+    marketnewsfeed_llm_signals = load_marketnewsfeed_llm_signals(conn)
+    local_llm_news_signals = load_local_llm_news_signals(conn)
     dart_disclosures = load_dart_disclosures(conn)
     us_sector_linkage = load_us_sector_linkage(conn)
     symbols = load_symbols(conn)
@@ -67,6 +71,8 @@ def main() -> None:
         koru_linkage=koru_linkage,
         telegram_market=telegram_market,
         news_signals=news_signals,
+        marketnewsfeed_llm_signals=marketnewsfeed_llm_signals,
+        local_llm_news_signals=local_llm_news_signals,
         dart_disclosures=dart_disclosures,
         us_sector_linkage=us_sector_linkage,
         symbols=symbols,

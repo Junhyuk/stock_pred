@@ -60,6 +60,16 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
             "--date",
             "latest",
         ],
+        [
+            sys.executable,
+            "scripts/run_us_korea_linkage_daily.py",
+            "--config",
+            args.top50_config,
+            "--stage",
+            "premarket",
+            "--date",
+            "latest",
+        ],
     ]
 
 

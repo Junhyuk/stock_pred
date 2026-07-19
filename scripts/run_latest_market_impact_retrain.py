@@ -306,6 +306,17 @@ def build_collection_steps(args: argparse.Namespace, target_date: date) -> list[
                     optional=True,
                 ),
                 Step(
+                    "run_local_llm_news_close",
+                    [
+                        "scripts/run_local_llm_news_pipeline.py",
+                        "--config",
+                        "configs/local_llm_news.yaml",
+                        "--stage",
+                        "close",
+                    ],
+                    optional=True,
+                ),
+                Step(
                     "build_news_signal_features",
                     ["scripts/build_news_signal_features.py", "--config", args.config, "--date", target_date.isoformat()],
                     optional=True,
@@ -348,6 +359,29 @@ def build_training_steps(args: argparse.Namespace) -> list[Step]:
             Step("build_market_outlook_features", ["scripts/build_market_outlook_features.py", "--config", args.config, "--date", "latest"]),
             Step("train_market_outlook", ["scripts/train_market_outlook.py", "--config", args.config, "--date", "latest"]),
             Step("generate_market_outlook", ["scripts/generate_market_outlook.py", "--config", args.config, "--date", "latest"]),
+            Step(
+                "run_market_outlook_ml_shadow",
+                ["scripts/run_market_outlook_ml_shadow.py", "--config", "configs/local_llm_news.yaml", "--date", "latest"],
+                optional=True,
+            ),
+            Step(
+                "market_us_linkage_feedback",
+                ["scripts/run_us_korea_linkage_daily.py", "--config", args.config, "--stage", "close"],
+                optional=True,
+            ),
+            Step(
+                "market_us_linkage_shadow",
+                [
+                    "scripts/run_us_korea_linkage_daily.py",
+                    "--config",
+                    args.config,
+                    "--stage",
+                    "premarket",
+                    "--date",
+                    "latest",
+                ],
+                optional=True,
+            ),
             Step(
                 "premarket_shadow_preliminary",
                 [

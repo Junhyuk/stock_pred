@@ -1,0 +1,8 @@
+{
+  "status": "not_ready",
+  "production_weight": 0.0,
+  "items": [],
+  "constituents": {},
+  "backtests": [],
+  "message": "앵커 shadow 예측이 아직 생성되지 않았습니다."
+}

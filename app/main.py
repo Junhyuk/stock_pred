@@ -14,6 +14,7 @@ from app.pages import (
     dashboard_html,
     focus_stock_demo_html,
     four_stock_demo_html,
+    local_llm_news_html,
     long_short_html,
     market_up_down_html,
     stock_html,
@@ -22,6 +23,7 @@ from app.pages import (
     top20_upside_html,
     top50_universe_html,
     two_stock_demo_html,
+    us_korea_linkage_html,
 )
 from roboquant.config import get_database_path, load_config
 from roboquant.dashboard.dashboard_service import (
@@ -33,16 +35,16 @@ from roboquant.dashboard.dashboard_service import (
     get_focus_stock,
     get_focus_stocks_demo,
     get_four_stock_demo,
+    get_koru_linkage,
     get_latest_dashboard_snapshot,
     get_latest_global_markets,
     get_latest_news,
-    get_koru_linkage,
     get_market_move_explanations,
     get_market_outlook,
     get_model_accuracy,
     get_prediction_history,
-    get_sector_linkage,
     get_sector_backtest,
+    get_sector_linkage,
     get_stock_backtest,
     get_stock_cluster,
     get_stock_detail,
@@ -55,14 +57,23 @@ from roboquant.dashboard.dashboard_service import (
     get_two_stock_demo,
 )
 from roboquant.dashboard.gatekeeper_service import run_model_gatekeeper
+from roboquant.dashboard.local_llm_news_service import get_local_llm_news_status
 from roboquant.dashboard.long_short_service import (
     get_latest_long_short,
     get_long_short_backtest,
 )
 from roboquant.dashboard.market_up_down_service import get_latest_market_up_down
-from roboquant.dashboard.price_gap_service import build_prediction_price_gap
+from roboquant.dashboard.marketnewsfeed_llm_service import get_marketnewsfeed_llm_status
 from roboquant.dashboard.price_forecast_service import get_top20_price_forecast
+from roboquant.dashboard.price_gap_service import build_prediction_price_gap
 from roboquant.db import connect_database
+from roboquant.market_anchor_shadow import get_market_anchor_shadow
+from roboquant.market_outlook_ml_shadow import get_market_outlook_ml_shadow
+from roboquant.market_us_linkage import (
+    get_market_us_linkage_feedback,
+    get_market_us_linkage_history,
+    get_market_us_linkage_shadow,
+)
 
 CONFIG = load_config(ROOT / "configs" / "poc.yaml")
 TODAY_CONFIG = load_config(ROOT / "configs" / "today_update.yaml")
@@ -123,6 +134,21 @@ def today_market_page():
 @app.get("/demo/tomorrow")
 def tomorrow_market_page():
     return tomorrow_market_html()
+
+
+@app.get("/demo/marketnewsfeed-llm")
+def marketnewsfeed_llm_page():
+    return local_llm_news_html()
+
+
+@app.get("/demo/local-llm-news")
+def local_llm_news_page():
+    return local_llm_news_html()
+
+
+@app.get("/demo/us-korea-linkage")
+def us_korea_linkage_page():
+    return us_korea_linkage_html()
 
 
 @app.get("/recommendations/top20-upside")
@@ -236,6 +262,24 @@ def news_latest(symbol: str | None = None, limit: int = 10):
         conn.close()
 
 
+@app.get("/api/news/marketnewsfeed/llm")
+def marketnewsfeed_llm_status(limit: int = Query(default=30, ge=1, le=30)):
+    conn = _conn()
+    try:
+        return get_marketnewsfeed_llm_status(conn, limit=limit)
+    finally:
+        conn.close()
+
+
+@app.get("/api/news/local-llm/status")
+def local_llm_news_status(limit: int = Query(default=30, ge=1, le=30)):
+    conn = _conn()
+    try:
+        return get_local_llm_news_status(conn, limit=limit)
+    finally:
+        conn.close()
+
+
 @app.get("/api/market-move/explanations")
 def market_move_explanations(date: str = "latest", scope: str | None = None, limit: int = 100):
     conn = _conn()
@@ -257,6 +301,51 @@ def market_outlook(date: str = "latest", horizon: str = "all", market: str = "al
             limit=limit,
             config=TODAY_CONFIG,
         )
+    finally:
+        conn.close()
+
+
+@app.get("/api/market-outlook/shadow")
+def market_outlook_shadow(date: str = "latest", market: str = "all"):
+    conn = _conn()
+    try:
+        return get_market_outlook_ml_shadow(conn, date_value=date, market=market)
+    finally:
+        conn.close()
+
+
+@app.get("/api/market-anchor-shadow")
+def market_anchor_shadow(market: str = "all", limit: int = 20):
+    conn = _conn()
+    try:
+        return get_market_anchor_shadow(conn, market=market, limit=limit)
+    finally:
+        conn.close()
+
+
+@app.get("/api/market-us-linkage")
+def market_us_linkage(market: str = "all", limit: int = 20):
+    conn = _conn()
+    try:
+        return get_market_us_linkage_shadow(conn, market=market, limit=limit)
+    finally:
+        conn.close()
+
+
+@app.get("/api/market-us-linkage/history")
+def market_us_linkage_history(market: str = "all", limit: int = 100):
+    conn = _conn()
+    try:
+        return get_market_us_linkage_history(conn, market=market, limit=limit)
+    finally:
+        conn.close()
+
+
+@app.get("/api/market-us-linkage/feedback")
+def market_us_linkage_feedback(market: str = "all", limit: int = 100):
+    conn = _conn()
+    try:
+        return get_market_us_linkage_feedback(conn, market=market, limit=limit)
     finally:
         conn.close()
 

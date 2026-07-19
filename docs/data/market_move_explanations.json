@@ -11535,7 +11535,7 @@
   "data_quality": {
     "status": "partial_ready",
     "components": {
-      "prices": "ready",
+      "prices": "stale",
       "investor_flows": "missing",
       "market_metrics": "ready",
       "global_regime": "ready",
@@ -11548,18 +11548,19 @@
     "messages": [
       "investor_flows 데이터 부족",
       "telegram_news 데이터 부족",
-      "stock_news 데이터 부족"
+      "stock_news 데이터 부족",
+      "최신 학습 미완료: 가격 최신일 2026-07-16이 기대 최신 거래일 2026-07-17보다 1일 늦습니다."
     ]
   },
   "freshness": {
-    "status": "ready",
-    "expected_latest_date": "2026-07-10",
-    "latest_date": "2026-07-10",
-    "age_days": 0,
-    "stale": false,
-    "reason": null,
+    "status": "partial_ready",
+    "expected_latest_date": "2026-07-17",
+    "latest_date": "2026-07-16",
+    "age_days": 1,
+    "stale": true,
+    "reason": "가격 최신일 2026-07-16이 기대 최신 거래일 2026-07-17보다 1일 늦습니다.",
     "messages": [
-      "가격 최신성 확인: 2026-07-10"
+      "최신 학습 미완료: 가격 최신일 2026-07-16이 기대 최신 거래일 2026-07-17보다 1일 늦습니다."
     ]
   }
 }

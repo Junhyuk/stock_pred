@@ -8,6 +8,7 @@ from roboquant.features.market_features import compute_market_features
 from roboquant.features.price_features import compute_price_features
 from roboquant.koru import attach_koru_features
 from roboquant.signals.dart_disclosures import attach_dart_disclosure_features
+from roboquant.signals.marketnewsfeed_llm import attach_marketnewsfeed_llm_features
 from roboquant.signals.news_signals import attach_news_signal_features
 from roboquant.signals.telegram_signals import attach_telegram_market_features
 from roboquant.us_sector_linkage import attach_us_sector_features
@@ -34,6 +35,8 @@ def build_feature_matrix(
     koru_linkage: pd.DataFrame | None = None,
     telegram_market: pd.DataFrame | None = None,
     news_signals: pd.DataFrame | None = None,
+    marketnewsfeed_llm_signals: pd.DataFrame | None = None,
+    local_llm_news_signals: pd.DataFrame | None = None,
     dart_disclosures: pd.DataFrame | None = None,
     us_sector_linkage: pd.DataFrame | None = None,
     symbols: pd.DataFrame | None = None,
@@ -65,6 +68,8 @@ def build_feature_matrix(
     )
     features = attach_telegram_market_features(features, telegram_market)
     features = attach_news_signal_features(features, news_signals)
+    features = attach_marketnewsfeed_llm_features(features, marketnewsfeed_llm_signals)
+    features = attach_marketnewsfeed_llm_features(features, local_llm_news_signals)
     features = attach_dart_disclosure_features(features, dart_disclosures)
     features = attach_us_sector_features(
         features,

@@ -1,0 +1,127 @@
+{
+  "status": "rejected",
+  "model_name": "market-us-linkage-shadow-v1",
+  "model_version": "market-us-linkage-shadow-v1-v1",
+  "production_weight": 0.0,
+  "items": [],
+  "runs": [
+    {
+      "run_id": "eb88a1917cb24bc28b37499f0381918d",
+      "model_name": "market-us-linkage-shadow-v1",
+      "model_version": "market-us-linkage-shadow-v1-v1",
+      "market": "KOSPI",
+      "start_date": "2022-01-05T00:00:00",
+      "end_date": "2026-07-20T00:00:00",
+      "oos_count": 569,
+      "live_observation_count": 0,
+      "gate_status": "rejected",
+      "fail_reason": "coverage; width",
+      "created_at": "2026-07-19T15:38:32.281705",
+      "metrics": {
+        "oos_count": 569,
+        "baseline_mae": 0.013750605276751622,
+        "candidate_mae": 0.013563541234680437,
+        "baseline_direction_accuracy": 0.5202108963093146,
+        "candidate_direction_accuracy": 0.5588752196836555,
+        "baseline_coverage": 0.5975395430579965,
+        "candidate_coverage": 0.7311072056239016,
+        "baseline_average_width": 0.023727319739363796,
+        "candidate_average_width": 0.03651982000144446,
+        "baseline_low_breach_rate": 0.15641476274165203,
+        "candidate_low_breach_rate": 0.13532513181019332,
+        "candidate_interval_score": 0.06978762972283556,
+        "baseline_interval_score": 0.08186116323169479,
+        "mean_dynamic_overlay_weight": 0.11306709288757782,
+        "live_observation_count": 0,
+        "checks": {
+          "mae_not_worse": true,
+          "direction_not_worse": true,
+          "coverage": false,
+          "width": false,
+          "low_breach": true,
+          "effective_overlay": true
+        }
+      }
+    },
+    {
+      "run_id": "76f12b81fc6f4438a4ca5516557e2ffe",
+      "model_name": "market-us-linkage-shadow-v1",
+      "model_version": "market-us-linkage-shadow-v1-v1",
+      "market": "KOSDAQ",
+      "start_date": "2022-01-05T00:00:00",
+      "end_date": "2026-07-20T00:00:00",
+      "oos_count": 569,
+      "live_observation_count": 0,
+      "gate_status": "rejected",
+      "fail_reason": "coverage; width",
+      "created_at": "2026-07-19T15:38:35.841861",
+      "metrics": {
+        "oos_count": 569,
+        "baseline_mae": 0.01404633216213683,
+        "candidate_mae": 0.013964673433215868,
+        "baseline_direction_accuracy": 0.4938488576449912,
+        "candidate_direction_accuracy": 0.4973637961335677,
+        "baseline_coverage": 0.7100175746924429,
+        "candidate_coverage": 0.7469244288224957,
+        "baseline_average_width": 0.03131055880559353,
+        "candidate_average_width": 0.03773911065891771,
+        "baseline_low_breach_rate": 0.15289982425307558,
+        "candidate_low_breach_rate": 0.13005272407732865,
+        "candidate_interval_score": 0.07069315036519011,
+        "baseline_interval_score": 0.0765439179038141,
+        "mean_dynamic_overlay_weight": 0.07754688159284538,
+        "live_observation_count": 0,
+        "checks": {
+          "mae_not_worse": true,
+          "direction_not_worse": true,
+          "coverage": false,
+          "width": false,
+          "low_breach": true,
+          "effective_overlay": true
+        }
+      }
+    }
+  ],
+  "backtest_count": 1138,
+  "feedback": {
+    "count": 1138,
+    "live_count": 0,
+    "baseline_mae": 0.013898468719444225,
+    "candidate_mae": 0.013764107333948152,
+    "candidate_direction_accuracy": 0.5281195079086116,
+    "candidate_coverage": 0.7390158172231986,
+    "mean_dynamic_overlay_weight": 0.0953069872402116
+  },
+  "correlations": [
+    {
+      "market": "KOSDAQ",
+      "signal": "nasdaq",
+      "sample_count": 1074,
+      "pearson": 0.3307525303387447,
+      "recent_60d_pearson": 0.2845985387017696
+    },
+    {
+      "market": "KOSDAQ",
+      "signal": "sox",
+      "sample_count": 1074,
+      "pearson": 0.33834733616883217,
+      "recent_60d_pearson": 0.230648187873529
+    },
+    {
+      "market": "KOSPI",
+      "signal": "nasdaq",
+      "sample_count": 1074,
+      "pearson": 0.35822102374248416,
+      "recent_60d_pearson": 0.3579679156315419
+    },
+    {
+      "market": "KOSPI",
+      "signal": "sox",
+      "sample_count": 1074,
+      "pearson": 0.39328929184590755,
+      "recent_60d_pearson": 0.334258146256576
+    }
+  ],
+  "message": "Nasdaq/SOX 후보는 close-loop 검증용 shadow이며 production 시장전망을 변경하지 않습니다.",
+  "disclaimer": "연구·정보제공용 글로벌 연동 검증입니다. 매수·매도 지시나 수익 보장이 아닙니다."
+}

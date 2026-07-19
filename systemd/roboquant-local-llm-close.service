@@ -1,0 +1,10 @@
+[Unit]
+Description=RoboQuant local LLM close news pipeline
+After=network-online.target roboquant-ollama.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=__PROJECT_ROOT__
+Environment=PYTHONUNBUFFERED=1
+ExecStart=__PYTHON__ scripts/run_local_llm_news_pipeline.py --config configs/local_llm_news.yaml --stage close

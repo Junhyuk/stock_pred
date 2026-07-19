@@ -1,0 +1,11 @@
+[Unit]
+Description=Run RoboQuant tomorrow market ML on Korean weekdays
+
+[Timer]
+OnCalendar=Mon..Fri *-*-* 08:00:00
+Timezone=Asia/Seoul
+Persistent=true
+Unit=roboquant-tomorrow-market-ml.service
+
+[Install]
+WantedBy=timers.target

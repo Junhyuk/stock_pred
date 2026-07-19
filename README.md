@@ -314,9 +314,11 @@ shadow 데이터로 저장합니다. 기사 전문, 차트 반응값, 숨은 Jav
 API는 수집하지 않습니다. Chrome 또는 렌더 수집이 실패하면 기존 사이트 메타데이터 1행만
 `market_news_feed`에 `source=marketnewsfeed_site`로 유지합니다.
 
-Shadow headline은 화면과 coverage 점검에만 사용하며 `news_signal_daily`, feature matrix,
-추천 점수에는 연결하지 않습니다. 충분한 이력과 walk-forward A/B gate 통과 전에는
-production 모델에 반영하지 않습니다.
+원본 headline은 기존 `news_signal_daily`와 production 모델 입력에 직접 연결하지 않습니다.
+별도 로컬 LLM shadow를 실행하면 구조화된 최종 JSON만
+`marketnewsfeed_llm_*` 테이블과 별도 feature column으로 저장합니다. 기본
+`configs/top50_normal.yaml`의 production feature 목록에는 이 column을 넣지 않으며,
+충분한 이력과 walk-forward A/B gate 통과 전에는 production 모델에 반영하지 않습니다.
 
 ```bash
 .venv/bin/python scripts/collect_marketnewsfeed_site.py \
@@ -333,6 +335,104 @@ production 모델에 반영하지 않습니다.
 `TELEGRAM_API_ID`/`TELEGRAM_API_HASH` 또는 `X_BEARER_TOKEN`이 없으면 해당 live 수집만
 fake 없이 건너뜁니다. GitHub Pages validation은 `marketnewsfeed_site`,
 `marketnewsfeed_headlines`, `telegram_marketfeed`, `x_market_news_feed` count를 표시합니다.
+
+### MarketNewsFeed Local LLM Shadow (Legacy Compatibility)
+
+공개 렌더 DOM에서 이미 저장한 headline, 공개 시각, 자산 태그만 로컬 Ollama에 전달합니다.
+원문 URL을 따라가지 않고, 숨은 API와 private Telegram/X 데이터도 사용하지 않습니다.
+`llm_models/`는 Git에서 제외됩니다. 기본 설정은 RTX 3090의
+`llm_models/gguf/Qwen3.5-27B-Q4_K_M.gguf`와 loopback-only
+`http://127.0.0.1:11434`를 사용합니다.
+
+Ollama가 아직 없다면 공식 Linux 설치 절차를 사용합니다.
+
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+
+.venv/bin/python scripts/setup_local_ollama.py \
+  --config configs/marketnewsfeed_llm.yaml \
+  --install-user-service --start-service --import-model
+```
+
+`setup_local_ollama.py`는 임시 Modelfile의 `FROM`에 GGUF 절대 경로만 넣어
+`roboquant-news:qwen3.5-27b-q4`를 import합니다. 모델을 임의로 다운로드하지 않으며,
+import 또는 capability probe가 실패하면 `model_import_failed`/`unavailable` 상태로만
+남깁니다. 일반 headline은 thinking을 쓰지 않고, 중요도 4 이상 또는 위험 keyword만
+저비용 thinking probe를 시도합니다. reasoning trace는 DB, 로그, 웹에 저장하지 않습니다.
+
+```bash
+.venv/bin/python scripts/collect_marketnewsfeed_site.py \
+  --config configs/marketnewsfeed.yaml
+.venv/bin/python scripts/summarize_marketnewsfeed_llm.py \
+  --config configs/marketnewsfeed_llm.yaml
+.venv/bin/python scripts/build_marketnewsfeed_llm_features.py \
+  --config configs/marketnewsfeed_llm.yaml
+.venv/bin/python scripts/run_marketnewsfeed_llm_shadow.py \
+  --config configs/marketnewsfeed_llm.yaml
+```
+
+headline은 최대 280자, 배치는 최대 6건, 한 실행은 신규 30건, context는 4096,
+배치 출력은 360 token으로 제한합니다. `headline_id + model_digest + prompt_version`
+cache가 같은 headline의 재호출을 막습니다. 2M/3M stock A/B와 KOSPI/KOSDAQ range
+shadow는 최소 60개의 signal/mature date 전까지 `not_ready`이고, 통과해도
+`accepted_shadow`, `production_weight=0.0`으로 유지됩니다.
+
+로컬 상세 화면은 `http://localhost:8000/demo/marketnewsfeed-llm`, API는
+`http://localhost:8000/api/news/marketnewsfeed/llm`입니다. GitHub Pages에는 headline과
+요약을 내보내지 않고 count, token aggregate, gate 상태만 `marketnewsfeed_llm_status.json`
+으로 export합니다.
+
+### Integrated Local Ollama News + Tomorrow Market Shadow
+
+통합 경로는 이미 DuckDB에 저장된 MarketNewsFeed, 시장 뉴스, Naver 메타데이터,
+GDELT, BIGKinds, OpenDART 제목만 작은 문서 큐로 정규화합니다. URL 본문, private
+Telegram/X, 숨은 API와 reasoning trace는 처리하거나 저장하지 않습니다. Qwen은 구조화
+요약과 위험 분류에만 사용하고, 다음 거래일의 production KOSPI/KOSDAQ 예측은 기존 Ridge
+모델이 계속 생성합니다.
+
+```bash
+.venv/bin/python scripts/setup_local_ollama.py \
+  --config configs/local_llm_news.yaml \
+  --import-model
+
+# 장마감 신규 문서 최대 30건, 장전 신규 문서 최대 12건
+.venv/bin/python scripts/run_local_llm_news_pipeline.py \
+  --config configs/local_llm_news.yaml --stage close
+.venv/bin/python scripts/run_local_llm_news_pipeline.py \
+  --config configs/local_llm_news.yaml --stage premarket
+
+# Ridge production 예측을 갱신하고 LGBM+LLM 후보와 짧은 시장 브리프를 별도 생성
+.venv/bin/python scripts/run_tomorrow_market_ml.py \
+  --config configs/local_llm_news.yaml --date latest
+```
+
+기본 token 예산은 문서 320자, 설정상 최대 6건 배치, `num_ctx=4096`, 일반 배치 출력 180 token입니다.
+180-token 한도에서는 구조화 JSON 완결성을 위해 실제 배치를 최대 2건으로 자동 축소합니다.
+중요도 높은 위험 신호만 하루 최대 4회의 thinking probe를 쓰며, 동일 문서는
+`source_document_id + model_digest + prompt_version` cache로 다시 호출하지 않습니다.
+`market-outlook-lgbm-news-shadow-v1`은 q10/q50/q90 및 conformal 80% 범위를 비교하지만,
+최소 60개 신호일과 성숙 label의 gate 전까지 `production_weight=0.0`입니다.
+
+로컬 확인 화면과 API:
+
+- `http://localhost:8000/demo/local-llm-news`
+- `http://localhost:8000/demo/marketnewsfeed-llm` (호환 별칭)
+- `http://localhost:8000/api/news/local-llm/status`
+- `http://localhost:8000/api/market-outlook/shadow`
+
+장마감 18:20, 장전 07:30, 예측 08:00 KST timer는 먼저 dry-run으로 확인합니다.
+
+```bash
+.venv/bin/python scripts/install_local_llm_timers.py --install --enable --dry-run
+
+# 확인 후 실제 설치 및 활성화
+.venv/bin/python scripts/install_local_llm_timers.py --install --enable
+systemctl --user list-timers 'roboquant-*'
+```
+
+timer는 한국 평일 기준이며, 휴장일에는 데이터가 없으면 fake 신호나 예측을 만들지 않습니다.
+GitHub Pages에는 문서 수, token 합계, 출처 수와 gate 상태만 export하고 headline, 요약,
+URL, 로컬 경로, reasoning은 내보내지 않습니다.
 
 ### Daily GitHub Pages Publish
 
@@ -438,6 +538,100 @@ API와 화면:
 - `http://localhost:8000/api/market-outlook?date=latest&horizon=all`
 - `http://localhost:8000/demo/today`
 - `http://localhost:8000/demo/tomorrow`
+
+### Nasdaq/SOX Korea Linkage Shadow
+
+전일 확정 Nasdaq와 Philadelphia Semiconductor Index(`^SOX`)를 다음 KRX 세션에
+cutoff-safe하게 연결하는 별도 shadow입니다. KOSPI와 KOSDAQ은 완전히 분리해
+Huber/Ridge 글로벌 overlay를 학습하고, `SOX - Nasdaq` 상대수익률로 두 지수의 높은
+공선성을 줄입니다. 뉴스와 local LLM feature는 이 후보의 입력에서 제외합니다.
+
+장마감 뒤 실제 지수 종가가 확정되면 baseline/candidate 오차, 방향 적중, 하방 이탈과
+80% interval score를 close-loop로 기록합니다. 최근 60개의 성숙한 관측에서 글로벌
+후보가 baseline보다 좋아야만 dynamic overlay weight가 `0.00`부터 최대 `0.20`까지
+증가합니다. 첫 예측값은 immutable하게 보존하며, 실제값만 나중에 기록합니다.
+
+```bash
+# 역사적 cutoff-safe feature 및 시장별 walk-forward shadow
+.venv/bin/python scripts/build_us_korea_linkage_features.py \
+  --config configs/top50_normal.yaml --date latest
+.venv/bin/python scripts/run_us_korea_linkage_shadow.py \
+  --config configs/top50_normal.yaml --date latest
+
+# 장마감 close-loop feedback / 장전 shadow daily stage
+.venv/bin/python scripts/update_us_korea_linkage_feedback.py \
+  --config configs/top50_normal.yaml
+.venv/bin/python scripts/run_us_korea_linkage_daily.py \
+  --config configs/top50_normal.yaml --stage premarket --date latest
+```
+
+`run_premarket_global_pipeline.py`는 글로벌 수집과 final premarket shadow 뒤에 이
+linkage shadow도 실행합니다. 최소 252개 OOS와 시장별 60개 live 관찰 전에는 gate를
+통과하더라도 `accepted_shadow`, `production_weight=0.0`으로 유지합니다. MAE, 방향,
+80% 포함률, 범위 폭, 하방 이탈 gate 중 하나라도 실패하면 `rejected`이며 기존
+`market-outlook-v2` production Ridge는 변경하지 않습니다.
+
+- Local demo: `http://localhost:8000/demo/us-korea-linkage`
+- APIs: `http://localhost:8000/api/market-us-linkage`,
+  `/api/market-us-linkage/history`, `/api/market-us-linkage/feedback`
+- Static Pages payload: `docs/data/market_us_linkage_shadow.json`
+
+### KOSPI/KOSDAQ Anchor Basket Range Shadow
+
+KOSPI 다음 거래일 80% 범위의 별도 shadow는 삼성전자(`005930`), SK하이닉스(`000660`),
+현대차(`005380`)를 고정 앵커로 사용합니다. KOSDAQ은 각 과거 기준일의 KRX 시가총액
+원본에서 ETF·ETN·SPAC·우선주를 제외한 상위 일반주 3개를 다시 선택합니다. 오늘의
+구성종목을 과거에 적용하거나 시가총액 결측을 동일가중치로 대체하지 않습니다.
+
+이 경로는 `q10/q50/q90` LightGBM 분위수 모델, 80% conformal 보정, residual control을
+독립 비교합니다. 기존 `market_outlook_forecasts`, 추천 및 production weight는 변경하지
+않으며 gate를 통과해도 최소 60일 live final 관찰 전까지 `production_weight=0.0`입니다.
+
+필요한 KRX 인증 정보는 저장소에 넣지 말고 로컬 `.env`에만 둡니다.
+
+```bash
+KRX_ID=
+KRX_PW=
+```
+
+장마감 확정 데이터가 나온 뒤 point-in-time 구성종목을 수집하고 shadow를 실행합니다.
+DuckDB writer 작업 전에는 FastAPI/Streamlit 같은 DB 사용 프로세스를 종료하세요.
+
+```bash
+.venv/bin/python scripts/backfill_market_anchor_history.py \
+  --config configs/market_anchor_shadow.yaml \
+  --from-date 2019-01-02 --to-date latest
+
+.venv/bin/python scripts/build_market_anchor_features.py \
+  --config configs/market_anchor_shadow.yaml --date latest
+
+.venv/bin/python scripts/train_market_anchor_shadow.py \
+  --config configs/market_anchor_shadow.yaml
+
+.venv/bin/python scripts/run_market_anchor_shadow_backtest.py \
+  --config configs/market_anchor_shadow.yaml
+
+.venv/bin/python scripts/predict_market_anchor_shadow.py \
+  --config configs/market_anchor_shadow.yaml
+```
+
+일일 실행은 최신 구성 수집과 feature build를 수행하고, `--retrain`을 붙일 때만 학습·backtest를
+함께 실행합니다.
+
+```bash
+.venv/bin/python scripts/run_market_anchor_shadow_daily.py \
+  --config configs/market_anchor_shadow.yaml --date latest --retrain
+```
+
+KRX/pykrx가 과거 시점 시가총액을 비우거나 인증에 실패하면 KOSDAQ shadow는 `not_ready`로
+남습니다. 임의의 현재 구성종목, 중립 수급값 또는 추정 시가총액을 사용하지 않습니다.
+
+출력:
+
+- DuckDB: `market_anchor_constituents_daily`, `market_anchor_features_daily`,
+  `market_anchor_shadow_forecasts`, `market_anchor_shadow_backtest_runs`
+- API: `http://localhost:8000/api/market-anchor-shadow`
+- Static Pages export: `docs/data/market_anchor_shadow.json`
 
 ## v9 Global Market Regime 준비
 

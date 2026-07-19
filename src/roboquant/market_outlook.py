@@ -9,7 +9,12 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from roboquant.data.freshness import expected_latest_trading_day, local_today
+from roboquant.data.freshness import (
+    expected_latest_trading_day,
+    local_today,
+    previous_trading_day,
+    resolve_next_krx_session,
+)
 from roboquant.db import append_dedup_table, table_exists
 from roboquant.signals.news_signals import (
     DEFAULT_NEGATIVE_BUSINESS_KEYWORDS,
@@ -63,6 +68,15 @@ BREADTH_FEATURE_COLUMNS = [
     "prediction_return_avg",
 ]
 FEATURE_COLUMNS = [*INDEX_FEATURE_COLUMNS, *BREADTH_FEATURE_COLUMNS]
+LOCAL_LLM_NEWS_FEATURE_COLUMNS = [
+    "llm_news_attention",
+    "llm_news_risk",
+    "llm_news_direction",
+    "llm_news_semiconductor",
+    "llm_news_macro",
+    "llm_news_confidence",
+    "llm_news_coverage",
+]
 
 
 def refresh_market_outlook_forecasts(
@@ -72,6 +86,7 @@ def refresh_market_outlook_forecasts(
     asof_date: str | date = "latest",
     model_path: str | Path | None = None,
     now: datetime | None = None,
+    forecast_context: dict[str, Any] | None = None,
 ) -> pd.DataFrame:
     forecasts = build_market_outlook_forecasts(
         conn,
@@ -79,6 +94,7 @@ def refresh_market_outlook_forecasts(
         asof_date=asof_date,
         model_path=model_path,
         now=now,
+        forecast_context=forecast_context,
     )
     if forecasts.empty:
         return forecasts
@@ -100,6 +116,7 @@ def build_market_outlook_forecasts(
     asof_date: str | date = "latest",
     model_path: str | Path | None = None,
     now: datetime | None = None,
+    forecast_context: dict[str, Any] | None = None,
 ) -> pd.DataFrame:
     dataset = build_market_outlook_dataset(conn, config=config, asof_date=asof_date, now=now)
     if dataset.empty:
@@ -121,6 +138,9 @@ def build_market_outlook_forecasts(
         forecast = _predict_row(row_dict, model)
         drivers = _drivers(row_dict, forecast)
         quality = _row_data_quality(row_dict, model)
+        context = _forecast_context_for_row(row_dict, forecast_context)
+        if context:
+            quality = {**quality, **_forecast_context_quality(context)}
         rows.append(
             {
                 "asof_date": row_dict.get("asof_date"),
@@ -139,6 +159,11 @@ def build_market_outlook_forecasts(
                 "data_quality_json": _json(quality),
                 "model_version": model_version,
                 "created_at": created_at,
+                "prediction_session_date": context.get("target_date") if context else None,
+                "domestic_asof_date": context.get("domestic_asof_date") if context else None,
+                "global_cutoff": context.get("global_cutoff") if context else None,
+                "forecast_status": context.get("forecast_status") if context else "legacy",
+                "calendar_source": context.get("calendar_source") if context else None,
             }
         )
     return pd.DataFrame(rows, columns=_empty_forecast_frame().columns)
@@ -150,6 +175,8 @@ def build_market_outlook_dataset(
     *,
     asof_date: str | date = "latest",
     now: datetime | None = None,
+    include_feature_provenance: bool = False,
+    include_local_llm_features: bool = False,
 ) -> pd.DataFrame:
     benchmark = _benchmark_frame(conn)
     if benchmark.empty:
@@ -165,6 +192,7 @@ def build_market_outlook_dataset(
     koru = _koru_features(conn)
     regime = _regime_features(conn)
     telegram = _telegram_features(conn)
+    local_llm_news = _local_llm_news_features(conn) if include_local_llm_features else pd.DataFrame()
     holidays = market_outlook_holidays(config)
     use_realtime_target = str(asof_date).strip().lower() == "latest" or now is not None
     use_realtime_news_cutoff = use_realtime_target
@@ -192,7 +220,7 @@ def build_market_outlook_dataset(
             for horizon in OUTLOOK_HORIZONS:
                 if current_asof == target_asof:
                     target_today = (
-                        local_today(now)
+                        resolve_market_outlook_target(current_asof, config, now=now)["target_date"]
                         if use_realtime_target
                         else _next_trading_day(current_asof, holidays=holidays)
                     )
@@ -241,7 +269,13 @@ def build_market_outlook_dataset(
         dataset = _merge_market_features(dataset, extra)
     for extra in (koru, regime, telegram, news):
         dataset = _merge_date_features(dataset, extra)
-    dataset = _fill_feature_defaults(dataset)
+    if include_local_llm_features:
+        dataset = _merge_prediction_date_features(dataset, local_llm_news)
+    dataset = _fill_feature_defaults(dataset, include_feature_provenance=include_feature_provenance)
+    if include_local_llm_features:
+        for column in LOCAL_LLM_NEWS_FEATURE_COLUMNS:
+            if column not in dataset.columns:
+                dataset[column] = np.nan
     return dataset.sort_values(["asof_date", "horizon", "market"]).reset_index(drop=True)
 
 
@@ -292,10 +326,53 @@ def get_market_outlook(
     market: str = "all",
     limit: int = 20,
     config: dict[str, Any] | None = None,
+    require_confirmed_current: bool = False,
+    now: datetime | None = None,
 ) -> dict[str, Any]:
-    frame = _stored_market_outlook(conn, date=date, horizon=horizon, market=market, limit=limit)
+    context: dict[str, Any] | None = None
+    if require_confirmed_current and (not date or date == "latest"):
+        asof = resolve_market_outlook_asof(conn, "latest")
+        target = resolve_market_outlook_target(asof, config, now=now)
+        context = market_outlook_input_status(
+            conn,
+            asof_date=asof,
+            target_date=target["target_date"],
+            config=config,
+            calendar_source=target["calendar_source"],
+            calendar_messages=target["calendar_messages"],
+        )
+        if context["forecast_status"] != "confirmed":
+            return _blocked_current_outlook(context)
+        frame = _stored_market_outlook(
+            conn,
+            date="latest",
+            horizon=horizon,
+            market=market,
+            limit=limit,
+            target_date=context["target_date"],
+            forecast_status="confirmed",
+        )
+    else:
+        frame = _stored_market_outlook(conn, date=date, horizon=horizon, market=market, limit=limit)
     source = "market_outlook_forecasts"
     if frame.empty:
+        if context is not None:
+            return {
+                "asof_date": _date_string(context.get("domestic_asof_date")),
+                "target_date": _date_string(context.get("target_date")),
+                "forecast_status": "not_collected",
+                "calendar_source": context.get("calendar_source"),
+                "status": "not_collected",
+                "source": source,
+                "summary": {"count": 0, "markets": [], "horizons": []},
+                "items": [],
+                "data_quality": {
+                    "status": "not_collected",
+                    "forecast_status": "not_collected",
+                    "messages": ["확정 입력은 준비됐지만 현재 목표일의 시장 전망 행이 없습니다."],
+                    **_forecast_context_quality(context),
+                },
+            }
         frame = build_market_outlook_forecasts(conn, config=config, asof_date=date)
         frame = _filter_forecasts(frame, horizon=horizon, market=market, limit=limit)
         source = "computed_live"
@@ -312,6 +389,9 @@ def get_market_outlook(
     quality = items[0].get("data_quality") or {}
     return {
         "asof_date": _date_string(frame["asof_date"].max()),
+        "target_date": _date_string(frame["target_date"].min()),
+        "forecast_status": items[0].get("forecast_status") or quality.get("forecast_status") or "legacy",
+        "calendar_source": items[0].get("calendar_source") or quality.get("calendar_source"),
         "status": quality.get("status") or "partial_ready",
         "source": source,
         "summary": {
@@ -333,13 +413,8 @@ def target_dates_for_run(
 ) -> dict[str, date]:
     asof = _to_date(asof_date) or expected_latest_trading_day(now=now)
     current = _to_date(today) or local_today(now)
-    today_target = (
-        current
-        if current > asof and _is_trading_day(current, holidays=holidays)
-        else _next_trading_day(asof, holidays=holidays)
-    )
-    if today_target <= asof:
-        today_target = _next_trading_day(asof, holidays=holidays)
+    reference = current if current > asof else asof + timedelta(days=1)
+    today_target = _next_trading_day_on_or_after(reference, holidays=holidays)
     week_target = _week_last_trading_day(today_target, holidays=holidays)
     if week_target <= asof:
         week_target = _week_last_trading_day(today_target + timedelta(days=7), holidays=holidays)
@@ -354,6 +429,163 @@ def market_outlook_holidays(config: dict[str, Any] | None = None) -> set[date]:
         if parsed is not None:
             holidays.add(parsed)
     return holidays
+
+
+def resolve_market_outlook_target(
+    asof_date: date | str,
+    config: dict[str, Any] | None = None,
+    *,
+    target_date: date | str | None = None,
+    now: datetime | None = None,
+) -> dict[str, Any]:
+    """Resolve the upcoming KRX target for the current market-outlook run."""
+    asof = _to_date(asof_date)
+    if asof is None:
+        raise ValueError(f"Invalid asof_date: {asof_date}")
+    explicit = _to_date(target_date)
+    holidays = market_outlook_holidays(config)
+    if explicit is not None:
+        return {
+            "target_date": explicit,
+            "calendar_source": "explicit",
+            "calendar_messages": [],
+        }
+    market_cfg = (config or {}).get("market_outlook") or {}
+    resolution = resolve_next_krx_session(
+        asof,
+        now=now,
+        holidays=holidays,
+        use_pykrx=bool(market_cfg.get("use_pykrx_calendar", True)),
+    )
+    return {
+        "target_date": resolution.target_date,
+        "calendar_source": resolution.source,
+        "calendar_messages": resolution.messages,
+    }
+
+
+def market_outlook_input_status(
+    conn,
+    *,
+    asof_date: date | str,
+    target_date: date | str,
+    config: dict[str, Any] | None = None,
+    calendar_source: str | None = None,
+    calendar_messages: list[str] | None = None,
+) -> dict[str, Any]:
+    """Validate the domestic inputs required for a confirmed next-session row."""
+    asof = _to_date(asof_date)
+    target = _to_date(target_date)
+    if asof is None or target is None:
+        raise ValueError("asof_date and target_date are required for input validation")
+    holidays = market_outlook_holidays(config)
+    required_asof = previous_trading_day(target, holidays=holidays)
+    benchmark_rows = _benchmark_rows_for_date(conn, required_asof)
+    universe_total, universe_price_count = _top50_price_completeness(conn, required_asof)
+    benchmark_ready = benchmark_rows == set(MARKETS)
+    top50_ready = universe_total > 0 and universe_price_count == universe_total
+    asof_ready = asof == required_asof
+    messages = list(calendar_messages or [])
+    if not asof_ready:
+        messages.append(
+            f"국내 기준일 {asof.isoformat()}이 확정에 필요한 {required_asof.isoformat()}보다 오래되었습니다."
+        )
+    if not benchmark_ready:
+        missing = ", ".join(sorted(set(MARKETS).difference(benchmark_rows))) or "KOSPI/KOSDAQ"
+        messages.append(f"{required_asof.isoformat()} 지수 종가 누락: {missing}")
+    if not top50_ready:
+        messages.append(
+            f"{required_asof.isoformat()} Top50 가격 완결성 부족: {universe_price_count}/{universe_total}"
+        )
+    global_cutoff = _global_cutoff_for_target(conn, target)
+    status = "confirmed" if asof_ready and benchmark_ready and top50_ready else "blocked_stale_input"
+    return {
+        "forecast_status": status,
+        "target_date": target,
+        "domestic_asof_date": asof,
+        "required_domestic_asof_date": required_asof,
+        "global_cutoff": global_cutoff,
+        "calendar_source": calendar_source or "weekday_fallback",
+        "calendar_messages": list(calendar_messages or []),
+        "benchmark_ready": benchmark_ready,
+        "benchmark_markets": sorted(benchmark_rows),
+        "top50_total": universe_total,
+        "top50_price_count": universe_price_count,
+        "messages": messages,
+    }
+
+
+def _benchmark_rows_for_date(conn, target_date: date) -> set[str]:
+    if not table_exists(conn, "benchmark_daily"):
+        return set()
+    frame = conn.execute(
+        "SELECT DISTINCT benchmark FROM benchmark_daily WHERE date = ?",
+        [target_date],
+    ).fetchdf()
+    return {str(value).upper() for value in frame.get("benchmark", pd.Series(dtype=str)).dropna()}
+
+
+def _top50_price_completeness(conn, target_date: date) -> tuple[int, int]:
+    if not table_exists(conn, "prices_daily") or not table_exists(conn, "current_prediction_universe"):
+        return 0, 0
+    try:
+        row = conn.execute(
+            """
+            SELECT
+              COUNT(DISTINCT u.symbol) AS universe_total,
+              COUNT(DISTINCT p.symbol) AS price_count
+            FROM current_prediction_universe AS u
+            LEFT JOIN prices_daily AS p
+              ON p.symbol = u.symbol AND p.date = ?
+            """,
+            [target_date],
+        ).fetchone()
+    except Exception:
+        return 0, 0
+    return int(row[0] or 0), int(row[1] or 0)
+
+
+def _global_cutoff_for_target(conn, target_date: date) -> datetime | None:
+    if not table_exists(conn, "market_regime_daily"):
+        return None
+    row = conn.execute(
+        """
+        SELECT prediction_cutoff
+        FROM market_regime_daily
+        WHERE prediction_date = ?
+        ORDER BY created_at DESC
+        LIMIT 1
+        """,
+        [target_date],
+    ).fetchone()
+    return None if not row else row[0]
+
+
+def _forecast_context_for_row(
+    row: dict[str, Any],
+    context: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    if not context or str(row.get("horizon") or "").upper() != "TODAY":
+        return None
+    row_target = _to_date(row.get("target_date"))
+    context_target = _to_date(context.get("target_date"))
+    if row_target is None or row_target != context_target:
+        return None
+    return context
+
+
+def _forecast_context_quality(context: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "forecast_status": context.get("forecast_status"),
+        "domestic_asof_date": _date_string(context.get("domestic_asof_date")),
+        "required_domestic_asof_date": _date_string(context.get("required_domestic_asof_date")),
+        "global_cutoff": _json_default(context.get("global_cutoff")),
+        "calendar_source": context.get("calendar_source"),
+        "calendar_messages": list(context.get("calendar_messages") or []),
+        "input_messages": list(context.get("messages") or []),
+        "top50_price_count": context.get("top50_price_count"),
+        "top50_total": context.get("top50_total"),
+    }
 
 
 def resolve_market_outlook_asof(conn, asof_date: str | date = "latest") -> date:
@@ -457,7 +689,7 @@ def _fit_linear_spec(subset: pd.DataFrame, features: list[str], fallback: float)
     frame = subset.copy()
     y = pd.to_numeric(frame["label_return"], errors="coerce")
     matrix = frame.reindex(columns=features)
-    matrix = matrix.apply(pd.to_numeric, errors="coerce")
+    matrix = matrix.apply(pd.to_numeric, errors="coerce").replace([np.inf, -np.inf], np.nan)
     fill_values = matrix.median(numeric_only=True).fillna(0.0)
     matrix = matrix.fillna(fill_values)
     valid = y.notna()
@@ -487,10 +719,24 @@ def _fit_linear_spec(subset: pd.DataFrame, features: list[str], fallback: float)
     fill_values = fill_values.reindex(active_features)
     x = matrix.loc[valid].to_numpy(dtype=float)
     yv = y.loc[valid].to_numpy(dtype=float)
-    mean = np.nanmean(x, axis=0)
-    std = np.nanstd(x, axis=0)
+    finite = np.where(np.isfinite(x), x, np.nan)
+    counts = np.sum(np.isfinite(finite), axis=0)
+    mean = np.divide(
+        np.nansum(finite, axis=0),
+        counts,
+        out=np.zeros(finite.shape[1], dtype=float),
+        where=counts > 0,
+    )
+    centered = np.where(np.isfinite(finite), finite - mean, 0.0)
+    variance = np.divide(
+        np.sum(centered * centered, axis=0),
+        counts,
+        out=np.zeros(finite.shape[1], dtype=float),
+        where=counts > 0,
+    )
+    std = np.sqrt(variance)
     std = np.where(std < 1e-9, 1.0, std)
-    x_scaled = (x - mean) / std
+    x_scaled = (np.where(np.isfinite(x), x, mean) - mean) / std
     x_design = np.column_stack([np.ones(len(x_scaled)), x_scaled])
     alpha = 1.0
     penalty = np.eye(x_design.shape[1]) * alpha
@@ -682,23 +928,31 @@ def _stored_market_outlook(
     horizon: str,
     market: str,
     limit: int,
+    target_date: date | str | None = None,
+    forecast_status: str | None = None,
 ) -> pd.DataFrame:
     if not table_exists(conn, "market_outlook_forecasts"):
         return pd.DataFrame()
-    target_date = date
-    if not target_date or target_date == "latest":
+    asof_value = date
+    if not asof_value or asof_value == "latest":
         row = conn.execute("SELECT MAX(asof_date) FROM market_outlook_forecasts").fetchone()
         if not row or row[0] is None:
             return pd.DataFrame()
-        target_date = _date_string(row[0]) or "latest"
+        asof_value = _date_string(row[0]) or "latest"
     where = ["asof_date = ?"]
-    params: list[Any] = [pd.to_datetime(target_date).date()]
+    params: list[Any] = [pd.to_datetime(asof_value).date()]
     if horizon and horizon != "all":
         where.append("horizon = ?")
         params.append(str(horizon).upper())
     if market and market != "all":
         where.append("market = ?")
         params.append(str(market).upper())
+    if target_date is not None:
+        where.append("target_date = ?")
+        params.append(pd.to_datetime(target_date).date())
+    if forecast_status is not None:
+        where.append("forecast_status = ?")
+        params.append(str(forecast_status))
     params.append(int(max(1, limit or 20)))
     return conn.execute(
         f"""
@@ -732,6 +986,27 @@ def _forecast_records(frame: pd.DataFrame) -> list[dict[str, Any]]:
         record["data_quality"] = _loads(record.get("data_quality_json"), {})
         records.append(record)
     return records
+
+
+def _blocked_current_outlook(context: dict[str, Any]) -> dict[str, Any]:
+    quality = {
+        "status": "blocked_stale_input",
+        "forecast_status": "blocked_stale_input",
+        "components": {"domestic_inputs": "blocked_stale_input"},
+        "messages": list(context.get("messages") or []),
+        **_forecast_context_quality(context),
+    }
+    return {
+        "asof_date": _date_string(context.get("domestic_asof_date")),
+        "target_date": _date_string(context.get("target_date")),
+        "forecast_status": "blocked_stale_input",
+        "calendar_source": context.get("calendar_source"),
+        "status": "blocked_stale_input",
+        "source": "market_outlook_forecasts",
+        "summary": {"count": 0, "markets": [], "horizons": []},
+        "items": [],
+        "data_quality": quality,
+    }
 
 
 def _market_index_features(frame: pd.DataFrame) -> pd.DataFrame:
@@ -881,6 +1156,34 @@ def _telegram_features(conn) -> pd.DataFrame:
     return frame
 
 
+def _local_llm_news_features(conn) -> pd.DataFrame:
+    """Return only observed local-LLM market signals for shadow candidates."""
+    if not table_exists(conn, "local_llm_news_signal_daily"):
+        return pd.DataFrame()
+    frame = conn.execute(
+        """
+        SELECT
+          signal_date AS date,
+          llm_news_attention,
+          llm_news_risk,
+          llm_news_direction,
+          llm_news_semiconductor,
+          llm_news_macro,
+          llm_news_confidence,
+          llm_news_coverage,
+          assessment_count,
+          source_coverage_json
+        FROM local_llm_news_signal_daily
+        WHERE scope = 'market' AND symbol = 'ALL'
+        ORDER BY signal_date, created_at
+        """
+    ).fetchdf()
+    if frame.empty:
+        return frame
+    frame["date"] = pd.to_datetime(frame["date"], errors="coerce").dt.date
+    return frame.drop_duplicates("date", keep="last")
+
+
 def _news_features(
     conn,
     asof_dates: list[date],
@@ -976,8 +1279,23 @@ def _merge_date_features(dataset: pd.DataFrame, extra: pd.DataFrame) -> pd.DataF
     return dataset.merge(frame, left_on="asof_date", right_on="date", how="left").drop(columns=["date"], errors="ignore")
 
 
-def _fill_feature_defaults(dataset: pd.DataFrame) -> pd.DataFrame:
+def _merge_prediction_date_features(dataset: pd.DataFrame, extra: pd.DataFrame) -> pd.DataFrame:
+    """Join cutoff-shifted news to the market forecast's target session."""
+    if extra.empty:
+        return dataset
+    merge_cols = [column for column in extra.columns if column != "date"]
+    frame = extra[["date", *merge_cols]].copy()
+    frame["date"] = pd.to_datetime(frame["date"], errors="coerce").dt.date
+    return dataset.merge(frame, left_on="target_date", right_on="date", how="left").drop(columns=["date"], errors="ignore")
+
+
+def _fill_feature_defaults(
+    dataset: pd.DataFrame,
+    *,
+    include_feature_provenance: bool = False,
+) -> pd.DataFrame:
     output = dataset.copy()
+    provenance: dict[str, pd.Series] = {}
     defaults = {
         "global_risk_score": 50.0,
         "recommended_cash_ratio": 0.15,
@@ -993,7 +1311,13 @@ def _fill_feature_defaults(dataset: pd.DataFrame) -> pd.DataFrame:
     for column in FEATURE_COLUMNS:
         if column not in output.columns:
             output[column] = defaults.get(column, 0.0)
-        output[column] = pd.to_numeric(output[column], errors="coerce").fillna(defaults.get(column, 0.0))
+        raw = pd.to_numeric(output[column], errors="coerce")
+        if include_feature_provenance:
+            provenance[f"__raw_{column}"] = raw
+            provenance[f"__default_applied_{column}"] = raw.isna()
+        output[column] = raw.fillna(defaults.get(column, 0.0))
+    if provenance:
+        output = pd.concat([output, pd.DataFrame(provenance, index=output.index)], axis=1)
     return output
 
 
@@ -1075,7 +1399,11 @@ def _week_last_trading_day(day: date, *, holidays: set[date] | None = None) -> d
 
 
 def _next_trading_day(day: date, *, holidays: set[date] | None = None) -> date:
-    current = day + timedelta(days=1)
+    return _next_trading_day_on_or_after(day + timedelta(days=1), holidays=holidays)
+
+
+def _next_trading_day_on_or_after(day: date, *, holidays: set[date] | None = None) -> date:
+    current = day
     while not _is_trading_day(current, holidays=holidays):
         current += timedelta(days=1)
     return current
@@ -1140,6 +1468,11 @@ def _empty_forecast_frame() -> pd.DataFrame:
             "data_quality_json",
             "model_version",
             "created_at",
+            "prediction_session_date",
+            "domestic_asof_date",
+            "global_cutoff",
+            "forecast_status",
+            "calendar_source",
         ]
     )
 

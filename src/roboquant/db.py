@@ -146,7 +146,14 @@ SCHEMA_SQL = [
       us_sector_beta_60d DOUBLE,
       us_sector_corr_60d DOUBLE,
       us_sector_impact_score DOUBLE,
-      us_sector_direction_agreement DOUBLE
+      us_sector_direction_agreement DOUBLE,
+      llm_news_attention_score DOUBLE,
+      llm_news_risk_score DOUBLE,
+      llm_news_direction_score DOUBLE,
+      llm_news_semiconductor_score DOUBLE,
+      llm_news_macro_score DOUBLE,
+      llm_news_confidence_score DOUBLE,
+      llm_news_coverage_score DOUBLE
     )
     """,
     """
@@ -809,6 +816,207 @@ SCHEMA_SQL = [
     )
     """,
     """
+    CREATE TABLE IF NOT EXISTS marketnewsfeed_llm_runs (
+      run_id VARCHAR PRIMARY KEY,
+      source VARCHAR NOT NULL,
+      model_name VARCHAR NOT NULL,
+      model_digest VARCHAR,
+      prompt_version VARCHAR NOT NULL,
+      requested_headline_count INTEGER NOT NULL,
+      assessed_headline_count INTEGER NOT NULL,
+      cached_headline_count INTEGER NOT NULL,
+      input_tokens INTEGER,
+      output_tokens INTEGER,
+      latency_ms INTEGER,
+      thinking_probe_count INTEGER NOT NULL DEFAULT 0,
+      status VARCHAR NOT NULL,
+      error_message VARCHAR,
+      started_at TIMESTAMP NOT NULL,
+      completed_at TIMESTAMP
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS marketnewsfeed_llm_assessments (
+      assessment_id VARCHAR PRIMARY KEY,
+      run_id VARCHAR NOT NULL,
+      headline_id VARCHAR NOT NULL,
+      source VARCHAR NOT NULL,
+      model_name VARCHAR NOT NULL,
+      model_digest VARCHAR,
+      prompt_version VARCHAR NOT NULL,
+      headline_digest VARCHAR NOT NULL,
+      summary_ko VARCHAR,
+      event_type VARCHAR,
+      direction VARCHAR,
+      importance INTEGER,
+      confidence DOUBLE,
+      themes_json VARCHAR,
+      mapped_symbols_json VARCHAR,
+      input_tokens INTEGER,
+      output_tokens INTEGER,
+      latency_ms INTEGER,
+      thinking_used BOOLEAN NOT NULL DEFAULT FALSE,
+      status VARCHAR NOT NULL,
+      error_message VARCHAR,
+      assessed_at TIMESTAMP NOT NULL,
+      UNIQUE (headline_id, model_digest, prompt_version)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS marketnewsfeed_llm_signal_daily (
+      signal_date DATE NOT NULL,
+      scope VARCHAR NOT NULL,
+      symbol VARCHAR NOT NULL,
+      llm_news_attention DOUBLE NOT NULL,
+      llm_news_risk DOUBLE NOT NULL,
+      llm_news_direction DOUBLE NOT NULL,
+      llm_news_semiconductor DOUBLE NOT NULL,
+      llm_news_macro DOUBLE NOT NULL,
+      llm_news_confidence DOUBLE NOT NULL,
+      llm_news_coverage DOUBLE NOT NULL,
+      assessment_count INTEGER NOT NULL,
+      evidence_json VARCHAR,
+      feature_version VARCHAR NOT NULL,
+      created_at TIMESTAMP NOT NULL,
+      PRIMARY KEY (signal_date, scope, symbol, feature_version)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS marketnewsfeed_llm_shadow_runs (
+      run_id VARCHAR PRIMARY KEY,
+      model_name VARCHAR NOT NULL,
+      feature_set_name VARCHAR NOT NULL,
+      horizon VARCHAR NOT NULL,
+      signal_days INTEGER NOT NULL,
+      mature_prediction_dates INTEGER NOT NULL,
+      gate_status VARCHAR NOT NULL,
+      production_weight DOUBLE NOT NULL DEFAULT 0.0,
+      baseline_metrics_json VARCHAR,
+      candidate_metrics_json VARCHAR,
+      fail_reason VARCHAR,
+      report_path VARCHAR,
+      created_at TIMESTAMP NOT NULL
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS marketnewsfeed_llm_market_shadow (
+      signal_date DATE NOT NULL,
+      market VARCHAR NOT NULL,
+      model_version VARCHAR NOT NULL,
+      baseline_expected_return DOUBLE,
+      candidate_expected_return DOUBLE,
+      range_low DOUBLE,
+      range_high DOUBLE,
+      actual_return DOUBLE,
+      calibration_count INTEGER,
+      coverage_status VARCHAR NOT NULL,
+      production_weight DOUBLE NOT NULL DEFAULT 0.0,
+      created_at TIMESTAMP NOT NULL,
+      PRIMARY KEY (signal_date, market, model_version)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS local_llm_news_documents (
+      document_id VARCHAR PRIMARY KEY,
+      source VARCHAR NOT NULL,
+      source_document_id VARCHAR NOT NULL,
+      published_at TIMESTAMP,
+      collected_at TIMESTAMP,
+      available_at TIMESTAMP,
+      title VARCHAR,
+      summary VARCHAR,
+      source_url VARCHAR,
+      source_tags_json VARCHAR,
+      content_digest VARCHAR NOT NULL,
+      status VARCHAR NOT NULL DEFAULT 'ready',
+      created_at TIMESTAMP NOT NULL,
+      UNIQUE (source, source_document_id)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS local_llm_news_runs (
+      run_id VARCHAR PRIMARY KEY,
+      stage VARCHAR NOT NULL,
+      model_name VARCHAR NOT NULL,
+      model_digest VARCHAR,
+      prompt_version VARCHAR NOT NULL,
+      requested_document_count INTEGER NOT NULL,
+      assessed_document_count INTEGER NOT NULL,
+      cached_document_count INTEGER NOT NULL,
+      input_tokens INTEGER NOT NULL DEFAULT 0,
+      output_tokens INTEGER NOT NULL DEFAULT 0,
+      latency_ms INTEGER NOT NULL DEFAULT 0,
+      thinking_probe_count INTEGER NOT NULL DEFAULT 0,
+      status VARCHAR NOT NULL,
+      error_message VARCHAR,
+      started_at TIMESTAMP NOT NULL,
+      completed_at TIMESTAMP
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS local_llm_news_assessments (
+      assessment_id VARCHAR PRIMARY KEY,
+      run_id VARCHAR NOT NULL,
+      document_id VARCHAR NOT NULL,
+      source VARCHAR NOT NULL,
+      model_name VARCHAR NOT NULL,
+      model_digest VARCHAR,
+      prompt_version VARCHAR NOT NULL,
+      document_digest VARCHAR NOT NULL,
+      summary_ko VARCHAR,
+      event_type VARCHAR,
+      direction VARCHAR,
+      importance INTEGER,
+      confidence DOUBLE,
+      themes_json VARCHAR,
+      mapped_symbols_json VARCHAR,
+      input_tokens INTEGER,
+      output_tokens INTEGER,
+      latency_ms INTEGER,
+      thinking_used BOOLEAN NOT NULL DEFAULT FALSE,
+      status VARCHAR NOT NULL,
+      error_message VARCHAR,
+      assessed_at TIMESTAMP NOT NULL,
+      UNIQUE (document_id, model_digest, prompt_version)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS local_llm_news_signal_daily (
+      signal_date DATE NOT NULL,
+      scope VARCHAR NOT NULL,
+      symbol VARCHAR NOT NULL,
+      llm_news_attention DOUBLE NOT NULL,
+      llm_news_risk DOUBLE NOT NULL,
+      llm_news_direction DOUBLE NOT NULL,
+      llm_news_semiconductor DOUBLE NOT NULL,
+      llm_news_macro DOUBLE NOT NULL,
+      llm_news_confidence DOUBLE NOT NULL,
+      llm_news_coverage DOUBLE NOT NULL,
+      source_coverage_json VARCHAR,
+      assessment_count INTEGER NOT NULL,
+      evidence_json VARCHAR,
+      feature_version VARCHAR NOT NULL,
+      created_at TIMESTAMP NOT NULL,
+      PRIMARY KEY (signal_date, scope, symbol, feature_version)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS local_llm_news_briefs (
+      brief_date DATE NOT NULL,
+      stage VARCHAR NOT NULL,
+      model_name VARCHAR NOT NULL,
+      model_digest VARCHAR,
+      prompt_version VARCHAR NOT NULL,
+      summary_ko VARCHAR,
+      input_tokens INTEGER NOT NULL DEFAULT 0,
+      output_tokens INTEGER NOT NULL DEFAULT 0,
+      status VARCHAR NOT NULL,
+      error_message VARCHAR,
+      created_at TIMESTAMP NOT NULL,
+      PRIMARY KEY (brief_date, stage, model_name, prompt_version)
+    )
+    """,
+    """
     CREATE TABLE IF NOT EXISTS news_url_crawl_cache (
       url_hash VARCHAR PRIMARY KEY,
       source_table VARCHAR,
@@ -998,7 +1206,312 @@ SCHEMA_SQL = [
       drivers_json VARCHAR,
       data_quality_json VARCHAR,
       model_version VARCHAR,
-      created_at TIMESTAMP
+      created_at TIMESTAMP,
+      prediction_session_date DATE,
+      domestic_asof_date DATE,
+      global_cutoff TIMESTAMP,
+      forecast_status VARCHAR,
+      calendar_source VARCHAR
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS market_outlook_feature_attributions (
+      asof_date DATE NOT NULL,
+      target_date DATE NOT NULL,
+      horizon VARCHAR NOT NULL,
+      market VARCHAR NOT NULL,
+      model_version VARCHAR NOT NULL,
+      component VARCHAR NOT NULL,
+      feature_name VARCHAR NOT NULL,
+      attribution_status VARCHAR NOT NULL,
+      raw_value DOUBLE,
+      filled_value DOUBLE,
+      default_applied BOOLEAN,
+      mean_value DOUBLE,
+      std_value DOUBLE,
+      standardized_value DOUBLE,
+      clipped_value DOUBLE,
+      coefficient DOUBLE,
+      blend_weight DOUBLE,
+      contribution DOUBLE,
+      forecast_expected_return DOUBLE,
+      reconstructed_expected_return DOUBLE,
+      source_status VARCHAR,
+      created_at TIMESTAMP,
+      PRIMARY KEY (asof_date, target_date, horizon, market, model_version, component, feature_name)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS market_outlook_ml_shadow_forecasts (
+      asof_date DATE NOT NULL,
+      target_date DATE NOT NULL,
+      horizon VARCHAR NOT NULL,
+      market VARCHAR NOT NULL,
+      model_name VARCHAR NOT NULL,
+      model_version VARCHAR NOT NULL,
+      baseline_expected_return DOUBLE,
+      expected_return DOUBLE,
+      q10 DOUBLE,
+      q50 DOUBLE,
+      q90 DOUBLE,
+      range_low DOUBLE,
+      range_high DOUBLE,
+      up_probability DOUBLE,
+      direction VARCHAR,
+      confidence DOUBLE,
+      calibration_count INTEGER,
+      feature_coverage DOUBLE,
+      gate_status VARCHAR NOT NULL,
+      production_weight DOUBLE NOT NULL DEFAULT 0.0,
+      created_at TIMESTAMP NOT NULL,
+      PRIMARY KEY (asof_date, target_date, horizon, market, model_name, model_version)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS market_outlook_ml_shadow_runs (
+      run_id VARCHAR PRIMARY KEY,
+      model_name VARCHAR NOT NULL,
+      model_version VARCHAR NOT NULL,
+      horizon VARCHAR NOT NULL,
+      market VARCHAR NOT NULL,
+      signal_days INTEGER NOT NULL,
+      mature_prediction_dates INTEGER NOT NULL,
+      gate_status VARCHAR NOT NULL,
+      production_weight DOUBLE NOT NULL DEFAULT 0.0,
+      baseline_metrics_json VARCHAR,
+      candidate_metrics_json VARCHAR,
+      fail_reason VARCHAR,
+      report_path VARCHAR,
+      created_at TIMESTAMP NOT NULL
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS market_investor_flow_runs (
+      run_id VARCHAR PRIMARY KEY,
+      trade_date DATE NOT NULL,
+      stage VARCHAR NOT NULL,
+      source VARCHAR NOT NULL,
+      status VARCHAR NOT NULL,
+      is_final BOOLEAN NOT NULL,
+      expected_investor_rows INTEGER NOT NULL,
+      received_investor_rows INTEGER NOT NULL,
+      top_purchases_status VARCHAR,
+      error_message VARCHAR,
+      started_at TIMESTAMP NOT NULL,
+      completed_at TIMESTAMP
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS market_investor_flows_daily (
+      trade_date DATE NOT NULL,
+      market VARCHAR NOT NULL,
+      investor VARCHAR NOT NULL,
+      buy_value DOUBLE,
+      sell_value DOUBLE,
+      net_value DOUBLE,
+      source VARCHAR NOT NULL,
+      run_id VARCHAR NOT NULL,
+      is_final BOOLEAN NOT NULL,
+      availability_policy VARCHAR NOT NULL,
+      collected_at TIMESTAMP NOT NULL,
+      PRIMARY KEY (trade_date, market, investor, source, is_final)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS market_investor_top_net_purchases_daily (
+      trade_date DATE NOT NULL,
+      market VARCHAR NOT NULL,
+      investor VARCHAR NOT NULL,
+      rank INTEGER NOT NULL,
+      symbol VARCHAR NOT NULL,
+      name VARCHAR,
+      net_buy_value DOUBLE,
+      source VARCHAR NOT NULL,
+      run_id VARCHAR NOT NULL,
+      is_final BOOLEAN NOT NULL,
+      collected_at TIMESTAMP NOT NULL,
+      PRIMARY KEY (trade_date, market, investor, rank, source, is_final)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS market_flow_features_daily (
+      trade_date DATE NOT NULL,
+      market VARCHAR NOT NULL,
+      total_trading_value DOUBLE,
+      foreign_net_to_turnover DOUBLE,
+      institution_net_to_turnover DOUBLE,
+      pension_net_to_turnover DOUBLE,
+      retail_net_to_turnover DOUBLE,
+      foreign_retail_imbalance_to_turnover DOUBLE,
+      foreign_institution_net_to_turnover DOUBLE,
+      foreign_net_5d_zscore DOUBLE,
+      foreign_net_20d_zscore DOUBLE,
+      institution_net_5d_zscore DOUBLE,
+      institution_net_20d_zscore DOUBLE,
+      foreign_buy_streak INTEGER,
+      institution_buy_streak INTEGER,
+      foreign_institution_sell_pressure DOUBLE,
+      flow_regime VARCHAR NOT NULL,
+      source_run_id VARCHAR,
+      is_final BOOLEAN NOT NULL,
+      available_for_prediction_date DATE,
+      feature_version VARCHAR NOT NULL,
+      created_at TIMESTAMP NOT NULL,
+      PRIMARY KEY (trade_date, market, feature_version)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS market_outlook_range_shadow (
+      asof_date DATE NOT NULL,
+      target_date DATE NOT NULL,
+      horizon VARCHAR NOT NULL,
+      market VARCHAR NOT NULL,
+      range_version VARCHAR NOT NULL,
+      point_model_version VARCHAR,
+      expected_return DOUBLE NOT NULL,
+      actual_return DOUBLE,
+      gap_return DOUBLE,
+      intraday_return DOUBLE,
+      low_return DOUBLE,
+      legacy_range_low DOUBLE,
+      legacy_range_high DOUBLE,
+      control_range_low DOUBLE,
+      control_range_high DOUBLE,
+      flow_range_low DOUBLE,
+      flow_range_high DOUBLE,
+      calibration_count INTEGER,
+      flow_calibration_count INTEGER,
+      flow_regime VARCHAR,
+      flow_quantile_source VARCHAR,
+      flow_status VARCHAR NOT NULL,
+      legacy_covered BOOLEAN,
+      control_covered BOOLEAN,
+      flow_covered BOOLEAN,
+      is_backtest BOOLEAN NOT NULL,
+      created_at TIMESTAMP NOT NULL,
+      PRIMARY KEY (asof_date, target_date, horizon, market, range_version)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS market_anchor_constituents_daily (
+      asof_date DATE NOT NULL,
+      market VARCHAR NOT NULL,
+      symbol VARCHAR NOT NULL,
+      name VARCHAR,
+      selection_rule VARCHAR NOT NULL,
+      market_cap_rank INTEGER,
+      market_cap DOUBLE,
+      weight DOUBLE,
+      security_type VARCHAR,
+      is_final BOOLEAN NOT NULL,
+      source VARCHAR NOT NULL,
+      created_at TIMESTAMP NOT NULL,
+      PRIMARY KEY (asof_date, market, symbol, selection_rule)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS market_anchor_features_daily (
+      asof_date DATE NOT NULL,
+      prediction_date DATE NOT NULL,
+      market VARCHAR NOT NULL,
+      forecast_stage VARCHAR NOT NULL,
+      prediction_cutoff TIMESTAMP,
+      is_final_close BOOLEAN,
+      anchor_count INTEGER NOT NULL,
+      anchor_weight_concentration DOUBLE,
+      anchor_weighted_return_1d DOUBLE,
+      anchor_weighted_return_5d DOUBLE,
+      anchor_weighted_return_20d DOUBLE,
+      anchor_weighted_volatility_5d DOUBLE,
+      anchor_weighted_volatility_20d DOUBLE,
+      anchor_weighted_turnover_ratio_20d DOUBLE,
+      anchor_relative_return_1d DOUBLE,
+      anchor_relative_return_5d DOUBLE,
+      anchor_return_dispersion_1d DOUBLE,
+      anchor_return_dispersion_20d DOUBLE,
+      semiconductor_anchor_return_1d DOUBLE,
+      auto_anchor_return_1d DOUBLE,
+      anchor_foreign_net_to_mcap DOUBLE,
+      anchor_institution_net_to_mcap DOUBLE,
+      anchor_retail_net_to_mcap DOUBLE,
+      us_sp500_return_1d DOUBLE,
+      us_nasdaq_return_1d DOUBLE,
+      us_sox_return_1d DOUBLE,
+      us_ewy_return_1d DOUBLE,
+      us_koru_return_1d DOUBLE,
+      us_usdkrw_return_1d DOUBLE,
+      us_tsm_return_1d DOUBLE,
+      us_dow_return_1d DOUBLE,
+      us_nikkei_return_1d DOUBLE,
+      semiconductor_global_link_1d DOUBLE,
+      auto_global_link_1d DOUBLE,
+      label_return DOUBLE,
+      components_json VARCHAR,
+      data_quality_json VARCHAR,
+      feature_version VARCHAR NOT NULL,
+      created_at TIMESTAMP NOT NULL,
+      PRIMARY KEY (asof_date, market, forecast_stage, feature_version)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS market_anchor_shadow_forecasts (
+      prediction_date DATE NOT NULL,
+      asof_date DATE NOT NULL,
+      market VARCHAR NOT NULL,
+      forecast_stage VARCHAR NOT NULL,
+      prediction_cutoff TIMESTAMP,
+      model_name VARCHAR NOT NULL,
+      model_version VARCHAR NOT NULL,
+      q10_return DOUBLE,
+      q50_return DOUBLE,
+      q90_return DOUBLE,
+      calibration_adjustment DOUBLE,
+      calibrated_range_low DOUBLE,
+      calibrated_range_high DOUBLE,
+      baseline_expected_return DOUBLE,
+      baseline_range_low DOUBLE,
+      baseline_range_high DOUBLE,
+      control_range_low DOUBLE,
+      control_range_high DOUBLE,
+      actual_return DOUBLE,
+      calibration_count INTEGER,
+      quantile_crossing_corrected BOOLEAN,
+      status VARCHAR NOT NULL,
+      production_weight DOUBLE NOT NULL,
+      is_backtest BOOLEAN NOT NULL,
+      metrics_json VARCHAR,
+      data_quality_json VARCHAR,
+      created_at TIMESTAMP NOT NULL,
+      PRIMARY KEY (prediction_date, market, forecast_stage, model_version)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS market_anchor_shadow_backtest_runs (
+      run_id VARCHAR PRIMARY KEY,
+      model_name VARCHAR NOT NULL,
+      model_version VARCHAR NOT NULL,
+      market VARCHAR NOT NULL,
+      forecast_stage VARCHAR NOT NULL,
+      start_date DATE,
+      end_date DATE,
+      sample_count INTEGER NOT NULL,
+      target_coverage DOUBLE NOT NULL,
+      candidate_coverage DOUBLE,
+      control_coverage DOUBLE,
+      candidate_average_width DOUBLE,
+      control_average_width DOUBLE,
+      candidate_interval_score DOUBLE,
+      control_interval_score DOUBLE,
+      candidate_q50_mae DOUBLE,
+      baseline_q50_mae DOUBLE,
+      candidate_direction_accuracy DOUBLE,
+      baseline_direction_accuracy DOUBLE,
+      candidate_low_breach_rate DOUBLE,
+      control_low_breach_rate DOUBLE,
+      gate_status VARCHAR NOT NULL,
+      fail_reason VARCHAR,
+      metrics_json VARCHAR NOT NULL,
+      created_at TIMESTAMP NOT NULL
     )
     """,
     """
@@ -1075,6 +1588,107 @@ SCHEMA_SQL = [
       data_quality_json VARCHAR,
       created_at TIMESTAMP,
       PRIMARY KEY (prediction_date, market, forecast_stage, model_version)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS market_us_linkage_features_daily (
+      prediction_date DATE NOT NULL,
+      asof_date DATE NOT NULL,
+      market VARCHAR NOT NULL,
+      prediction_cutoff TIMESTAMP,
+      global_trade_date DATE,
+      global_available_at TIMESTAMP,
+      us_nasdaq_return_1d DOUBLE,
+      us_nasdaq_return_5d DOUBLE,
+      us_sox_return_1d DOUBLE,
+      us_sox_return_5d DOUBLE,
+      sox_nasdaq_spread_1d DOUBLE,
+      sox_nasdaq_spread_5d DOUBLE,
+      us_nasdaq_volatility_20d DOUBLE,
+      us_sox_volatility_20d DOUBLE,
+      nasdaq_shock_flag DOUBLE,
+      sox_shock_flag DOUBLE,
+      label_return DOUBLE,
+      data_quality_json VARCHAR NOT NULL,
+      feature_version VARCHAR NOT NULL,
+      created_at TIMESTAMP NOT NULL,
+      PRIMARY KEY (prediction_date, market, feature_version)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS market_us_linkage_shadow_forecasts (
+      prediction_date DATE NOT NULL,
+      asof_date DATE NOT NULL,
+      market VARCHAR NOT NULL,
+      prediction_cutoff TIMESTAMP,
+      global_trade_date DATE,
+      model_name VARCHAR NOT NULL,
+      model_version VARCHAR NOT NULL,
+      baseline_expected_return DOUBLE,
+      global_expected_return DOUBLE,
+      global_delta DOUBLE,
+      dynamic_overlay_weight DOUBLE NOT NULL,
+      candidate_expected_return DOUBLE,
+      baseline_range_low DOUBLE,
+      baseline_range_high DOUBLE,
+      control_range_low DOUBLE,
+      control_range_high DOUBLE,
+      candidate_range_low DOUBLE,
+      candidate_range_high DOUBLE,
+      actual_return DOUBLE,
+      calibration_count INTEGER,
+      feedback_count INTEGER,
+      relative_mae_improvement DOUBLE,
+      attribution_json VARCHAR,
+      status VARCHAR NOT NULL,
+      production_weight DOUBLE NOT NULL,
+      is_backtest BOOLEAN NOT NULL,
+      metrics_json VARCHAR,
+      data_quality_json VARCHAR NOT NULL,
+      created_at TIMESTAMP NOT NULL,
+      PRIMARY KEY (prediction_date, market, model_version, is_backtest)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS market_us_linkage_feedback_daily (
+      prediction_date DATE NOT NULL,
+      market VARCHAR NOT NULL,
+      model_name VARCHAR NOT NULL,
+      model_version VARCHAR NOT NULL,
+      is_backtest BOOLEAN NOT NULL,
+      actual_return DOUBLE NOT NULL,
+      baseline_abs_error DOUBLE NOT NULL,
+      candidate_abs_error DOUBLE NOT NULL,
+      global_abs_error DOUBLE,
+      baseline_direction_hit BOOLEAN,
+      candidate_direction_hit BOOLEAN,
+      baseline_covered BOOLEAN,
+      candidate_covered BOOLEAN,
+      baseline_low_breach BOOLEAN,
+      candidate_low_breach BOOLEAN,
+      baseline_interval_score DOUBLE,
+      candidate_interval_score DOUBLE,
+      dynamic_overlay_weight DOUBLE NOT NULL,
+      relative_mae_improvement DOUBLE,
+      status VARCHAR NOT NULL,
+      created_at TIMESTAMP NOT NULL,
+      PRIMARY KEY (prediction_date, market, model_version, is_backtest)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS market_us_linkage_backtest_runs (
+      run_id VARCHAR PRIMARY KEY,
+      model_name VARCHAR NOT NULL,
+      model_version VARCHAR NOT NULL,
+      market VARCHAR NOT NULL,
+      start_date DATE,
+      end_date DATE,
+      oos_count INTEGER NOT NULL,
+      live_observation_count INTEGER NOT NULL,
+      gate_status VARCHAR NOT NULL,
+      fail_reason VARCHAR,
+      metrics_json VARCHAR NOT NULL,
+      created_at TIMESTAMP NOT NULL
     )
     """,
     """
@@ -1285,6 +1899,38 @@ SCHEMA_SQL = [
     ON market_news_feed(category, pub_date)
     """,
     """
+    CREATE INDEX IF NOT EXISTS idx_marketnewsfeed_llm_assessments_headline
+    ON marketnewsfeed_llm_assessments(headline_id, assessed_at)
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_marketnewsfeed_llm_signal_date_symbol
+    ON marketnewsfeed_llm_signal_daily(signal_date, scope, symbol)
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_marketnewsfeed_llm_shadow_runs_latest
+    ON marketnewsfeed_llm_shadow_runs(horizon, created_at)
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_marketnewsfeed_llm_market_shadow_latest
+    ON marketnewsfeed_llm_market_shadow(signal_date, market)
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_local_llm_news_documents_source_available
+    ON local_llm_news_documents(source, available_at)
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_local_llm_news_assessments_document
+    ON local_llm_news_assessments(document_id, assessed_at)
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_local_llm_news_signals_date_scope
+    ON local_llm_news_signal_daily(signal_date, scope, symbol)
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_local_llm_news_runs_latest
+    ON local_llm_news_runs(completed_at, stage)
+    """,
+    """
     CREATE INDEX IF NOT EXISTS idx_news_url_crawl_domain_status
     ON news_url_crawl_cache(domain, crawl_status, fetched_at)
     """,
@@ -1343,6 +1989,62 @@ SCHEMA_SQL = [
     """
     CREATE INDEX IF NOT EXISTS idx_market_outlook_forecasts_latest
     ON market_outlook_forecasts(asof_date, horizon, market)
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_market_outlook_attributions_latest
+    ON market_outlook_feature_attributions(asof_date, market, horizon)
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_market_outlook_ml_shadow_latest
+    ON market_outlook_ml_shadow_forecasts(asof_date, market, horizon, model_name)
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_market_outlook_ml_shadow_runs_latest
+    ON market_outlook_ml_shadow_runs(market, horizon, created_at)
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_market_investor_flows_daily_date
+    ON market_investor_flows_daily(trade_date, market, is_final)
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_market_flow_features_daily_date
+    ON market_flow_features_daily(trade_date, market)
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_market_outlook_range_shadow_latest
+    ON market_outlook_range_shadow(asof_date, market, horizon)
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_market_anchor_constituents_asof
+    ON market_anchor_constituents_daily(asof_date, market, selection_rule)
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_market_anchor_features_latest
+    ON market_anchor_features_daily(asof_date, market, forecast_stage)
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_market_anchor_shadow_forecasts_latest
+    ON market_anchor_shadow_forecasts(prediction_date, market, forecast_stage)
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_market_anchor_shadow_backtests_latest
+    ON market_anchor_shadow_backtest_runs(market, forecast_stage, created_at)
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_market_us_linkage_features_latest
+    ON market_us_linkage_features_daily(prediction_date, market, feature_version)
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_market_us_linkage_shadow_latest
+    ON market_us_linkage_shadow_forecasts(prediction_date, market, is_backtest, model_version)
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_market_us_linkage_feedback_latest
+    ON market_us_linkage_feedback_daily(prediction_date, market, is_backtest, model_version)
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_market_us_linkage_backtest_runs_latest
+    ON market_us_linkage_backtest_runs(market, created_at)
     """,
     """
     CREATE INDEX IF NOT EXISTS idx_long_short_backtest_results_horizon
@@ -1539,6 +2241,13 @@ MIGRATION_SQL = [
     "ALTER TABLE features_daily ADD COLUMN IF NOT EXISTS us_sector_corr_60d DOUBLE",
     "ALTER TABLE features_daily ADD COLUMN IF NOT EXISTS us_sector_impact_score DOUBLE",
     "ALTER TABLE features_daily ADD COLUMN IF NOT EXISTS us_sector_direction_agreement DOUBLE",
+    "ALTER TABLE features_daily ADD COLUMN IF NOT EXISTS llm_news_attention_score DOUBLE",
+    "ALTER TABLE features_daily ADD COLUMN IF NOT EXISTS llm_news_risk_score DOUBLE",
+    "ALTER TABLE features_daily ADD COLUMN IF NOT EXISTS llm_news_direction_score DOUBLE",
+    "ALTER TABLE features_daily ADD COLUMN IF NOT EXISTS llm_news_semiconductor_score DOUBLE",
+    "ALTER TABLE features_daily ADD COLUMN IF NOT EXISTS llm_news_macro_score DOUBLE",
+    "ALTER TABLE features_daily ADD COLUMN IF NOT EXISTS llm_news_confidence_score DOUBLE",
+    "ALTER TABLE features_daily ADD COLUMN IF NOT EXISTS llm_news_coverage_score DOUBLE",
     "ALTER TABLE consensus_history ADD COLUMN IF NOT EXISTS consensus_momentum_30_90 DOUBLE",
     "ALTER TABLE consensus_history ADD COLUMN IF NOT EXISTS target_revision_balance_30d DOUBLE",
     "ALTER TABLE consensus_history ADD COLUMN IF NOT EXISTS target_upside_score DOUBLE",
@@ -1569,6 +2278,16 @@ MIGRATION_SQL = [
     "ALTER TABLE market_move_explanations ADD COLUMN IF NOT EXISTS market_index_trigger_json VARCHAR",
     "ALTER TABLE today_market_snapshot ADD COLUMN IF NOT EXISTS move_explanations_json VARCHAR",
     "ALTER TABLE today_market_snapshot ADD COLUMN IF NOT EXISTS market_outlook_json VARCHAR",
+    "ALTER TABLE market_outlook_forecasts ADD COLUMN IF NOT EXISTS prediction_session_date DATE",
+    "ALTER TABLE market_outlook_forecasts ADD COLUMN IF NOT EXISTS domestic_asof_date DATE",
+    "ALTER TABLE market_outlook_forecasts ADD COLUMN IF NOT EXISTS global_cutoff TIMESTAMP",
+    "ALTER TABLE market_outlook_forecasts ADD COLUMN IF NOT EXISTS forecast_status VARCHAR",
+    "ALTER TABLE market_outlook_forecasts ADD COLUMN IF NOT EXISTS calendar_source VARCHAR",
+    "ALTER TABLE market_anchor_features_daily ADD COLUMN IF NOT EXISTS us_tsm_return_1d DOUBLE",
+    "ALTER TABLE market_anchor_features_daily ADD COLUMN IF NOT EXISTS us_dow_return_1d DOUBLE",
+    "ALTER TABLE market_anchor_features_daily ADD COLUMN IF NOT EXISTS us_nikkei_return_1d DOUBLE",
+    "ALTER TABLE market_anchor_features_daily ADD COLUMN IF NOT EXISTS semiconductor_global_link_1d DOUBLE",
+    "ALTER TABLE market_anchor_features_daily ADD COLUMN IF NOT EXISTS auto_global_link_1d DOUBLE",
 ]
 
 

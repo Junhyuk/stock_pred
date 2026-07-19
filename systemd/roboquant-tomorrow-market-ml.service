@@ -1,0 +1,10 @@
+[Unit]
+Description=RoboQuant production Ridge and LLM shadow tomorrow market forecast
+After=network-online.target roboquant-ollama.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=__PROJECT_ROOT__
+Environment=PYTHONUNBUFFERED=1
+ExecStart=__PYTHON__ scripts/run_tomorrow_market_ml.py --config configs/local_llm_news.yaml --date latest

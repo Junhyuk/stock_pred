@@ -1,0 +1,11 @@
+[Unit]
+Description=Run RoboQuant local LLM premarket news pipeline on Korean weekdays
+
+[Timer]
+OnCalendar=Mon..Fri *-*-* 07:30:00
+Timezone=Asia/Seoul
+Persistent=true
+Unit=roboquant-local-llm-premarket.service
+
+[Install]
+WantedBy=timers.target

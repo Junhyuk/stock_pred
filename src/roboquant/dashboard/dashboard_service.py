@@ -16,6 +16,8 @@ from roboquant.db import append_dedup_table, table_exists
 from roboquant.koru import get_latest_koru_linkage
 from roboquant.market_outlook import (
     get_market_outlook as _get_market_outlook_payload,
+)
+from roboquant.market_outlook import (
     market_outlook_holidays,
     target_dates_for_run,
 )
@@ -23,6 +25,8 @@ from roboquant.signals.market_move_explanations import build_market_move_explana
 from roboquant.signals.market_news_context import get_recent_market_news
 from roboquant.us_sector_linkage import (
     get_sector_linkage as _get_sector_linkage_payload,
+)
+from roboquant.us_sector_linkage import (
     normalize_domestic_sector,
 )
 
@@ -1006,7 +1010,9 @@ def get_market_outlook(
     market: str = "all",
     limit: int = 20,
     config: dict[str, Any] | None = None,
+    now: datetime | None = None,
 ) -> dict[str, Any]:
+    market_cfg = (config or {}).get("market_outlook") or {}
     return _get_market_outlook_payload(
         conn,
         date=date,
@@ -1014,6 +1020,9 @@ def get_market_outlook(
         market=market,
         limit=limit,
         config=config,
+        require_confirmed_current=bool(market_cfg.get("require_confirmed_inputs", False))
+        and (not date or date == "latest"),
+        now=now,
     )
 
 
@@ -1022,7 +1031,11 @@ def _next_trading_day_outlook(conn, config: dict[str, Any] | None = None) -> dic
     multiplier = _next_day_range_multiplier(config)
     source_items = list(source_payload.get("items") or [])
     asof = _as_date(source_payload.get("asof_date")) or _first_item_date(source_items, "asof_date")
-    expected_target, calendar_source, calendar_messages = _next_trading_day_calendar(asof, config)
+    expected_target = _as_date(source_payload.get("target_date"))
+    calendar_source = str(source_payload.get("calendar_source") or "")
+    calendar_messages: list[str] = []
+    if expected_target is None:
+        expected_target, calendar_source, calendar_messages = _next_trading_day_calendar(asof, config)
 
     items: list[dict[str, Any]] = []
     for item in source_items:
@@ -1046,10 +1059,15 @@ def _next_trading_day_outlook(conn, config: dict[str, Any] | None = None) -> dic
     components = dict(quality.get("components") or {})
     components["next_day_outlook"] = "ready" if len(items) >= 2 else "missing"
     components["next_trading_day_calendar"] = "ready" if calendar_source != "weekday_fallback" else "fallback"
+    source_status = str(source_payload.get("forecast_status") or source_payload.get("status") or "")
     status = "ready" if len(items) >= 2 and all(value == "ready" for value in components.values()) else "partial_ready"
     if not items:
-        status = "not_collected"
-        messages.append("다음 거래일 전망 데이터가 없습니다.")
+        status = "blocked_stale_input" if source_status == "blocked_stale_input" else "not_collected"
+        messages.append(
+            "국내 종가 입력이 최신이 아니어서 다음 거래일 전망 확정을 보류했습니다."
+            if status == "blocked_stale_input"
+            else "다음 거래일 전망 데이터가 없습니다."
+        )
     return {
         "asof_date": _date_string(asof),
         "target_date": target_date,
@@ -1057,6 +1075,7 @@ def _next_trading_day_outlook(conn, config: dict[str, Any] | None = None) -> dic
         "source_horizon": "TODAY",
         "status": status,
         "source": source_payload.get("source") or "market_outlook_forecasts",
+        "forecast_status": source_status or status,
         "range_multiplier": multiplier,
         "calendar_source": calendar_source,
         "summary": {
@@ -1103,7 +1122,9 @@ def _tomorrow_data_quality(base_quality: dict[str, Any], outlook: dict[str, Any]
     messages = _unique_messages(
         list(base_quality.get("messages") or []) + list(outlook_quality.get("messages") or [])
     )
-    if not outlook.get("items"):
+    if outlook.get("status") == "blocked_stale_input":
+        status = "blocked_stale_input"
+    elif not outlook.get("items"):
         status = "not_collected"
     elif base_quality.get("status") == "ready" and outlook.get("status") == "ready":
         status = "ready"
@@ -1894,13 +1915,11 @@ def _yahoo_component_status(yahoo_prices: list[dict[str, Any]]) -> str:
 
 
 def _macro_news_status(conn, macro_news: list[dict[str, Any]], freshness_config: dict[str, int]) -> str:
-    if not macro_news:
-        return "missing"
     latest = None
     if table_exists(conn, "market_news_feed"):
         row = conn.execute("SELECT MAX(pub_date) FROM market_news_feed").fetchone()
         latest = _as_datetime(row[0]) if row else None
-    if latest is None:
+    if latest is None and macro_news:
         latest = max((_as_datetime(item.get("pub_date")) for item in macro_news), default=None)
     if latest is None:
         return "missing"

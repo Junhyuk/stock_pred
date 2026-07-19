@@ -86,6 +86,31 @@ def load_news_signals(conn) -> pd.DataFrame:
     return conn.execute("SELECT * FROM news_signal_daily ORDER BY signal_date, scope, symbol").fetchdf()
 
 
+def load_marketnewsfeed_llm_signals(conn) -> pd.DataFrame:
+    if not table_exists(conn, "marketnewsfeed_llm_signal_daily"):
+        return pd.DataFrame()
+    return conn.execute(
+        """
+        SELECT *
+        FROM marketnewsfeed_llm_signal_daily
+        ORDER BY signal_date, scope, symbol, created_at
+        """
+    ).fetchdf()
+
+
+def load_local_llm_news_signals(conn) -> pd.DataFrame:
+    """Load generic local-Ollama signals without assuming the table exists."""
+    if not table_exists(conn, "local_llm_news_signal_daily"):
+        return pd.DataFrame()
+    return conn.execute(
+        """
+        SELECT *
+        FROM local_llm_news_signal_daily
+        ORDER BY signal_date, scope, symbol, created_at
+        """
+    ).fetchdf()
+
+
 def load_dart_disclosures(conn) -> pd.DataFrame:
     if not table_exists(conn, "dart_disclosures"):
         return pd.DataFrame()

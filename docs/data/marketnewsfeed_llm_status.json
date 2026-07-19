@@ -1,0 +1,40 @@
+{
+  "status": "model_import_failed",
+  "production_weight": 0.0,
+  "latest_run": {
+    "model_name": "roboquant-news:qwen3.5-27b-q4",
+    "prompt_version": "marketnewsfeed-v1",
+    "input_tokens": "[redacted]",
+    "output_tokens": "[redacted]",
+    "status": "model_import_failed",
+    "completed_at": "2026-07-13T15:57:31.412235"
+  },
+  "counts": {
+    "headlines": 100,
+    "assessments": 0,
+    "signal_days": 0
+  },
+  "signals": {
+    "status": "not_ready"
+  },
+  "shadow": [
+    {
+      "horizon": "2M",
+      "signal_days": 0,
+      "mature_prediction_dates": 0,
+      "gate_status": "not_ready",
+      "fail_reason": "requires 60 LLM signal and mature prediction dates",
+      "production_weight": 0.0
+    },
+    {
+      "horizon": "3M",
+      "signal_days": 0,
+      "mature_prediction_dates": 0,
+      "gate_status": "not_ready",
+      "fail_reason": "requires 60 LLM signal and mature prediction dates",
+      "production_weight": 0.0
+    }
+  ],
+  "market_range_shadow": [],
+  "disclaimer": "로컬 LLM 요약과 신호는 연구·정보제공용 shadow 검증이며 production 추천에는 반영되지 않습니다."
+}

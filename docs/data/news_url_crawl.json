@@ -1,44 +1,10 @@
 {
   "status": "ready",
   "summary": {
-    "count": 39,
-    "shown": 39
+    "count": 42,
+    "shown": 42
   },
   "items": [
-    {
-      "source_table": "market_news_feed",
-      "source_article_id": "9d74b2a78e5959372a82132bfe9d541cdd0cb33f3fbf24e6c5bd45b3a3a3b103",
-      "source_url": "https://www.federalreserve.gov/newsevents/pressreleases/enforcement20260709a.htm",
-      "canonical_url": null,
-      "domain": "www.federalreserve.gov",
-      "crawl_status": "skipped_robots",
-      "http_status": null,
-      "content_type": null,
-      "title": null,
-      "meta_description": null,
-      "published_at": "NaT",
-      "excerpt": null,
-      "robots_allowed": false,
-      "error_message": null,
-      "fetched_at": "2026-07-10 12:25:28.972594"
-    },
-    {
-      "source_table": "market_news_feed",
-      "source_article_id": "81a6b96e8c0aaabff115ee51c91332a1cacb3f79c898ef6d1bf435bad0a4de90",
-      "source_url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260709a.htm",
-      "canonical_url": null,
-      "domain": "www.federalreserve.gov",
-      "crawl_status": "skipped_robots",
-      "http_status": null,
-      "content_type": null,
-      "title": null,
-      "meta_description": null,
-      "published_at": "NaT",
-      "excerpt": null,
-      "robots_allowed": false,
-      "error_message": null,
-      "fetched_at": "2026-07-10 12:25:28.932877"
-    },
     {
       "source_table": "market_news_feed",
       "source_article_id": "d6dd03442bb7f828f4f5d216f81cc3a2a260cda97393ade3e1b0be61d75d419b",
@@ -54,7 +20,7 @@
       "excerpt": null,
       "robots_allowed": false,
       "error_message": null,
-      "fetched_at": "2026-07-09 14:40:44.969573"
+      "fetched_at": "2026-07-19 14:06:18.103189"
     },
     {
       "source_table": "market_news_feed",
@@ -71,7 +37,7 @@
       "excerpt": null,
       "robots_allowed": false,
       "error_message": null,
-      "fetched_at": "2026-07-09 14:40:44.945648"
+      "fetched_at": "2026-07-19 14:06:18.080070"
     },
     {
       "source_table": "market_news_feed",
@@ -88,7 +54,7 @@
       "excerpt": null,
       "robots_allowed": false,
       "error_message": null,
-      "fetched_at": "2026-07-09 14:40:44.923269"
+      "fetched_at": "2026-07-19 14:06:18.053642"
     },
     {
       "source_table": "market_news_feed",
@@ -105,7 +71,7 @@
       "excerpt": null,
       "robots_allowed": false,
       "error_message": null,
-      "fetched_at": "2026-07-09 14:40:44.903000"
+      "fetched_at": "2026-07-19 14:06:18.031962"
     },
     {
       "source_table": "market_news_feed",
@@ -122,7 +88,7 @@
       "excerpt": null,
       "robots_allowed": false,
       "error_message": null,
-      "fetched_at": "2026-07-09 14:40:44.882201"
+      "fetched_at": "2026-07-19 14:06:18.009322"
     },
     {
       "source_table": "market_news_feed",
@@ -139,7 +105,7 @@
       "excerpt": null,
       "robots_allowed": false,
       "error_message": null,
-      "fetched_at": "2026-07-09 14:40:44.859314"
+      "fetched_at": "2026-07-19 14:06:17.988868"
     },
     {
       "source_table": "market_news_feed",
@@ -156,7 +122,7 @@
       "excerpt": null,
       "robots_allowed": false,
       "error_message": null,
-      "fetched_at": "2026-07-09 14:40:44.838246"
+      "fetched_at": "2026-07-19 14:06:17.964807"
     },
     {
       "source_table": "market_news_feed",
@@ -173,7 +139,7 @@
       "excerpt": null,
       "robots_allowed": false,
       "error_message": null,
-      "fetched_at": "2026-07-09 14:40:44.815667"
+      "fetched_at": "2026-07-19 14:06:17.940957"
     },
     {
       "source_table": "market_news_feed",
@@ -190,7 +156,7 @@
       "excerpt": null,
       "robots_allowed": false,
       "error_message": null,
-      "fetched_at": "2026-07-09 14:40:44.794014"
+      "fetched_at": "2026-07-19 14:06:17.914966"
     },
     {
       "source_table": "market_news_feed",
@@ -207,7 +173,7 @@
       "excerpt": null,
       "robots_allowed": false,
       "error_message": null,
-      "fetched_at": "2026-07-09 14:40:44.771771"
+      "fetched_at": "2026-07-19 14:06:17.892214"
     },
     {
       "source_table": "market_news_feed",
@@ -224,7 +190,7 @@
       "excerpt": null,
       "robots_allowed": false,
       "error_message": null,
-      "fetched_at": "2026-07-09 14:40:44.751097"
+      "fetched_at": "2026-07-19 14:06:17.871872"
     },
     {
       "source_table": "market_news_feed",
@@ -241,7 +207,7 @@
       "excerpt": null,
       "robots_allowed": false,
       "error_message": null,
-      "fetched_at": "2026-07-09 14:40:44.727679"
+      "fetched_at": "2026-07-19 14:06:17.844841"
     },
     {
       "source_table": "market_news_feed",
@@ -258,7 +224,7 @@
       "excerpt": null,
       "robots_allowed": false,
       "error_message": null,
-      "fetched_at": "2026-07-09 14:40:44.703687"
+      "fetched_at": "2026-07-19 14:06:17.822718"
     },
     {
       "source_table": "market_news_feed",
@@ -275,7 +241,7 @@
       "excerpt": null,
       "robots_allowed": false,
       "error_message": null,
-      "fetched_at": "2026-07-09 14:40:44.680412"
+      "fetched_at": "2026-07-19 14:06:17.800815"
     },
     {
       "source_table": "market_news_feed",
@@ -292,24 +258,7 @@
       "excerpt": null,
       "robots_allowed": false,
       "error_message": null,
-      "fetched_at": "2026-07-09 14:40:44.657284"
-    },
-    {
-      "source_table": "market_news_feed",
-      "source_article_id": "bd1ddd8be909aef73b54294acb4904c6f624afe9d158ec5f2d3c09728363e44c",
-      "source_url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260617b.htm",
-      "canonical_url": null,
-      "domain": "www.federalreserve.gov",
-      "crawl_status": "skipped_robots",
-      "http_status": null,
-      "content_type": null,
-      "title": null,
-      "meta_description": null,
-      "published_at": "NaT",
-      "excerpt": null,
-      "robots_allowed": false,
-      "error_message": null,
-      "fetched_at": "2026-07-09 14:40:44.634807"
+      "fetched_at": "2026-07-19 14:06:17.774417"
     },
     {
       "source_table": "market_news_feed",
@@ -326,7 +275,24 @@
       "excerpt": null,
       "robots_allowed": false,
       "error_message": null,
-      "fetched_at": "2026-07-09 14:40:44.615067"
+      "fetched_at": "2026-07-19 14:06:17.751863"
+    },
+    {
+      "source_table": "market_news_feed",
+      "source_article_id": "bd1ddd8be909aef73b54294acb4904c6f624afe9d158ec5f2d3c09728363e44c",
+      "source_url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260617b.htm",
+      "canonical_url": null,
+      "domain": "www.federalreserve.gov",
+      "crawl_status": "skipped_robots",
+      "http_status": null,
+      "content_type": null,
+      "title": null,
+      "meta_description": null,
+      "published_at": "NaT",
+      "excerpt": null,
+      "robots_allowed": false,
+      "error_message": null,
+      "fetched_at": "2026-07-19 14:06:17.728514"
     },
     {
       "source_table": "market_news_feed",
@@ -343,7 +309,7 @@
       "excerpt": null,
       "robots_allowed": false,
       "error_message": null,
-      "fetched_at": "2026-07-09 14:40:44.593732"
+      "fetched_at": "2026-07-19 14:06:17.706200"
     },
     {
       "source_table": "market_news_feed",
@@ -360,7 +326,7 @@
       "excerpt": null,
       "robots_allowed": false,
       "error_message": null,
-      "fetched_at": "2026-07-09 14:40:44.573172"
+      "fetched_at": "2026-07-19 14:06:17.683641"
     },
     {
       "source_table": "market_news_feed",
@@ -377,7 +343,7 @@
       "excerpt": null,
       "robots_allowed": false,
       "error_message": null,
-      "fetched_at": "2026-07-09 14:40:44.551220"
+      "fetched_at": "2026-07-19 14:06:17.656355"
     },
     {
       "source_table": "market_news_feed",
@@ -394,7 +360,7 @@
       "excerpt": null,
       "robots_allowed": false,
       "error_message": null,
-      "fetched_at": "2026-07-09 14:40:44.528385"
+      "fetched_at": "2026-07-19 14:06:17.630620"
     },
     {
       "source_table": "market_news_feed",
@@ -411,7 +377,7 @@
       "excerpt": null,
       "robots_allowed": false,
       "error_message": null,
-      "fetched_at": "2026-07-09 14:40:44.503141"
+      "fetched_at": "2026-07-19 14:06:17.605090"
     },
     {
       "source_table": "market_news_feed",
@@ -428,7 +394,7 @@
       "excerpt": "The Guardian - Back to home Global shares tumble after US tech sell-off; UK services sector shrinks at fastest pace since 2023 – as it happened US stock futures point to lower Wall Street open; British grocery inflation slows to 3%, says Worldpanel, while heatwave boosts sales of suncare and syrups for water amid #WaterTok trend Tue 23 Jun 2026 15.07 BST First published on Tue 23 Jun 2026 07.24 BST Wall Street falls again amid tech sell-off Jonathan Haskel named as next chair of OBR Eurozone business activity contraction eases in June along with price pressures Campaigners lose high court challenges over Gatwick expansion Royal Mail parent's boss's pay triples to £7m despite profit slump UK",
       "robots_allowed": true,
       "error_message": null,
-      "fetched_at": "2026-07-09 14:40:42.531837"
+      "fetched_at": "2026-07-19 14:06:16.031201"
     },
     {
       "source_table": "market_news_feed",
@@ -445,7 +411,7 @@
       "excerpt": "Tech stocks are plunging as global investors dump high-flying chip makers You're currently following this author! Want to unfollow? Unsubscribe via the link in your email. You're currently following this author! Want to unfollow? Unsubscribe via the link in your email. You're currently following this author! Want to unfollow? Unsubscribe via the link in your email. You're currently following this author! Want to unfollow? Unsubscribe via the link in your email. An AI-fueled rally has left the South Korean stock market especially exposed to any reversal in market sentiment. Jade Gao/AFP/Getty Images An icon in the shape of a lightning bolt. The chip sector took a beating on Tuesday. Global",
       "robots_allowed": true,
       "error_message": null,
-      "fetched_at": "2026-07-09 14:40:42.417205"
+      "fetched_at": "2026-07-19 14:06:15.585677"
     },
     {
       "source_table": "market_news_feed",
@@ -462,7 +428,7 @@
       "excerpt": "차익실현? 조정 본격화?…10% 폭락에 '검은 화요일' 코스피(종합) 외국인·기관 투매, 역대 최대폭 하락…코스피 변동성지수도 '껑충' 변동성 확대에 또 롤러코스터…서킷브레이커, 사이드카 잇단 발동 \"펀더멘털보다는 '테크니컬' 조정…단일종목 레버리지가 변동성 키워\" \"6월 초 반도체 조정 당시 고려하면 저점은 7,900 부근 될 수도\" (서울=연합뉴스) 박동주 기자 = 코스피가 10% 가까이 급락해 8,200선을 간신히 지키며 마감한 23일 서울 중구 하나은행 딜링룸에서 직원이 업무를 보고 있다. 이날 코스피는 전 거래일 대비 910.71포인트(9.99%) 내린 8,203.84로 거래를 마쳤다. 2026.6.23 pdj6635@yna.co.kr (서울=연합뉴스) 황철환 김유아 기자 = 극단적인 반도체 대형주 쏠림으로 우려를 자아내던 코스피가 23일 결국 급격한 조정에 직면했다. 9,000선을 넘어 '1만피'를 바라보던 지수는 단숨에 8,200선까지 밀리면서 하루 기준으로 역대급 낙폭을 기록했다. '9천피' 돌파 3거래일만이다. 한국거래소와 금융정보서비스업체 연합인포맥스에 따르면 이날 코스피는 전장보다 910.71포인트(9.99%) 폭락한 8,203.84로 장을 마쳤다. 이란 전쟁 발발 직후인 올해 3월 4일(698.37포인트·12.06%)에 이어 올해들어 두번째로 큰 하락률이다. 전일 종가 대비 역대 최대 하락 폭이다. 0.34%",
       "robots_allowed": true,
       "error_message": null,
-      "fetched_at": "2026-07-09 14:40:42.277156"
+      "fetched_at": "2026-07-19 14:06:15.440144"
     },
     {
       "source_table": "market_news_feed",
@@ -479,7 +445,7 @@
       "excerpt": "코스피 급락 9,000 붕괴...하이닉스·삼성전자 약세 코스피 급락 9,000 붕괴...하이닉스·삼성전자 약세 코스피 9,084로 출발해 장중 9,000선 붕괴 '삼전·닉스' 최대주주 SK스퀘어·삼성생명 상승 뉴욕증시가 혼조세로 마감한 영향에 코스피가 하락 출발했는데 낙폭이 갈수록 커지고 있습니다. 코스피 시가총액 1, 2위인 SK하이닉스와 삼성전자는 장중 5% 이상 급락했습니다. 취재기자를 연결해 금융시장 상황 좀 더 알아보겠습니다. 현재 코스피는 8,600선과 8,700선을 오르내리고 있습니다. 오늘 코스피는 전장보다 0.3% 내린 9,084로 출발했습니다. 9,100선을 잠깐 회복했다가 하락 전환해 낙폭이 장중 5% 가까이 커졌습니다. 보통주 기준으로 코스피 시가총액 1위가 된 SK하이닉스는 9거래일 만에 하락세로 돌아섰습니다. SK하이닉스는 정규장 이전 프리마켓에서 사상 처음 300만 원을 돌파했는데 정규장에서는 270만 원대까지 내려왔습니다. 보통주 기준으로 시총 2위가 된 삼성전자 역시 3거래일 연속 하락세입니다. SK하이닉스와 삼성전자가 장중 5% 이상 급락한 반면 최대 주주인 SK스퀘어와 삼성생명은 상승세입니다. 뉴욕증시가 혼조세로 마감했지만 마이크론과 인텔 등 반도체 주가는 급등했는데 막상 SK하이닉스와 삼성전자보다는 최대 주주가 수혜를 보고 있습니다. 이는 자회사에서 받은 배당 이익으로 자사주 소각을 하는 등 주주",
       "robots_allowed": true,
       "error_message": null,
-      "fetched_at": "2026-07-09 14:40:42.169657"
+      "fetched_at": "2026-07-19 14:06:15.351298"
     },
     {
       "source_table": "market_news_feed",
@@ -496,7 +462,7 @@
       "excerpt": "폭락장에 레버리지 ETF 그림자…비반도체주 무차별 신저가 [MTN 리포트-메모리 쏠림 ①] 이동 통신망에서 음성 재생 시 데이터 요금이 발생할 수 있습니다. 글자 수 10,000자 초과 시 일부만 음성으로 제공합니다. 파란원을 좌우로 움직이시면 글자크기가 변경 됩니다. (예시) 가장 빠른 뉴스가 있고 다양한 정보, 쌍방향 소통이 숨쉬는 다음뉴스를 만나보세요. 다음뉴스는 국내외 주요이슈와 실시간 속보, 문화생활 및 다양한 분야의 뉴스를 입체적으로 전달하고 있습니다. AI 시대 반도체 산업이 유례없는 호황을 누리면서 우리 경제 곳곳에 지각변동이 일어나고 있습니다. 증시는 물론 물가와 부동산, 나아가 산업 지형도까지 달라지고 있는데요. 머니투데이방송(MTN)은 4회에 걸쳐 반도체 초호황의 나비효과를 짚어봅니다. 첫 순서, 반도체 독주에 가려진 증시의 그늘을 들여다봅니다. 오늘 코스피는 9.99% 폭락한 8203에 장을 마쳤습니다. 삼성전자와 SK하이닉스는 모두 12% 넘게 내렸습니다. 올해 코스피는 100% 넘게 올랐는데, 상승세를 이끈 건 같은 기간 3배 오른 삼성전자와 4배 뛴 SK하이닉스였습니다. [서상영 / 미래에셋증권 연구원: 글로벌 각국이 유동성을 축소하는 내용을 언급을 하기 시작했다라고 보시면 되죠. 유동성이 축소가 될 때 가장 큰 피해를 보는 업종은 그동안 급격하게 상승을 했던 반도체 및 기술주...] 그간 가파른 상승세에",
       "robots_allowed": true,
       "error_message": null,
-      "fetched_at": "2026-07-09 14:40:41.881178"
+      "fetched_at": "2026-07-19 14:06:14.879444"
     },
     {
       "source_table": "market_news_feed",
@@ -513,7 +479,7 @@
       "excerpt": null,
       "robots_allowed": false,
       "error_message": null,
-      "fetched_at": "2026-07-09 14:40:41.861147"
+      "fetched_at": "2026-07-19 14:06:14.860008"
     },
     {
       "source_table": "market_news_feed",
@@ -530,7 +496,7 @@
       "excerpt": null,
       "robots_allowed": false,
       "error_message": null,
-      "fetched_at": "2026-07-09 14:40:41.838311"
+      "fetched_at": "2026-07-19 14:06:14.838109"
     },
     {
       "source_table": "market_news_feed",
@@ -547,7 +513,7 @@
       "excerpt": null,
       "robots_allowed": false,
       "error_message": null,
-      "fetched_at": "2026-07-09 14:40:41.814260"
+      "fetched_at": "2026-07-19 14:06:14.814515"
     },
     {
       "source_table": "market_news_feed",
@@ -564,7 +530,7 @@
       "excerpt": "[국민연금 양난] 다음달 강제 리밸런싱 돌입…55조 매도 대기 (서울=연합인포맥스) 송하린 기자 = 국민연금은 이달 말까지 한시적으로 유예된 국내주식 리밸런싱(재조정)이 다음달부터 재개될 예정이다. 최대 55조원의 매물이 단계적으로 출회될 것으로 추정된다. 19일 금융투자업계에 따르면 국민연금의 국내주식 리밸런싱 한시적 유예 조치가 이달 말 종료된다. 지난 1월 26일 열린 기금운용위원회에서는 국내주식 목표비중을 14.4%에서 14.9%로 올리면서, 국내주식 보유비중이 전략적 자산배분(SAA) 허용범위를 벗어났을 때 기계적으로 매도해야 하는 리밸런싱을 한시적으로 유예하기로 했다. 국내주식 비중이 목표 대비 높아지는 등 시장 변동성이 큰 상황에서 리밸런싱이 지속해서 발생하면 시장에 과도한 영향을 줄 우려가 있다는 판단에서다. 해당 조치는 이번달 말까지다. 다음달부터는 리밸런싱 규칙이 적용될 예정이다. 지난 5월 기금위에서는 국민연금의 국내주식 운용 전략을 유연하게 만들어줬다. 국내주식 목표비중을 재차 20.8%로 상향하고, SAA 허용범위는 기존 3%포인트(P)에서 6%P로 두 배 넓혔다. 국내주식 목표비중을 올려 국민연금이 당시 국내주식 보유 규모를 최대한 유지할 수 있도록 한 것이다. SAA 허용범위까지 넓힌 건 국민연금이 변동성장에서 국민연금의 국내주식 매매 판단의 여유를 남겨준 조치다. 전문가들은 변동성장에서는 위험관리를 위해",
       "robots_allowed": true,
       "error_message": null,
-      "fetched_at": "2026-07-09 14:40:41.602012"
+      "fetched_at": "2026-07-19 14:06:14.703840"
     },
     {
       "source_table": "market_news_feed",
@@ -581,7 +547,7 @@
       "excerpt": null,
       "robots_allowed": false,
       "error_message": null,
-      "fetched_at": "2026-07-09 14:40:41.580800"
+      "fetched_at": "2026-07-19 14:06:14.680353"
     },
     {
       "source_table": "market_news_feed",
@@ -598,7 +564,7 @@
       "excerpt": null,
       "robots_allowed": false,
       "error_message": null,
-      "fetched_at": "2026-07-09 14:40:41.558290"
+      "fetched_at": "2026-07-19 14:06:14.658279"
     },
     {
       "source_table": "market_news_feed",
@@ -615,7 +581,7 @@
       "excerpt": null,
       "robots_allowed": false,
       "error_message": null,
-      "fetched_at": "2026-07-09 14:40:41.533830"
+      "fetched_at": "2026-07-19 14:06:14.636883"
     },
     {
       "source_table": "market_news_feed",
@@ -632,24 +598,7 @@
       "excerpt": null,
       "robots_allowed": false,
       "error_message": null,
-      "fetched_at": "2026-07-09 14:40:41.510888"
-    },
-    {
-      "source_table": "market_news_feed",
-      "source_article_id": "f442c8b15969b71bef738e9842ce8630bd77f5056e8f721baa70616f8db6a4b1",
-      "source_url": "https://marketnewsfeed.com/",
-      "canonical_url": "https://marketnewsfeed.com/",
-      "domain": "marketnewsfeed.com",
-      "crawl_status": "fetched",
-      "http_status": 200,
-      "content_type": "text/html; charset=utf-8",
-      "title": "Market News Feed — live headlines with live charts",
-      "meta_description": "Market-moving headlines, each with a live 1-minute chart of the instrument it moves. See how news moves markets in real time.",
-      "published_at": "NaT",
-      "excerpt": "1-minute charts. stocks, indices, oil & metals real-time (oil/metals via ); ES/NQ/bond futures ~10min delayed. not investment advice.",
-      "robots_allowed": true,
-      "error_message": null,
-      "fetched_at": "2026-07-09 14:40:39.604079"
+      "fetched_at": "2026-07-19 14:06:14.612544"
     },
     {
       "source_table": "market_news_feed",
@@ -666,7 +615,109 @@
       "excerpt": null,
       "robots_allowed": false,
       "error_message": null,
-      "fetched_at": "2026-07-09 14:40:39.528297"
+      "fetched_at": "2026-07-19 14:06:14.588113"
+    },
+    {
+      "source_table": "market_news_feed",
+      "source_article_id": "9d74b2a78e5959372a82132bfe9d541cdd0cb33f3fbf24e6c5bd45b3a3a3b103",
+      "source_url": "https://www.federalreserve.gov/newsevents/pressreleases/enforcement20260709a.htm",
+      "canonical_url": null,
+      "domain": "www.federalreserve.gov",
+      "crawl_status": "skipped_robots",
+      "http_status": null,
+      "content_type": null,
+      "title": null,
+      "meta_description": null,
+      "published_at": "NaT",
+      "excerpt": null,
+      "robots_allowed": false,
+      "error_message": null,
+      "fetched_at": "2026-07-19 14:06:14.565449"
+    },
+    {
+      "source_table": "market_news_feed",
+      "source_article_id": "81a6b96e8c0aaabff115ee51c91332a1cacb3f79c898ef6d1bf435bad0a4de90",
+      "source_url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260709a.htm",
+      "canonical_url": null,
+      "domain": "www.federalreserve.gov",
+      "crawl_status": "skipped_robots",
+      "http_status": null,
+      "content_type": null,
+      "title": null,
+      "meta_description": null,
+      "published_at": "NaT",
+      "excerpt": null,
+      "robots_allowed": false,
+      "error_message": null,
+      "fetched_at": "2026-07-19 14:06:14.541174"
+    },
+    {
+      "source_table": "market_news_feed",
+      "source_article_id": "f442c8b15969b71bef738e9842ce8630bd77f5056e8f721baa70616f8db6a4b1",
+      "source_url": "https://marketnewsfeed.com/",
+      "canonical_url": "https://marketnewsfeed.com/",
+      "domain": "marketnewsfeed.com",
+      "crawl_status": "fetched",
+      "http_status": 200,
+      "content_type": "text/html; charset=utf-8",
+      "title": "Market News Feed — live headlines with live charts",
+      "meta_description": "Market-moving headlines, each with a live 1-minute chart of the instrument it moves. See how news moves markets in real time.",
+      "published_at": "NaT",
+      "excerpt": "1-minute charts. stocks, indices, oil & metals real-time (oil/metals via ); ES/NQ/bond futures ~10min delayed. not investment advice.",
+      "robots_allowed": true,
+      "error_message": null,
+      "fetched_at": "2026-07-19 14:06:12.699020"
+    },
+    {
+      "source_table": "market_news_feed",
+      "source_article_id": "2abf902eb5f230bd18543213a7c4c2cbfbf8e3850b570bd4380859f32c2eb636",
+      "source_url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260714a.htm",
+      "canonical_url": null,
+      "domain": "www.federalreserve.gov",
+      "crawl_status": "skipped_robots",
+      "http_status": null,
+      "content_type": null,
+      "title": null,
+      "meta_description": null,
+      "published_at": "NaT",
+      "excerpt": null,
+      "robots_allowed": false,
+      "error_message": null,
+      "fetched_at": "2026-07-19 14:06:12.677055"
+    },
+    {
+      "source_table": "market_news_feed",
+      "source_article_id": "fe03df9331368b30e5af1c6b7c50d9a2801eb960e3637cb9a533f4e1090cef01",
+      "source_url": "https://www.federalreserve.gov/newsevents/pressreleases/enforcement20260716a.htm",
+      "canonical_url": null,
+      "domain": "www.federalreserve.gov",
+      "crawl_status": "skipped_robots",
+      "http_status": null,
+      "content_type": null,
+      "title": null,
+      "meta_description": null,
+      "published_at": "NaT",
+      "excerpt": null,
+      "robots_allowed": false,
+      "error_message": null,
+      "fetched_at": "2026-07-19 14:06:12.652458"
+    },
+    {
+      "source_table": "market_news_feed",
+      "source_article_id": "9cd510b520579db644ef64962a459d848dbe98e610887c6627a3d2a773cf3ff0",
+      "source_url": "https://www.federalreserve.gov/newsevents/pressreleases/bcreg20260716a.htm",
+      "canonical_url": null,
+      "domain": "www.federalreserve.gov",
+      "crawl_status": "skipped_robots",
+      "http_status": null,
+      "content_type": null,
+      "title": null,
+      "meta_description": null,
+      "published_at": "NaT",
+      "excerpt": null,
+      "robots_allowed": false,
+      "error_message": null,
+      "fetched_at": "2026-07-19 14:06:12.611180"
     }
   ],
   "messages": []

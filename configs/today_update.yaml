@@ -11,6 +11,7 @@ market_outlook:
   prediction_horizon: 2M
   next_day_range_multiplier: 1.25
   use_pykrx_calendar: true
+  require_confirmed_inputs: true
   krx_holidays: []
 
 market_credit_balance:

@@ -46,6 +46,8 @@ def test_today_market_api_and_page_render(tmp_path, monkeypatch) -> None:
         return connect_database(db_path, read_only=True, initialize_schema=False)
 
     monkeypatch.setattr(app_main, "_conn", _test_conn)
+    monkeypatch.setitem(app_main.CONFIG.setdefault("market_outlook", {}), "require_confirmed_inputs", False)
+    monkeypatch.setitem(app_main.TODAY_CONFIG.setdefault("market_outlook", {}), "require_confirmed_inputs", False)
 
     response = app_main.today_update_snapshot()
     assert response["status"] == "partial_ready"

@@ -38,6 +38,7 @@ def test_latest_market_impact_runner_dry_run_order() -> None:
     assert "collect_telegram_signals" in names
     assert "collect_x_market_news" in names
     assert "collect_marketnewsfeed_site" in names
+    assert "run_local_llm_news_close" in names
     assert "build_news_signal_features" in names
     assert "collect_market_credit_balance" in names
     assert names.index("collect_naver_news_top50") < names.index("collect_telegram_signals")
@@ -49,6 +50,8 @@ def test_latest_market_impact_runner_dry_run_order() -> None:
     assert names.index("collect_official_market_prices") < names.index("build_news_signal_features")
     assert names.index("collect_telegram_signals") < names.index("collect_x_market_news")
     assert names.index("collect_x_market_news") < names.index("collect_marketnewsfeed_site")
+    assert names.index("collect_marketnewsfeed_site") < names.index("run_local_llm_news_close")
+    assert names.index("run_local_llm_news_close") < names.index("build_news_signal_features")
     assert names.index("collect_marketnewsfeed_site") < names.index("build_news_signal_features")
     assert names.index("build_news_signal_features") < names.index("collect_market_credit_balance")
     assert names.index("collect_market_credit_balance") < names.index("freshness_check")
@@ -65,7 +68,10 @@ def test_latest_market_impact_runner_dry_run_order() -> None:
     assert names.index("generate_market_up_down") < names.index("build_market_outlook_features")
     assert names.index("build_market_outlook_features") < names.index("train_market_outlook")
     assert names.index("train_market_outlook") < names.index("generate_market_outlook")
-    assert names.index("generate_market_outlook") < names.index("premarket_shadow_preliminary")
+    assert names.index("generate_market_outlook") < names.index("run_market_outlook_ml_shadow")
+    assert names.index("run_market_outlook_ml_shadow") < names.index("market_us_linkage_feedback")
+    assert names.index("market_us_linkage_feedback") < names.index("market_us_linkage_shadow")
+    assert names.index("market_us_linkage_shadow") < names.index("premarket_shadow_preliminary")
     assert names.index("premarket_shadow_preliminary") < names.index("build_x_news_impact_analysis")
     assert names.index("build_x_news_impact_analysis") < names.index("market_move_explanations")
     assert names.index("market_move_explanations") < names.index("today_context_refresh")

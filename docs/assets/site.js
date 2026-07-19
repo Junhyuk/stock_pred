@@ -42,17 +42,21 @@ function table(items, columns) {
 }
 function statusBadge(status) {
   const value = String(status || "-");
-  const cls = value === "ready" || value === "exported" ? "badge" : value.includes("error") ? "badge risk" : "badge warn";
+  const cls = value === "ready" || value === "exported" ? "badge" : value.includes("error") || value === "blocked_stale_input" ? "badge risk" : "badge warn";
   return `<span class="${cls}">${esc(value)}</span>`;
 }
 
 async function boot() {
-  const [manifest, dashboard, today, tomorrow, premarketShadow, top20, top50, longShort, moves, news, newsSignals, officialStatus, newsUrlCrawl, xTop20Impact, xMarketImpact, validation] = await Promise.all([
+  const [manifest, dashboard, today, tomorrow, premarketShadow, marketAnchorShadow, marketUsLinkageShadow, marketNewsFeedLlmShadow, localLlmNewsShadow, top20, top50, longShort, moves, news, newsSignals, officialStatus, newsUrlCrawl, xTop20Impact, xMarketImpact, validation] = await Promise.all([
     load("manifest"),
     load("dashboard"),
     load("today"),
     load("tomorrow"),
     load("premarket_shadow"),
+    load("market_anchor_shadow"),
+    load("market_us_linkage_shadow"),
+    load("marketnewsfeed_llm_status"),
+    load("local_llm_news_status"),
     load("top20_upside_3M"),
     load("top50_3M"),
     load("long_short_2M"),
@@ -88,6 +92,10 @@ async function boot() {
   document.getElementById("longShort").innerHTML = renderLongShort(longShort);
   document.getElementById("tomorrow").innerHTML = renderTomorrow(tomorrow);
   document.getElementById("premarketShadow").innerHTML = renderPremarketShadow(premarketShadow);
+  document.getElementById("marketAnchorShadow").innerHTML = renderMarketAnchorShadow(marketAnchorShadow);
+  document.getElementById("marketUsLinkageShadow").innerHTML = renderMarketUsLinkageShadow(marketUsLinkageShadow);
+  document.getElementById("marketNewsFeedLlmShadow").innerHTML = renderMarketNewsFeedLlmShadow(marketNewsFeedLlmShadow);
+  document.getElementById("localLlmNewsShadow").innerHTML = renderLocalLlmNewsShadow(localLlmNewsShadow);
   document.getElementById("xImpact").innerHTML = renderXImpact(xTop20Impact, xMarketImpact);
   document.getElementById("officialData").innerHTML = renderOfficialData(officialStatus, newsUrlCrawl);
   document.getElementById("quality").innerHTML = renderQuality(todayQuality, validation);
@@ -238,6 +246,143 @@ function renderPremarketShadow(data) {
     </div>`,
     sections,
     `<p class="muted">${esc(data.message || "검증 중인 shadow 예측입니다.")}</p>`,
+  ].join("");
+}
+
+function renderMarketAnchorShadow(data) {
+  const items = representativesByMarket(data.items || []);
+  const constituents = data.constituents || {};
+  const backtests = Object.fromEntries((data.backtests || []).map((item) => [item.market, item]));
+  const cards = items.map((item) => {
+    const members = constituents[item.market] || [];
+    const gate = backtests[item.market] || {};
+    const memberText = members.map((member) => `${member.name || member.symbol} (${pct(member.weight)})`).join(", ");
+    return `<section class="market-card">
+      <h3>${esc(item.market)}</h3>
+      <div class="row"><span>q10 / q50 / q90</span><b>${pct(item.q10_return)} / ${pct(item.q50_return)} / ${pct(item.q90_return)}</b></div>
+      <div class="row"><span>Conformal 80% 범위</span><b>${pct(item.calibrated_range_low)} ~ ${pct(item.calibrated_range_high)}</b></div>
+      <div class="row"><span>Residual control</span><b>${pct(item.control_range_low)} ~ ${pct(item.control_range_high)}</b></div>
+      <div class="row"><span>보정 표본 / 상태</span><b>${esc(item.calibration_count ?? 0)} / ${statusBadge(item.status)}</b></div>
+      <div class="row"><span>Backtest gate</span><b>${statusBadge(gate.gate_status || "not_ready")}</b></div>
+      <p class="muted">Anchors: ${esc(memberText || "동일 기준일 구성 미수집")}</p>
+    </section>`;
+  }).join("");
+  const waiting = data.message || "앵커 구성과 756거래일 이상의 point-in-time 이력이 쌓이면 shadow 범위를 생성합니다.";
+  return [
+    `<div class="inline-metrics">
+      ${inlineMetric("운영 반영 비중", pct(data.production_weight), "shadow only")}
+      ${inlineMetric("상태", data.status || "not_ready", "production 전망과 분리")}
+      ${inlineMetric("시장 수", items.length, "KOSPI/KOSDAQ")}
+    </div>`,
+    `<div class="subgrid">${cards}</div>`,
+    cards ? "" : `<div class="empty">${esc(waiting)}</div>`,
+    `<p class="muted">${esc(data.message || "앵커 기반 범위는 연구·정보제공용 shadow 결과입니다.")}</p>`,
+  ].join("");
+}
+
+function renderMarketUsLinkageShadow(data) {
+  const items = representativesByMarket(data.items || []);
+  const runs = Object.fromEntries((data.runs || []).map((item) => [item.market, item]));
+  const feedback = data.feedback || {};
+  const cards = items.map((item) => {
+    const run = runs[item.market] || {};
+    const metrics = run.metrics || {};
+    return `<section class="market-card">
+      <h3>${esc(item.market)}</h3>
+      <div class="row"><span>Baseline / Global</span><b>${pct(item.baseline_expected_return)} / ${pct(item.global_expected_return)}</b></div>
+      <div class="row"><span>Global delta / weight</span><b>${pct(item.global_delta)} / ${pct(item.dynamic_overlay_weight)}</b></div>
+      <div class="row"><span>Shadow 후보</span><b>${pct(item.candidate_expected_return)}</b></div>
+      <div class="row"><span>Candidate 80% 범위</span><b>${pct(item.candidate_range_low)} ~ ${pct(item.candidate_range_high)}</b></div>
+      <div class="row"><span>Gate / OOS</span><b>${statusBadge(run.gate_status || "not_ready")} / ${esc(metrics.oos_count ?? run.oos_count ?? 0)}</b></div>
+    </section>`;
+  }).join("");
+  const correlations = data.correlations || [];
+  return [
+    `<div class="inline-metrics">
+      ${inlineMetric("운영 반영 비중", pct(data.production_weight), "shadow only")}
+      ${inlineMetric("Feedback", feedback.count ?? 0, `live ${feedback.live_count ?? 0}`)}
+      ${inlineMetric("평균 weight", pct(feedback.mean_dynamic_overlay_weight), "최대 20%")}
+    </div>`,
+    `<div class="subgrid">${cards}</div>`,
+    cards ? "" : `<div class="empty">${esc(data.message || "확정 국내 입력과 OOS 검증 이력을 기다리고 있습니다.")}</div>`,
+    `<section class="subsection"><h3>다음 KRX 세션 상관성</h3>${table(correlations, [
+      { key: "market", label: "Market" },
+      { key: "signal", label: "Signal" },
+      { key: "sample_count", label: "N" },
+      { key: "pearson", label: "Pearson", format: num },
+      { key: "recent_60d_pearson", label: "Recent 60D", format: num },
+    ])}</section>`,
+    `<p class="muted">${esc(data.disclaimer || data.message || "Nasdaq/SOX 후보는 production 시장 전망을 변경하지 않는 별도 검증 경로입니다.")}</p>`,
+  ].join("");
+}
+
+function renderMarketNewsFeedLlmShadow(data) {
+  const run = data.latest_run || {};
+  const counts = data.counts || {};
+  const gates = data.shadow || [];
+  const ranges = data.market_range_shadow || [];
+  return [
+    `<div class="inline-metrics">
+      ${inlineMetric("상태", data.status || "not_ready", run.model_name || "local only")}
+      ${inlineMetric("평가 headline", counts.assessments || 0, `수집 ${counts.headlines || 0}건`)}
+      ${inlineMetric("신호 일수", counts.signal_days || 0, "gate 최소 60일")}
+      ${inlineMetric("운영 반영", String(data.production_weight ?? 0), "shadow only")}
+    </div>`,
+    `<section class="subgrid">
+      <div class="subsection"><h3>2M/3M A/B Gate</h3>${table(gates, [
+        { key: "horizon", label: "Horizon" },
+        { key: "gate_status", label: "Gate", format: statusBadge },
+        { key: "signal_days", label: "Signal Days" },
+        { key: "mature_prediction_dates", label: "Mature Dates" },
+        { key: "fail_reason", label: "Reason" },
+      ])}</div>
+      <div class="subsection"><h3>KOSPI/KOSDAQ Range</h3>${table(ranges, [
+        { key: "market", label: "Market" },
+        { key: "coverage_status", label: "Status", format: statusBadge },
+        { key: "range_low", label: "Low", format: pct },
+        { key: "range_high", label: "High", format: pct },
+      ])}</div>
+    </section>`,
+    `<p class="muted">${esc(data.disclaimer || "Local LLM shadow status only. Headline text and summaries are intentionally not exported to GitHub Pages.")}</p>`,
+  ].join("");
+}
+
+function renderLocalLlmNewsShadow(data) {
+  const run = data.latest_run || {};
+  const counts = data.counts || {};
+  const shadow = data.shadow || {};
+  const sources = data.sources || [];
+  const items = shadow.items || [];
+  const runs = shadow.runs || [];
+  return [
+    `<div class="inline-metrics">
+      ${inlineMetric("상태", data.status || "not_ready", run.model_name || "local only")}
+      ${inlineMetric("문서 / 평가", `${counts.documents || 0} / ${counts.assessments || 0}`, "캐시 재사용")}
+      ${inlineMetric("신호 일수", counts.signal_days || 0, "gate 최소 60일")}
+      ${inlineMetric("Token", `${run.input_tokens || 0} / ${run.output_tokens || 0}`, "입력 / 출력")}
+    </div>`,
+    `<section class="subgrid">
+      <div class="subsection"><h3>출처 집계</h3>${table(sources, [
+        { key: "source", label: "Source" },
+        { key: "document_count", label: "Documents" },
+        { key: "assessment_count", label: "Assessed" },
+      ])}</div>
+      <div class="subsection"><h3>KOSPI/KOSDAQ Gate</h3>${table(runs, [
+        { key: "market", label: "Market" },
+        { key: "signal_days", label: "Signal Days" },
+        { key: "mature_prediction_dates", label: "Mature Dates" },
+        { key: "gate_status", label: "Gate", format: statusBadge },
+        { key: "fail_reason", label: "Reason" },
+      ])}</div>
+    </section>`,
+    `<section class="subsection"><h3>최신 범위 후보</h3>${table(items, [
+      { key: "market", label: "Market" },
+      { key: "gate_status", label: "Gate", format: statusBadge },
+      { key: "calibration_count", label: "Calibration" },
+      { key: "feature_coverage", label: "LLM Coverage", format: pct },
+      { key: "production_weight", label: "Production", format: pct },
+    ])}</section>`,
+    `<p class="muted">${esc(data.disclaimer || "집계 상태만 공개합니다. 원문, 요약, URL, 로컬 경로와 reasoning은 내보내지 않습니다.")}</p>`,
   ].join("");
 }
 

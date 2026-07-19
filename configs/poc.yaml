@@ -14,6 +14,11 @@ market:
   end_date: null
   min_trading_value_20d: 1000000000
 
+market_outlook:
+  require_confirmed_inputs: true
+  use_pykrx_calendar: true
+  krx_holidays: []
+
 collection:
   sleep_seconds: 0.05
   max_symbols: null

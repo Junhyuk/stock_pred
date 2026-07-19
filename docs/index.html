@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>AI Robo Stock Daily</title>
-  <link rel="stylesheet" href="assets/site.css?v=20260710T142245Z" />
+  <link rel="stylesheet" href="assets/site.css?v=20260719T154043Z" />
 </head>
 <body>
   <main>
@@ -21,6 +21,10 @@
       <a href="#long-short-section">롱·숏</a>
       <a href="#tomorrow-section">내일 예측</a>
       <a href="#premarket-shadow-section">Premarket Shadow</a>
+      <a href="#anchor-shadow-section">Anchor Range Shadow</a>
+      <a href="#us-linkage-section">Nasdaq/SOX Linkage</a>
+      <a href="#llm-shadow-section">Local LLM Shadow</a>
+      <a href="#local-llm-news-section">통합 LLM Shadow</a>
       <a href="#x-impact-section">X 뉴스 영향도</a>
       <a href="#official-data-section">공식 데이터</a>
       <a href="#moves-section">시장 설명</a>
@@ -49,6 +53,22 @@
         <h2>Premarket Shadow Forecast</h2>
         <div id="premarketShadow" class="stack"></div>
       </article>
+      <article id="anchor-shadow-section" class="panel wide">
+        <h2>KOSPI/KOSDAQ Anchor Basket Range Shadow</h2>
+        <div id="marketAnchorShadow" class="stack"></div>
+      </article>
+      <article id="us-linkage-section" class="panel wide">
+        <h2>Nasdaq/SOX KOSPI/KOSDAQ Linkage Shadow</h2>
+        <div id="marketUsLinkageShadow" class="stack"></div>
+      </article>
+      <article id="llm-shadow-section" class="panel wide">
+        <h2>MarketNewsFeed Local LLM Shadow</h2>
+        <div id="marketNewsFeedLlmShadow" class="stack"></div>
+      </article>
+      <article id="local-llm-news-section" class="panel wide">
+        <h2>Integrated Local LLM News Shadow</h2>
+        <div id="localLlmNewsShadow" class="stack"></div>
+      </article>
       <article id="x-impact-section" class="panel wide">
         <h2>X News Impact</h2>
         <div id="xImpact" class="stack"></div>
@@ -76,6 +96,6 @@
     </section>
     <p id="disclaimer" class="disclaimer"></p>
   </main>
-  <script src="assets/site.js?v=20260710T142245Z"></script>
+  <script src="assets/site.js?v=20260719T154043Z"></script>
 </body>
 </html>

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 from typing import Any
@@ -37,6 +38,15 @@ class FreshnessReport:
         }
 
 
+@dataclass(frozen=True)
+class TradingSessionResolution:
+    """A target KRX session together with the calendar source used."""
+
+    target_date: date
+    source: str
+    messages: list[str]
+
+
 def local_today(now: datetime | None = None) -> date:
     current = now or datetime.now(KST)
     if current.tzinfo is None:
@@ -65,6 +75,66 @@ def expected_latest_trading_day(
     while day.weekday() >= 5 or day in holiday_set:
         day -= timedelta(days=1)
     return day
+
+
+def next_trading_day_on_or_after(day: date, *, holidays: set[date] | None = None) -> date:
+    """Return the first configured KRX trading day on or after ``day``."""
+    current = day
+    holiday_set = holidays or set()
+    while current.weekday() >= 5 or current in holiday_set:
+        current += timedelta(days=1)
+    return current
+
+
+def previous_trading_day(day: date, *, holidays: set[date] | None = None) -> date:
+    """Return the configured KRX trading day immediately before ``day``."""
+    current = day - timedelta(days=1)
+    holiday_set = holidays or set()
+    while current.weekday() >= 5 or current in holiday_set:
+        current -= timedelta(days=1)
+    return current
+
+
+def resolve_next_krx_session(
+    asof_date: date | str,
+    *,
+    session_date: date | str | None = None,
+    now: datetime | None = None,
+    holidays: set[date] | None = None,
+    use_pykrx: bool = False,
+) -> TradingSessionResolution:
+    """Resolve the upcoming KRX session without treating a weekend as a session.
+
+    ``asof_date`` is the latest domestic close used by the model.  When the
+    run date is later than that close, the upcoming session is based on the run
+    date, not the stale close date.  This is the crucial distinction for a
+    Sunday run with Friday data.
+    """
+    asof = _to_date(asof_date)
+    if asof is None:
+        raise ValueError(f"Invalid asof_date: {asof_date}")
+    current = _to_date(session_date) or local_today(now)
+    reference = current if current > asof else asof + timedelta(days=1)
+    fallback = next_trading_day_on_or_after(reference, holidays=holidays)
+    if not use_pykrx:
+        return TradingSessionResolution(fallback, _calendar_source(holidays), [])
+    if not (os.getenv("KRX_ID") and os.getenv("KRX_PW")):
+        message = "pykrx business-day helper를 위한 KRX_ID/PW가 없어 weekday fallback으로 다음 거래일을 계산했습니다."
+        return TradingSessionResolution(fallback, _calendar_source(holidays), [message])
+    try:
+        from pykrx import stock
+
+        raw = stock.get_nearest_business_day_in_a_week(reference.strftime("%Y%m%d"), prev=False)
+        parsed = _to_date(raw)
+        if parsed is not None and parsed >= reference and parsed > asof:
+            return TradingSessionResolution(parsed, "pykrx_business_day", [])
+    except Exception as exc:  # pragma: no cover - depends on live KRX state
+        return TradingSessionResolution(
+            fallback,
+            _calendar_source(holidays),
+            [f"pykrx business-day helper 실패: {exc}"],
+        )
+    return TradingSessionResolution(fallback, _calendar_source(holidays), [])
 
 
 def table_max_date(conn, table: str, column: str) -> date | None:
@@ -134,3 +204,7 @@ def _to_date(value: Any) -> date | None:
     except (TypeError, ValueError):
         pass
     return pd.to_datetime(value).date()
+
+
+def _calendar_source(holidays: set[date] | None) -> str:
+    return "config_holidays" if holidays else "weekday_fallback"

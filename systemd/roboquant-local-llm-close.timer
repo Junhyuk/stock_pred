@@ -1,0 +1,11 @@
+[Unit]
+Description=Run RoboQuant local LLM close news pipeline on Korean weekdays
+
+[Timer]
+OnCalendar=Mon..Fri *-*-* 18:20:00
+Timezone=Asia/Seoul
+Persistent=true
+Unit=roboquant-local-llm-close.service
+
+[Install]
+WantedBy=timers.target

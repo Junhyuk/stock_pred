@@ -11,6 +11,7 @@ from roboquant.market_outlook import (
     _linear_predict,
     build_market_outlook_dataset,
     fit_market_outlook_model,
+    market_outlook_input_status,
     normal_cdf,
     refresh_market_outlook_forecasts,
     target_dates_for_run,
@@ -34,6 +35,60 @@ def test_market_outlook_target_dates_skip_weekend_and_config_holiday() -> None:
 
     assert targets["TODAY"] == date(2026, 6, 30)
     assert targets["WEEK"] == date(2026, 7, 3)
+
+
+def test_market_outlook_target_dates_use_next_session_after_weekend_stale_asof() -> None:
+    targets = target_dates_for_run(date(2026, 7, 16), today=date(2026, 7, 19))
+
+    assert targets["TODAY"] == date(2026, 7, 20)
+
+
+def test_market_outlook_blocks_stale_domestic_input_until_prior_session_is_complete(tmp_path) -> None:
+    conn = connect_database(tmp_path / "outlook_input_gate.duckdb")
+    _seed_market_outlook_input(conn, date(2026, 7, 16), symbols=50)
+
+    blocked = market_outlook_input_status(
+        conn,
+        asof_date=date(2026, 7, 16),
+        target_date=date(2026, 7, 20),
+    )
+
+    assert blocked["forecast_status"] == "blocked_stale_input"
+    assert blocked["required_domestic_asof_date"] == date(2026, 7, 17)
+    assert any("국내 기준일" in message for message in blocked["messages"])
+
+    _seed_market_outlook_input(conn, date(2026, 7, 17), symbols=50)
+    confirmed = market_outlook_input_status(
+        conn,
+        asof_date=date(2026, 7, 17),
+        target_date=date(2026, 7, 20),
+    )
+
+    assert confirmed["forecast_status"] == "confirmed"
+    assert confirmed["benchmark_markets"] == ["KOSDAQ", "KOSPI"]
+    assert confirmed["top50_price_count"] == confirmed["top50_total"] == 50
+
+
+def test_latest_market_outlook_hides_stale_target_until_confirmed_inputs_exist(tmp_path) -> None:
+    conn = connect_database(tmp_path / "outlook_current_gate.duckdb")
+    _seed_market_outlook_input(conn, date(2026, 7, 16), symbols=50)
+    _seed_forecast_row(conn, date(2026, 7, 16), date(2026, 7, 17), "legacy")
+    sunday = datetime(2026, 7, 19, 12, tzinfo=UTC)
+    config = {"market_outlook": {"require_confirmed_inputs": True, "use_pykrx_calendar": False}}
+
+    blocked = get_market_outlook(conn, config=config, now=sunday)
+
+    assert blocked["status"] == "blocked_stale_input"
+    assert blocked["target_date"] == "2026-07-20"
+    assert blocked["items"] == []
+
+    _seed_market_outlook_input(conn, date(2026, 7, 17), symbols=50)
+    _seed_forecast_row(conn, date(2026, 7, 17), date(2026, 7, 20), "confirmed")
+    confirmed = get_market_outlook(conn, config=config, now=sunday)
+
+    assert confirmed["forecast_status"] == "confirmed"
+    assert confirmed["target_date"] == "2026-07-20"
+    assert {item["market"] for item in confirmed["items"]} == {"KOSPI", "KOSDAQ"}
 
 
 def test_market_outlook_dataset_uses_asof_or_earlier_features(tmp_path) -> None:
@@ -260,3 +315,104 @@ def _seed_benchmark(conn) -> None:
             index += 1
         current += timedelta(days=1)
     append_dedup_table(conn, "benchmark_daily", pd.DataFrame(rows), ["date", "benchmark"])
+
+
+def _seed_market_outlook_input(conn, asof: date, *, symbols: int) -> None:
+    append_dedup_table(
+        conn,
+        "benchmark_daily",
+        pd.DataFrame(
+            [
+                {
+                    "date": asof,
+                    "benchmark": market,
+                    "open": 1000.0,
+                    "high": 1010.0,
+                    "low": 990.0,
+                    "close": 1000.0,
+                    "volume": 1.0,
+                    "trading_value": 1.0,
+                    "collected_at": datetime(2026, 7, 17, 18),
+                }
+                for market in ("KOSPI", "KOSDAQ")
+            ]
+        ),
+        ["date", "benchmark"],
+    )
+    if asof != date(2026, 7, 16):
+        return
+    snapshot = date(2026, 7, 17)
+    rows = []
+    for index in range(symbols):
+        symbol = f"{index + 1:06d}"
+        market = "KOSPI" if index < 30 else "KOSDAQ"
+        conn.execute(
+            """
+            INSERT INTO prediction_universe_snapshot (
+              snapshot_date, symbol, name, market, raw_market_cap_rank,
+              prediction_rank, provider, universe_rule, is_enabled
+            )
+            VALUES (?, ?, ?, ?, ?, ?, 'fixture', 'prediction_top_market_cap', TRUE)
+            """,
+            [snapshot, symbol, f"Stock {symbol}", market, index + 1, index + 1],
+        )
+        rows.append(
+            {
+                "date": date(2026, 7, 17),
+                "symbol": symbol,
+                "open": 100.0,
+                "high": 101.0,
+                "low": 99.0,
+                "close": 100.0,
+                "adj_close": 100.0,
+                "volume": 1000.0,
+                "trading_value": 100000.0,
+                "market_cap": None,
+                "source": "fixture",
+                "collected_at": datetime(2026, 7, 17, 18),
+            }
+        )
+    conn.execute(
+        """
+        INSERT INTO universe_refresh_runs (
+          run_id, snapshot_date, universe_rule, provider, status, completed_at
+        ) VALUES ('fixture-ready', ?, 'prediction_top_market_cap', 'fixture', 'ready', ?)
+        """,
+        [snapshot, datetime(2026, 7, 17, 18)],
+    )
+    append_dedup_table(conn, "prices_daily", pd.DataFrame(rows), ["date", "symbol"])
+
+
+def _seed_forecast_row(conn, asof: date, target: date, status: str) -> None:
+    rows = []
+    for market in ("KOSPI", "KOSDAQ"):
+        rows.append(
+            {
+                "asof_date": asof,
+                "target_date": target,
+                "horizon": "TODAY",
+                "market": market,
+                "expected_return": 0.01,
+                "range_low": -0.01,
+                "range_high": 0.03,
+                "up_probability": 0.6,
+                "down_probability": 0.4,
+                "shock_probability": 0.1,
+                "direction": "BULLISH",
+                "confidence": 0.7,
+                "drivers_json": "[]",
+                "data_quality_json": '{"status":"ready"}',
+                "model_version": f"fixture-{target.isoformat()}",
+                "created_at": datetime(2026, 7, 17, 18),
+                "prediction_session_date": target,
+                "domestic_asof_date": asof,
+                "forecast_status": status,
+                "calendar_source": "fixture",
+            }
+        )
+    append_dedup_table(
+        conn,
+        "market_outlook_forecasts",
+        pd.DataFrame(rows),
+        ["asof_date", "target_date", "horizon", "market", "model_version"],
+    )

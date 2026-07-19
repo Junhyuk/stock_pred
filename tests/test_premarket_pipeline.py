@@ -14,7 +14,7 @@ sys.modules[SPEC.name] = pipeline
 SPEC.loader.exec_module(pipeline)
 
 
-def test_premarket_pipeline_runs_final_shadow_after_regime() -> None:
+def test_premarket_pipeline_runs_final_shadows_after_regime() -> None:
     commands = pipeline.build_commands(
         Namespace(
             config="configs/global_market.yaml",
@@ -32,10 +32,12 @@ def test_premarket_pipeline_runs_final_shadow_after_regime() -> None:
         "scripts/collect_premarket_snapshot.py",
         "scripts/build_market_regime.py",
         "scripts/run_premarket_shadow.py",
+        "scripts/run_us_korea_linkage_daily.py",
     ]
-    assert commands[-1][-4:] == [
+    assert commands[-2][-4:] == [
         "--stage",
         "final_premarket",
         "--date",
         "latest",
     ]
+    assert commands[-1][-4:] == ["--stage", "premarket", "--date", "latest"]

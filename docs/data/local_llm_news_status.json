@@ -1,0 +1,80 @@
+{
+  "status": "ready",
+  "production_weight": 0.0,
+  "latest_run": {
+    "stage": "premarket",
+    "model_name": "roboquant-news:qwen3.5-27b-q4",
+    "model_digest": "67a7d3bcca24e87b1ca651157d133fbcc9b6326817f950e17c5bcdcf8ce28a8b",
+    "prompt_version": "local-news-v1",
+    "requested_document_count": 12,
+    "assessed_document_count": 12,
+    "cached_document_count": 124,
+    "input_tokens": "[redacted]",
+    "output_tokens": "[redacted]",
+    "thinking_probe_count": 0,
+    "status": "ready",
+    "completed_at": "2026-07-19T15:00:33.677770"
+  },
+  "counts": {
+    "documents": 244,
+    "assessments": 136,
+    "signal_days": 3,
+    "briefs": 2
+  },
+  "sources": [
+    {
+      "source": "market_news_feed",
+      "document_count": 43,
+      "assessment_count": 4
+    },
+    {
+      "source": "marketnewsfeed",
+      "document_count": 100,
+      "assessment_count": 92
+    },
+    {
+      "source": "opendart",
+      "document_count": 101,
+      "assessment_count": 40
+    }
+  ],
+  "shadow": {
+    "status": "ready",
+    "production_weight": 0.0,
+    "items": [
+      {
+        "market": "KOSPI",
+        "gate_status": "not_ready",
+        "calibration_count": 252,
+        "feature_coverage": 0.0,
+        "production_weight": 0.0
+      },
+      {
+        "market": "KOSDAQ",
+        "gate_status": "not_ready",
+        "calibration_count": 252,
+        "feature_coverage": 0.0,
+        "production_weight": 0.0
+      }
+    ],
+    "runs": [
+      {
+        "market": "KOSPI",
+        "signal_days": 2,
+        "mature_prediction_dates": 1345,
+        "gate_status": "not_ready",
+        "production_weight": 0.0,
+        "fail_reason": "requires 60 LLM signal days"
+      },
+      {
+        "market": "KOSDAQ",
+        "signal_days": 2,
+        "mature_prediction_dates": 1345,
+        "gate_status": "not_ready",
+        "production_weight": 0.0,
+        "fail_reason": "requires 60 LLM signal days"
+      }
+    ]
+  },
+  "disclaimer": "로컬 LLM 신호와 LightGBM 범위는 연구·정보제공용 shadow 검증이며 production 시장 예측을 변경하지 않습니다."
+}

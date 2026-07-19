@@ -216,7 +216,66 @@ market_outlook:
   breadth_weight: 0.35
   next_day_range_multiplier: 1.25
   use_pykrx_calendar: true
+  require_confirmed_inputs: true
   krx_holidays: []
+
+market_investor_flows:
+  provider: pykrx
+  markets: ["KOSPI", "KOSDAQ"]
+  final_cutoff_kst: "18:20"
+  top_n: 30
+  historical_backfill_days: 600
+  sleep_seconds: 0.2
+
+market_range_shadow:
+  enabled: true
+  horizons: ["TODAY"]
+  initial_train_days: 600
+  backtest_days: 600
+  calibration_window: 252
+  min_calibration_rows: 60
+  target_coverage: 0.80
+  coverage_lower_bound: 0.75
+  coverage_upper_bound: 0.85
+  max_average_width_ratio: 1.10
+  max_low_breach_worsening: 0.02
+  minimum_live_final_days: 60
+  feature_version: market_flow_v1
+  range_version: market-range-flow-conformal-v1
+
+market_anchor_shadow:
+  enabled: true
+  model_name: market-anchor-quantile-shadow-v1
+  feature_version: market_anchor_v1
+  forecast_stage: final_premarket
+  source: pykrx
+  start_date: "2019-01-02"
+  sleep_seconds: 0.2
+  kospi_anchors: ["005930", "000660", "005380"]
+  kosdaq_top_n: 3
+  initial_train_days: 756
+  purge_days: 1
+  retrain_step_days: 21
+  calibration_window: 252
+  min_calibration_rows: 60
+  min_feature_support_rows: 60
+  min_feature_support_fraction: 0.05
+  target_coverage: 0.80
+  coverage_lower_bound: 0.75
+  coverage_upper_bound: 0.85
+  max_average_width_ratio: 1.10
+  max_low_breach_worsening: 0.02
+  minimum_live_final_days: 60
+  quantiles: [0.10, 0.50, 0.90]
+  lightgbm:
+    num_leaves: 7
+    min_child_samples: 80
+    learning_rate: 0.03
+    n_estimators: 250
+    reg_lambda: 10.0
+    feature_fraction: 0.7
+    random_state: 42
+    n_jobs: 4
 
 premarket_shadow:
   enabled: true
@@ -225,6 +284,33 @@ premarket_shadow:
   production_weight: 0.0
   feature_version: premarket_signed_global_v1
   model_version: premarket_shadow_v1
+
+market_us_linkage_shadow:
+  enabled: true
+  model_name: market-us-linkage-shadow-v1
+  feature_version: market_us_linkage_v1
+  initial_train_days: 504
+  purge_days: 1
+  retrain_step_days: 21
+  calibration_window: 252
+  min_calibration_rows: 60
+  feedback_window: 60
+  min_feedback_rows: 60
+  max_overlay_weight: 0.20
+  skill_improvement_for_max_weight: 0.10
+  min_effective_weight: 0.005
+  min_oos_rows: 252
+  min_live_observations: 60
+  target_coverage: 0.80
+  coverage_lower_bound: 0.75
+  coverage_upper_bound: 0.85
+  max_average_width_ratio: 1.10
+  max_low_breach_worsening: 0.02
+  nasdaq_shock_threshold: -0.03
+  sox_shock_threshold: -0.04
+  huber_epsilon: 1.35
+  huber_alpha: 0.0005
+  huber_max_iter: 300
 
 market_credit_balance:
   enabled: true

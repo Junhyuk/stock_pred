@@ -418,6 +418,248 @@ def today_market_html() -> HTMLResponse:
     )
 
 
+def marketnewsfeed_llm_html() -> HTMLResponse:
+    return HTMLResponse(
+        _page(
+            "AI Robo Quant MarketNewsFeed Local LLM Shadow",
+            """
+            <section class="hero compact">
+              <a class="link" href="/dashboard">← Dashboard</a>
+              <a class="link" href="/demo/today">오늘 시장 업데이트 →</a>
+              <h1>MarketNewsFeed 로컬 LLM Shadow</h1>
+              <p>공개 렌더 headline만 요약해 별도 신호로 검증합니다. production 추천과 예측값은 변경하지 않습니다.</p>
+            </section>
+            <section id="marketnewsfeedLlmMetrics" class="grid cards">
+              <article class="metric"><span class="muted">로딩 중</span><strong>-</strong></article>
+            </section>
+            <section class="grid two">
+              <article class="panel"><h2>실행·토큰 상태</h2><div id="marketnewsfeedLlmRun" class="stack empty">로컬 Ollama 상태를 불러오는 중입니다.</div></article>
+              <article class="panel"><h2>KOSPI/KOSDAQ 범위 Shadow</h2><div id="marketnewsfeedLlmRange" class="stack empty">범위 shadow 상태를 불러오는 중입니다.</div></article>
+            </section>
+            <article class="panel"><h2>2M/3M A/B Gate</h2><div id="marketnewsfeedLlmGate" class="table empty">A/B gate 상태를 불러오는 중입니다.</div></article>
+            <article class="panel"><h2>최근 headline 구조화 요약</h2><div id="marketnewsfeedLlmItems" class="table empty">수집된 headline 요약이 없습니다.</div></article>
+            <p id="marketnewsfeedLlmDisclaimer" class="notice"></p>
+            <div id="marketnewsfeedLlmPage" hidden></div>
+            <script>
+            document.addEventListener("DOMContentLoaded", async () => {
+              const escape = value => String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
+              const pct = value => value === null || value === undefined || Number.isNaN(Number(value)) ? "-" : (Number(value) * 100).toFixed(1) + "%";
+              const num = value => value === null || value === undefined || Number.isNaN(Number(value)) ? "-" : Number(value).toFixed(3);
+              const statusLabel = value => ({
+                model_import_failed: "모델 import 필요",
+                unavailable: "Ollama 연결 대기",
+                not_ready: "검증 대기",
+                ready: "준비됨",
+                completed: "완료"
+              })[value] || value || "검증 대기";
+              const table = (items, columns) => !items?.length ? '<div class="empty">데이터 미수집 또는 검증 대기 상태입니다.</div>' : `<table><thead><tr>${columns.map(column => `<th>${escape(column.label)}</th>`).join("")}</tr></thead><tbody>${items.map(item => `<tr>${columns.map(column => `<td>${column.format ? column.format(item[column.key], item) : escape(item[column.key] ?? "-")}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+              const metric = (label, value, sub) => `<article class="metric"><span class="muted">${escape(label)}</span><strong>${escape(value)}</strong><p class="muted">${escape(sub || "")}</p></article>`;
+              try {
+                const response = await fetch("/api/news/marketnewsfeed/llm", {cache: "no-store"});
+                if (!response.ok) throw new Error("API " + response.status);
+                const data = await response.json();
+                const run = data.latest_run || {};
+                const counts = data.counts || {};
+                document.getElementById("marketnewsfeedLlmMetrics").innerHTML = [
+                  metric("LLM 상태", statusLabel(data.status), run.model_name || "로컬 전용"),
+                  metric("평가 headline", counts.assessments ?? 0, `수집 ${counts.headlines ?? 0}건`),
+                  metric("신호 일수", counts.signal_days ?? 0, "gate 최소 60일"),
+                  metric("Production weight", String(data.production_weight ?? 0), "shadow only")
+                ].join("");
+                document.getElementById("marketnewsfeedLlmRun").innerHTML = [
+                  ["모델", run.model_name], ["실행 상태", statusLabel(run.status)], ["입력 / 출력 token", `${run.input_tokens ?? 0} / ${run.output_tokens ?? 0}`], ["지연", run.latency_ms ? run.latency_ms + "ms" : "-"], ["thinking probe", run.thinking_probe_count ?? 0], ["오류", run.error_message]
+                ].map(([label, value]) => `<div class="row"><span>${escape(label)}</span><b>${escape(value ?? "-")}</b></div>`).join("");
+                document.getElementById("marketnewsfeedLlmRange").innerHTML = (data.market_range_shadow || []).length ? data.market_range_shadow.map(item => `<div class="row"><span><b>${escape(item.market)}</b><br><small class="muted">${escape(item.coverage_status)}</small></span><span>${pct(item.range_low)} ~ ${pct(item.range_high)}</span></div>`).join("") : '<div class="empty">60일 신호 이력 전까지 range shadow는 not_ready로 유지됩니다.</div>';
+                document.getElementById("marketnewsfeedLlmGate").innerHTML = table(data.shadow || [], [
+                  {key:"horizon", label:"기간"}, {key:"gate_status", label:"Gate"}, {key:"signal_days", label:"신호일"}, {key:"mature_prediction_dates", label:"성숙 예측일"}, {key:"fail_reason", label:"사유"}
+                ]);
+                document.getElementById("marketnewsfeedLlmItems").innerHTML = table(data.items || [], [
+                  {key:"published_at", label:"시각", format:value => escape(String(value || "-").slice(0, 16))},
+                  {key:"headline", label:"Headline", format:(value, item) => item.source_url ? `<a href="${escape(item.source_url)}" target="_blank" rel="noreferrer">${escape(value)}</a>` : escape(value)},
+                  {key:"summary_ko", label:"짧은 요약"}, {key:"event_type", label:"이벤트"}, {key:"direction", label:"방향"}, {key:"importance", label:"중요도"}, {key:"confidence", label:"신뢰도", format:pct},
+                  {key:"themes", label:"테마", format:value => escape((value || []).join(", "))}, {key:"mapped_symbols", label:"확정 매핑", format:value => escape((value || []).join(", "))},
+                  {key:"input_tokens", label:"입력 token"}, {key:"output_tokens", label:"출력 token"}
+                ]);
+                document.getElementById("marketnewsfeedLlmDisclaimer").textContent = data.disclaimer || "";
+              } catch (error) {
+                document.getElementById("marketnewsfeedLlmMetrics").innerHTML = metric("LLM 상태", "오류", "API 응답을 확인하세요");
+                document.getElementById("marketnewsfeedLlmRun").textContent = "로컬 LLM 상태를 불러오지 못했습니다.";
+              }
+            });
+            </script>
+            """,
+        )
+    )
+
+
+def local_llm_news_html() -> HTMLResponse:
+    return HTMLResponse(
+        _page(
+            "AI Robo Quant Local LLM News Shadow",
+            """
+            <section class="hero compact">
+              <a class="link" href="/dashboard">← Dashboard</a>
+              <a class="link" href="/demo/tomorrow">다음 거래일 전망 →</a>
+              <h1>로컬 LLM 뉴스 Shadow</h1>
+              <p>승인된 뉴스 메타데이터만 Qwen 로컬 모델로 정규화합니다. Ridge 시장 전망은 그대로 유지되고, LGBM 범위 후보는 별도 검증합니다.</p>
+            </section>
+            <section id="localLlmMetrics" class="grid cards">
+              <article class="metric"><span class="muted">로딩 중</span><strong>-</strong></article>
+            </section>
+            <section class="grid two">
+              <article class="panel"><h2>출처별 큐·Cache</h2><div id="localLlmSources" class="table empty">출처 상태를 불러오는 중입니다.</div></article>
+              <article class="panel"><h2>실행·토큰 상태</h2><div id="localLlmRun" class="stack empty">로컬 Ollama 상태를 불러오는 중입니다.</div></article>
+            </section>
+            <section class="grid two">
+              <article class="panel"><h2>KOSPI/KOSDAQ LGBM Range Shadow</h2><div id="localLlmShadow" class="detail-list empty">Shadow 예측을 불러오는 중입니다.</div></article>
+              <article class="panel"><h2>Gate 비교</h2><div id="localLlmGate" class="detail-list empty">Gate 상태를 불러오는 중입니다.</div></article>
+            </section>
+            <article class="panel"><h2>구조화 시장 브리프</h2><div id="localLlmBrief" class="stack empty">브리프를 불러오는 중입니다.</div></article>
+            <article class="panel"><h2>최근 구조화 뉴스</h2><div id="localLlmItems" class="news-list empty">요약을 불러오는 중입니다.</div></article>
+            <article class="panel"><h2>예측 Feature 기여도</h2><div id="localLlmAttributions" class="detail-list empty">Attribution을 불러오는 중입니다.</div></article>
+            <p id="localLlmDisclaimer" class="notice"></p>
+            <div id="localLlmNewsPage" hidden></div>
+            <script>
+            document.addEventListener("DOMContentLoaded", async () => {
+              const escape = value => String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
+              const pct = value => value === null || value === undefined || Number.isNaN(Number(value)) ? "-" : (Number(value) * 100).toFixed(1) + "%";
+              const num = value => value === null || value === undefined || Number.isNaN(Number(value)) ? "-" : Number(value).toFixed(4);
+              const table = (items, columns) => !items?.length ? '<div class="empty">데이터 미수집 또는 검증 대기 상태입니다.</div>' : `<table><thead><tr>${columns.map(c => `<th>${escape(c.label)}</th>`).join("")}</tr></thead><tbody>${items.map(item => `<tr>${columns.map(c => `<td>${c.format ? c.format(item[c.key], item) : escape(item[c.key] ?? "-")}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+              const metric = (label, value, detail) => `<article class="metric"><span class="muted">${escape(label)}</span><strong>${escape(value)}</strong><p class="muted">${escape(detail || "")}</p></article>`;
+              const newsItems = items => !items?.length ? '<div class="empty">구조화 뉴스가 아직 없습니다.</div>' : items.map(item => {
+                const source = escape(item.source || "-");
+                const timestamp = escape(String(item.available_at || "-").slice(0, 16));
+                const title = escape(item.title || "제목 없음");
+                const titleLink = item.source_url ? `<a href="${escape(item.source_url)}" target="_blank" rel="noreferrer">${title}</a>` : title;
+                const themes = Array.isArray(item.themes) && item.themes.length ? item.themes.join(", ") : "테마 없음";
+                const direction = escape(item.direction || "uncertain");
+                return `<div class="news-item">
+                  <div class="news-item-head"><div><span class="muted">${timestamp} · ${source}</span><h3>${titleLink}</h3></div><span class="chip ${direction === "risk_off" ? "warn" : ""}">${direction}</span></div>
+                  <p>${escape(item.summary_ko || "요약 없음")}</p>
+                  <div class="news-meta"><span>${escape(item.event_type || "event")}</span><span>중요도 ${escape(item.importance ?? "-")}</span><span>신뢰도 ${pct(item.confidence)}</span><span>${escape(themes)}</span><span>token ${escape(item.input_tokens ?? 0)}/${escape(item.output_tokens ?? 0)}</span></div>
+                </div>`;
+              }).join("");
+              const detail = (label, value) => `<span><small>${escape(label)}</small><b>${value}</b></span>`;
+              const shadowItems = items => !items?.length ? '<div class="empty">Shadow 예측이 아직 없습니다.</div>' : items.map(item => {
+                const status = escape(item.gate_status || "not_ready");
+                return `<div class="detail-item"><div class="detail-head"><strong>${escape(item.market || "-")}</strong><span class="chip ${status === "not_ready" ? "warn" : ""}">${status}</span></div>
+                  <div class="detail-grid">${detail("대상일", escape(String(item.target_date || "-").slice(0, 10)))}${detail("Ridge", pct(item.baseline_expected_return))}${detail("LGBM q50", pct(item.expected_return))}${detail("80% 범위", `${pct(item.range_low)} ~ ${pct(item.range_high)}`)}${detail("LLM coverage", pct(item.feature_coverage))}</div></div>`;
+              }).join("");
+              const gateItems = items => !items?.length ? '<div class="empty">Gate 결과가 아직 없습니다.</div>' : items.map(item => {
+                const status = escape(item.gate_status || "not_ready");
+                return `<div class="detail-item"><div class="detail-head"><strong>${escape(item.market || "-")}</strong><span class="chip ${status === "not_ready" ? "warn" : ""}">${status}</span></div>
+                  <div class="detail-grid">${detail("신호일", escape(item.signal_days ?? 0))}${detail("성숙 예측", escape(item.mature_prediction_dates ?? 0))}${detail("운영 반영", escape(item.production_weight ?? 0))}</div>
+                  <p class="muted">${escape(item.fail_reason || "평가 완료")}</p></div>`;
+              }).join("");
+              const attributionItems = items => !items?.length ? '<div class="empty">Feature 기여도가 아직 없습니다.</div>' : items.slice(0, 24).map(item => `<div class="detail-item"><div class="detail-head"><strong>${escape(item.market || "-")} · ${escape(item.feature_name || "-")}</strong><span class="muted">${escape(item.component || "-")}</span></div><div class="detail-grid">${detail("원값", num(item.raw_value))}${detail("기여", num(item.contribution))}${detail("결측 적용", escape(item.default_applied ? "예" : "아니오"))}${detail("상태", escape(item.source_status || "-"))}</div></div>`).join("");
+              try {
+                const response = await fetch("/api/news/local-llm/status", {cache:"no-store"});
+                if (!response.ok) throw new Error("API " + response.status);
+                const data = await response.json();
+                const run = data.latest_run || {};
+                const counts = data.counts || {};
+                document.getElementById("localLlmMetrics").innerHTML = [
+                  metric("LLM 상태", data.status || "not_ready", run.model_name || "로컬 전용"),
+                  metric("문서 / 평가", `${counts.documents ?? 0} / ${counts.assessments ?? 0}`, `cache ${run.cached_document_count ?? 0}`),
+                  metric("신호 일수", counts.signal_days ?? 0, "gate 최소 60일"),
+                  metric("Production weight", String(data.production_weight ?? 0), "shadow only")
+                ].join("");
+                document.getElementById("localLlmSources").innerHTML = table(data.sources || [], [
+                  {key:"source",label:"출처"}, {key:"document_count",label:"문서"}, {key:"assessment_count",label:"평가"}, {key:"latest_available_at",label:"최신 시각",format:v=>escape(String(v || "-").slice(0,16))}
+                ]);
+                document.getElementById("localLlmRun").innerHTML = [["모델",run.model_name],["단계",run.stage],["상태",run.status],["입력 / 출력 token",`${run.input_tokens ?? 0} / ${run.output_tokens ?? 0}`],["thinking probe",run.thinking_probe_count ?? 0],["지연",run.latency_ms ? run.latency_ms + "ms" : "-"],["오류",run.error_message]].map(([k,v])=>`<div class="row"><span>${escape(k)}</span><b>${escape(v ?? "-")}</b></div>`).join("");
+                const shadow = data.shadow || {};
+                document.getElementById("localLlmShadow").innerHTML = shadowItems(shadow.items || []);
+                document.getElementById("localLlmGate").innerHTML = gateItems(shadow.runs || []);
+                const brief = data.brief || {};
+                document.getElementById("localLlmBrief").innerHTML = `<div class="row"><span>${escape(brief.status || "not_ready")}</span><b>${escape(brief.summary_ko || "구조화 신호가 더 필요합니다.")}</b></div>`;
+                document.getElementById("localLlmItems").innerHTML = newsItems(data.items || []);
+                document.getElementById("localLlmAttributions").innerHTML = attributionItems(data.attributions || []);
+                document.getElementById("localLlmDisclaimer").textContent = data.disclaimer || "";
+              } catch (error) {
+                document.getElementById("localLlmMetrics").innerHTML = metric("LLM 상태", "오류", "API 응답을 확인하세요");
+              }
+            });
+            </script>
+            """,
+        )
+    )
+
+
+def us_korea_linkage_html() -> HTMLResponse:
+    return HTMLResponse(
+        _page(
+            "AI Robo Quant Nasdaq SOX Linkage Shadow",
+            """
+            <section class="hero compact">
+              <a class="link" href="/dashboard">← Dashboard</a>
+              <a class="link" href="/demo/tomorrow">다음 거래일 전망 →</a>
+              <h1>Nasdaq · SOX KOSPI/KOSDAQ 연동 Shadow</h1>
+              <p>전일 미국장 확정값과 다음 KRX 세션의 관계를 시장별로 검증합니다. 기존 Ridge 전망은 변경하지 않으며, close-loop 가중치는 연구용 shadow에만 적용됩니다.</p>
+            </section>
+            <section id="usLinkageMetrics" class="grid cards">
+              <article class="metric"><span class="muted">로딩 중</span><strong>-</strong></article>
+            </section>
+            <section class="grid two">
+              <article class="panel"><h2>상관성 · 최근 60일</h2><div id="usLinkageCorrelation" class="table empty">상관성 데이터를 불러오는 중입니다.</div></article>
+              <article class="panel"><h2>Close-Loop Feedback</h2><div id="usLinkageFeedback" class="stack empty">feedback 상태를 불러오는 중입니다.</div></article>
+            </section>
+            <section class="grid two">
+              <article class="panel"><h2>최신 Shadow 후보</h2><div id="usLinkageForecast" class="detail-list empty">최신 후보를 불러오는 중입니다.</div></article>
+              <article class="panel"><h2>시장별 Gate</h2><div id="usLinkageGate" class="detail-list empty">gate 상태를 불러오는 중입니다.</div></article>
+            </section>
+            <article class="panel"><h2>최근 Out-of-Sample 비교</h2><div id="usLinkageHistory" class="table empty">과거 검증 결과를 불러오는 중입니다.</div></article>
+            <p id="usLinkageDisclaimer" class="notice"></p>
+            <div id="usKoreaLinkagePage" hidden></div>
+            <script>
+            document.addEventListener("DOMContentLoaded", async () => {
+              const escape = value => String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
+              const pct = value => value === null || value === undefined || Number.isNaN(Number(value)) ? "-" : (Number(value) * 100).toFixed(2) + "%";
+              const num = value => value === null || value === undefined || Number.isNaN(Number(value)) ? "-" : Number(value).toFixed(4);
+              const metric = (label, value, detail) => `<article class="metric"><span class="muted">${escape(label)}</span><strong>${escape(value)}</strong><p class="muted">${escape(detail || "")}</p></article>`;
+              const table = (items, columns) => !items?.length ? '<div class="empty">데이터 미수집 또는 검증 대기 상태입니다.</div>' : `<table><thead><tr>${columns.map(c => `<th>${escape(c.label)}</th>`).join("")}</tr></thead><tbody>${items.map(item => `<tr>${columns.map(c => `<td>${c.format ? c.format(item[c.key], item) : escape(item[c.key] ?? "-")}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+              const detail = (label, value) => `<span><small>${escape(label)}</small><b>${value}</b></span>`;
+              const badge = value => `<span class="chip ${String(value || "").includes("reject") || String(value || "").includes("blocked") ? "warn" : ""}">${escape(value || "not_ready")}</span>`;
+              const forecastCards = items => !items?.length ? '<div class="empty">확정된 국내 입력이 준비되면 최신 shadow 후보를 생성합니다.</div>' : items.map(item => `<div class="detail-item"><div class="detail-head"><strong>${escape(item.market)}</strong>${badge(item.status)}</div><div class="detail-grid">${detail("Target", escape(String(item.prediction_date || "-").slice(0,10)))}${detail("Ridge", pct(item.baseline_expected_return))}${detail("Global", pct(item.global_expected_return))}${detail("Delta", pct(item.global_delta))}${detail("Dynamic weight", pct(item.dynamic_overlay_weight))}${detail("Candidate", pct(item.candidate_expected_return))}${detail("80% range", `${pct(item.candidate_range_low)} ~ ${pct(item.candidate_range_high)}`)}</div></div>`).join("");
+              const gateCards = items => !items?.length ? '<div class="empty">최소 OOS와 live 관찰 기간을 채우면 gate를 평가합니다.</div>' : items.map(item => { const m=item.metrics||{}; return `<div class="detail-item"><div class="detail-head"><strong>${escape(item.market)}</strong>${badge(item.gate_status)}</div><div class="detail-grid">${detail("OOS", escape(m.oos_count ?? item.oos_count ?? 0))}${detail("Live", escape(m.live_observation_count ?? item.live_observation_count ?? 0))}${detail("Baseline MAE", pct(m.baseline_mae))}${detail("Candidate MAE", pct(m.candidate_mae))}${detail("평균 weight", pct(m.mean_dynamic_overlay_weight))}${detail("Coverage", pct(m.candidate_coverage))}</div><p class="muted">${escape(item.fail_reason || "검증 조건 충족")}</p></div>`; }).join("");
+              try {
+                const [overviewResponse, historyResponse] = await Promise.all([
+                  fetch("/api/market-us-linkage", {cache:"no-store"}),
+                  fetch("/api/market-us-linkage/history?limit=24", {cache:"no-store"})
+                ]);
+                if (!overviewResponse.ok || !historyResponse.ok) throw new Error("API error");
+                const data = await overviewResponse.json();
+                const history = await historyResponse.json();
+                const feedback = data.feedback || {};
+                document.getElementById("usLinkageMetrics").innerHTML = [
+                  metric("상태", data.status || "not_ready", "production weight 0"),
+                  metric("최신 후보", (data.items || []).length, "확정 입력 기준"),
+                  metric("Feedback", feedback.count ?? 0, `live ${feedback.live_count ?? 0}`),
+                  metric("평균 shadow weight", pct(feedback.mean_dynamic_overlay_weight), "최대 20%")
+                ].join("");
+                document.getElementById("usLinkageCorrelation").innerHTML = table(data.correlations || [], [
+                  {key:"market",label:"시장"}, {key:"signal",label:"신호"}, {key:"sample_count",label:"표본"}, {key:"pearson",label:"전체 상관",format:pct}, {key:"recent_60d_pearson",label:"60D 상관",format:pct}
+                ]);
+                document.getElementById("usLinkageFeedback").innerHTML = [
+                  ["Baseline MAE", pct(feedback.baseline_mae)], ["Candidate MAE", pct(feedback.candidate_mae)], ["방향 정확도", pct(feedback.candidate_direction_accuracy)], ["범위 포함률", pct(feedback.candidate_coverage)]
+                ].map(([k,v]) => `<div class="row"><span>${escape(k)}</span><b>${escape(v)}</b></div>`).join("") || '<div class="empty">성숙한 실제값을 기다리고 있습니다.</div>';
+                document.getElementById("usLinkageForecast").innerHTML = forecastCards(data.items || []);
+                document.getElementById("usLinkageGate").innerHTML = gateCards(data.runs || []);
+                document.getElementById("usLinkageHistory").innerHTML = table(history.items || [], [
+                  {key:"prediction_date",label:"대상일",format:v=>escape(String(v || "-").slice(0,10))}, {key:"market",label:"시장"}, {key:"baseline_expected_return",label:"Baseline",format:pct}, {key:"global_expected_return",label:"Global",format:pct}, {key:"dynamic_overlay_weight",label:"Weight",format:pct}, {key:"candidate_expected_return",label:"Candidate",format:pct}, {key:"actual_return",label:"실제",format:pct}, {key:"candidate_range_low",label:"80% Low",format:pct}, {key:"candidate_range_high",label:"80% High",format:pct}
+                ]);
+                document.getElementById("usLinkageDisclaimer").textContent = data.disclaimer || data.message || "";
+              } catch (_) {
+                document.getElementById("usLinkageMetrics").innerHTML = metric("상태", "오류", "API 응답을 확인하세요");
+                document.getElementById("usLinkageForecast").textContent = "Nasdaq/SOX linkage 데이터를 불러오지 못했습니다.";
+              }
+            });
+            </script>
+            """,
+        )
+    )
+
+
 def tomorrow_market_html() -> HTMLResponse:
     return HTMLResponse(
         _page(
@@ -646,6 +888,25 @@ def _page(title: str, body: str) -> str:
     .risk {{ color: var(--red); }}
     .peer-link {{ font-weight: 800; text-decoration: none; }}
     .table {{ overflow-x: auto; }}
+    .news-list {{ display: grid; }}
+    .news-item {{ display: grid; gap: 8px; padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,.12); }}
+    .news-item:first-child {{ padding-top: 0; }}
+    .news-item:last-child {{ border-bottom: 0; padding-bottom: 0; }}
+    .news-item-head {{ display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }}
+    .news-item h3 {{ margin-top: 4px; font-size: 15px; line-height: 1.45; }}
+    .news-item p {{ color: var(--muted); line-height: 1.55; }}
+    .news-meta {{ display: flex; flex-wrap: wrap; gap: 7px; }}
+    .news-meta span {{ border: 1px solid rgba(255,255,255,.16); color: var(--muted); font-size: 12px; padding: 4px 7px; }}
+    .detail-list {{ display: grid; }}
+    .detail-item {{ display: grid; gap: 10px; padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,.12); }}
+    .detail-item:first-child {{ padding-top: 0; }}
+    .detail-item:last-child {{ border-bottom: 0; padding-bottom: 0; }}
+    .detail-head {{ display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; }}
+    .detail-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); gap: 10px; }}
+    .detail-grid span {{ min-width: 0; }}
+    .detail-grid small, .detail-grid b {{ display: block; }}
+    .detail-grid small {{ color: var(--muted); margin-bottom: 3px; }}
+    .detail-grid b {{ overflow-wrap: anywhere; }}
     table {{ width: 100%; border-collapse: collapse; font-size: 13px; }}
     th, td {{ padding: 9px 8px; border-bottom: 1px solid rgba(255,255,255,.08); text-align: left; vertical-align: top; }}
     td, .metric strong, .metric p {{ overflow-wrap: anywhere; }}
@@ -661,6 +922,8 @@ def _page(title: str, body: str) -> str:
       .search input {{ font-size: 20px; }}
       .factor-line {{ grid-template-columns: 90px 1fr 44px; }}
       .chart-canvas {{ height: 240px; }}
+      .news-item-head {{ flex-direction: column; gap: 8px; }}
+      .detail-head {{ flex-direction: column; gap: 8px; }}
     }}
   </style>
 </head>
@@ -744,6 +1007,7 @@ function statusLabel(status) {{
     ready: "정상",
     partial_ready: "부분 준비",
     not_collected: "미수집",
+    blocked_stale_input: "확정 보류",
     missing: "부족",
     stale: "지연"
   }};
