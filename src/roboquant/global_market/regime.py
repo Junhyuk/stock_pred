@@ -13,6 +13,9 @@ DEFAULT_THRESHOLDS = {
     "sp500_return_1d": -0.02,
     "nasdaq_return_1d": -0.03,
     "sox_return_1d": -0.04,
+    "nikkei_return_1d": -0.02,
+    "taiwan_return_1d": -0.02,
+    "asia_market_score": 10,
     "vix_level": 25.0,
     "vix_change_1d": 0.20,
     "us10y_change_bp_1d": 10.0,
@@ -37,9 +40,24 @@ def resolve_cutoff(value: str | None, cutoff_time_kst: str = "08:00") -> datetim
 
 
 def resolve_prediction_date(value: str | None, cutoff: datetime) -> date:
+    _cutoff_utc_timestamp(cutoff)
     if value is None or str(value).strip().lower() == "latest":
-        return cutoff.astimezone(KST).date()
-    return date.fromisoformat(str(value))
+        prediction_date = cutoff.astimezone(KST).date()
+    else:
+        prediction_date = date.fromisoformat(str(value))
+    validate_prediction_context(prediction_date, cutoff)
+    return prediction_date
+
+
+def validate_prediction_context(prediction_date: date, prediction_cutoff: datetime) -> None:
+    """Reject ambiguous or point-in-time-invalid regime build requests."""
+    _cutoff_utc_timestamp(prediction_cutoff)
+    cutoff_date = prediction_cutoff.astimezone(KST).date()
+    if prediction_date != cutoff_date:
+        raise ValueError(
+            "prediction_date must match the Asia/Seoul date of prediction_cutoff "
+            f"({prediction_date.isoformat()} != {cutoff_date.isoformat()})"
+        )
 
 
 def build_market_regime_row(
@@ -49,9 +67,10 @@ def build_market_regime_row(
     prediction_cutoff: datetime,
     config: dict[str, Any],
 ) -> dict[str, Any]:
-    latest = _latest_daily_frame(conn, prediction_date)
+    validate_prediction_context(prediction_date, prediction_cutoff)
+    latest = _latest_daily_frame(conn, prediction_date, prediction_cutoff)
     if latest.empty:
-        raise RuntimeError("global_market_daily has no rows for market regime calculation")
+        raise RuntimeError("global_market_daily has no cutoff-safe rows for market regime calculation")
     thresholds = {**DEFAULT_THRESHOLDS, **config.get("regime", {}).get("thresholds", {})}
     feature_version = config.get("regime", {}).get("feature_version", DEFAULT_FEATURE_VERSION)
     snapshots = _latest_snapshot_frame(conn, prediction_cutoff)
@@ -62,7 +81,12 @@ def build_market_regime_row(
         "sox_return_1d": _daily_value(latest, "^SOX", "return_1d"),
         "vix_level": _daily_value(latest, "VIXCLS", "close", fallback_symbol="^VIX"),
         "vix_change_1d": _daily_value(latest, "VIXCLS", "return_1d", fallback_symbol="^VIX"),
-        "us10y_change_bp_1d": _daily_absolute_change_bp(conn, "DGS10", prediction_date),
+        "us10y_change_bp_1d": _daily_absolute_change_bp(
+            conn,
+            "DGS10",
+            prediction_date,
+            prediction_cutoff,
+        ),
         "usdkrw_return_1d": _daily_value(latest, "USDKRW=X", "return_1d"),
         "nasdaq_futures_return_snapshot": _snapshot_value(snapshots, "NQ=F", "change_rate"),
         "dow_return_1d": _daily_value(latest, "^DJI", "return_1d"),
@@ -90,6 +114,19 @@ def build_market_regime_row(
         thresholds["sox_return_1d"],
         25,
         "SOX -4% 이하",
+        reasons,
+    )
+    asia_score = _downside_score(
+        signals["nikkei_return_1d"],
+        thresholds["nikkei_return_1d"],
+        int(thresholds["asia_market_score"]),
+        "Nikkei -2% 이하",
+        reasons,
+    ) + _downside_score(
+        signals["taiwan_return_1d"],
+        thresholds["taiwan_return_1d"],
+        int(thresholds["asia_market_score"]),
+        "Taiwan Weighted -2% 이하",
         reasons,
     )
     volatility_score = _upside_score(
@@ -126,7 +163,6 @@ def build_market_regime_row(
         "Nasdaq futures -1% 이하",
         reasons,
     )
-    asia_score = 0
     commodity_score = 0
     global_risk_score = float(
         us_equity_score
@@ -166,27 +202,51 @@ def regime_row_to_frame(row: dict[str, Any]) -> pd.DataFrame:
     return pd.DataFrame([row])
 
 
-def _latest_daily_frame(conn, prediction_date: date) -> pd.DataFrame:
+def _latest_daily_frame(
+    conn,
+    prediction_date: date,
+    prediction_cutoff: datetime,
+) -> pd.DataFrame:
+    frame = _eligible_daily_frame(conn, prediction_date, prediction_cutoff)
+    if frame.empty:
+        return frame
+    return (
+        frame.sort_values(
+            ["symbol", "trade_date", "available_at", "ingested_at", "source_name"],
+            na_position="first",
+        )
+        .drop_duplicates("symbol", keep="last")
+        .reset_index(drop=True)
+    )
+
+
+def _eligible_daily_frame(
+    conn,
+    prediction_date: date,
+    prediction_cutoff: datetime,
+) -> pd.DataFrame:
+    """Return only daily values observable at the requested prediction cutoff.
+
+    Collectors persist timestamps as timezone-naive UTC.  A legacy row without
+    ``source_timestamp`` may still be used only when its ingestion timestamp
+    proves availability before the cutoff.  This is a premarket regime: daily
+    bars for the prediction session itself are excluded even if a provider
+    supplies a placeholder midnight timestamp before the actual close.
+    """
+    cutoff = _cutoff_utc_timestamp(prediction_cutoff)
     return conn.execute(
         """
-        SELECT *
-        FROM (
-            SELECT *,
-                   ROW_NUMBER() OVER (
-                       PARTITION BY symbol
-                       ORDER BY trade_date DESC, ingested_at DESC NULLS LAST
-                   ) AS row_number
-            FROM global_market_daily
-            WHERE trade_date <= ?
-        )
-        WHERE row_number = 1
+        SELECT *, COALESCE(source_timestamp, ingested_at) AS available_at
+        FROM global_market_daily
+        WHERE trade_date < ?
+          AND COALESCE(source_timestamp, ingested_at) <= ?
         """,
-        [prediction_date],
+        [prediction_date, cutoff],
     ).fetchdf()
 
 
 def _latest_snapshot_frame(conn, prediction_cutoff: datetime) -> pd.DataFrame:
-    cutoff = _storage_timestamp(prediction_cutoff.astimezone(KST))
+    cutoff = _cutoff_utc_timestamp(prediction_cutoff)
     return conn.execute(
         """
         SELECT *
@@ -198,10 +258,11 @@ def _latest_snapshot_frame(conn, prediction_cutoff: datetime) -> pd.DataFrame:
                    ) AS row_number
             FROM global_market_intraday_snapshot
             WHERE snapshot_at <= ?
+              AND COALESCE(source_timestamp, ingested_at) <= ?
         )
         WHERE row_number = 1
         """,
-        [cutoff],
+        [cutoff, cutoff],
     ).fetchdf()
 
 
@@ -227,17 +288,23 @@ def _snapshot_value(frame: pd.DataFrame, symbol: str, column: str):
     return None if pd.isna(value) else float(value)
 
 
-def _daily_absolute_change_bp(conn, symbol: str, prediction_date: date) -> float | None:
-    frame = conn.execute(
-        """
-        SELECT close
-        FROM global_market_daily
-        WHERE symbol = ? AND trade_date <= ?
-        ORDER BY trade_date DESC
-        LIMIT 2
-        """,
-        [symbol, prediction_date],
-    ).fetchdf()
+def _daily_absolute_change_bp(
+    conn,
+    symbol: str,
+    prediction_date: date,
+    prediction_cutoff: datetime,
+) -> float | None:
+    frame = _eligible_daily_frame(conn, prediction_date, prediction_cutoff)
+    frame = frame[frame["symbol"].astype(str).eq(symbol)].copy()
+    if not frame.empty:
+        frame["close"] = pd.to_numeric(frame["close"], errors="coerce")
+        frame = frame.dropna(subset=["close"])
+        frame = (
+            frame.sort_values(["trade_date", "available_at", "ingested_at", "source_name"], na_position="first")
+            .drop_duplicates("trade_date", keep="last")
+            .sort_values("trade_date", ascending=False)
+            .head(2)
+        )
     if len(frame) < 2:
         return None
     latest, previous = float(frame.iloc[0]["close"]), float(frame.iloc[1]["close"])
@@ -274,3 +341,9 @@ def _compact_signals(signals: dict[str, Any]) -> dict[str, float]:
 
 def _storage_timestamp(value: datetime) -> datetime:
     return value.replace(tzinfo=None)
+
+
+def _cutoff_utc_timestamp(value: datetime) -> datetime:
+    if value.tzinfo is None or value.utcoffset() is None:
+        raise ValueError("prediction_cutoff must be timezone-aware")
+    return value.astimezone(UTC).replace(tzinfo=None)

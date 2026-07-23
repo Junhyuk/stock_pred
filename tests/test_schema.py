@@ -76,6 +76,10 @@ def test_duckdb_schema_contains_required_tables(tmp_path) -> None:
         "official_data_runs",
         "news_signal_daily",
         "market_outlook_forecasts",
+        "market_outlook_forecast_history",
+        "market_outlook_forecast_outcomes",
+        "market_outlook_direction_shadow_runs",
+        "market_outlook_direction_shadow_observations",
         "market_outlook_feature_attributions",
         "market_investor_flow_runs",
         "market_investor_flows_daily",
@@ -129,3 +133,22 @@ def test_duckdb_schema_contains_required_tables(tmp_path) -> None:
         "forecast_status",
         "calendar_source",
     }.issubset(forecast_columns)
+
+    outcome_columns = {
+        row[0]
+        for row in conn.execute(
+            """
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_name = 'market_outlook_forecast_outcomes'
+            """
+        ).fetchall()
+    }
+    assert {
+        "forecast_id",
+        "actual_return",
+        "actual_direction",
+        "direction_hit",
+        "asof_close",
+        "target_close",
+    }.issubset(outcome_columns)

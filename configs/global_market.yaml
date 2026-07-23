@@ -71,6 +71,9 @@ regime:
     sp500_return_1d: -0.02
     nasdaq_return_1d: -0.03
     sox_return_1d: -0.04
+    nikkei_return_1d: -0.02
+    taiwan_return_1d: -0.02
+    asia_market_score: 10
     vix_level: 25
     vix_change_1d: 0.20
     us10y_change_bp_1d: 10

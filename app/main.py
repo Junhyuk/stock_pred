@@ -68,6 +68,7 @@ from roboquant.dashboard.price_forecast_service import get_top20_price_forecast
 from roboquant.dashboard.price_gap_service import build_prediction_price_gap
 from roboquant.db import connect_database
 from roboquant.market_anchor_shadow import get_market_anchor_shadow
+from roboquant.market_outlook import get_market_outlook_feedback
 from roboquant.market_outlook_ml_shadow import get_market_outlook_ml_shadow
 from roboquant.market_us_linkage import (
     get_market_us_linkage_feedback,
@@ -305,6 +306,15 @@ def market_outlook(date: str = "latest", horizon: str = "all", market: str = "al
         conn.close()
 
 
+@app.get("/api/market-outlook/feedback")
+def market_outlook_feedback(market: str = "all", horizon: str = "all", limit: int = 100):
+    conn = _conn()
+    try:
+        return get_market_outlook_feedback(conn, market=market, horizon=horizon, limit=limit)
+    finally:
+        conn.close()
+
+
 @app.get("/api/market-outlook/shadow")
 def market_outlook_shadow(date: str = "latest", market: str = "all"):
     conn = _conn()
@@ -396,10 +406,14 @@ def cluster_members(cluster_id: int, horizon: str = "3M"):
 
 
 @app.get("/api/backtest/summary")
-def backtest_summary(horizon: str | int = Query("60")):
+def backtest_summary(
+    horizon: str | int = Query("60"),
+    market: str = Query("all"),
+    top_k: int = Query(20, ge=1),
+):
     conn = _conn()
     try:
-        return get_backtest_summary(conn, horizon=horizon)
+        return get_backtest_summary(conn, horizon=horizon, market=market, top_k=top_k)
     finally:
         conn.close()
 
@@ -409,10 +423,11 @@ def backtest_by_model(
     model: str,
     version: str | None = None,
     horizon: str | int = Query("60"),
+    market: str = Query("all"),
 ):
     conn = _conn()
     try:
-        return {"items": get_backtest_by_model(conn, model=model, version=version, horizon=horizon)}
+        return {"items": get_backtest_by_model(conn, model=model, version=version, horizon=horizon, market=market)}
     finally:
         conn.close()
 
@@ -427,10 +442,10 @@ def backtest_by_stock(ticker: str, horizon: str | int | None = Query(None)):
 
 
 @app.get("/api/backtest/top20")
-def backtest_top20(horizon: str | int = Query("60")):
+def backtest_top20(horizon: str | int = Query("60"), market: str = Query("all")):
     conn = _conn()
     try:
-        return {"items": get_top20_backtest(conn, horizon=horizon)}
+        return {"items": get_top20_backtest(conn, horizon=horizon, market=market)}
     finally:
         conn.close()
 
@@ -446,11 +461,13 @@ def backtest_sector(sector: str, horizon: str | int = Query("60")):
 
 @app.get("/api/backtest/price-gap")
 def backtest_price_gap(
-    lookback_days: int = 30,
-    target_days: int = 30,
+    lookback_days: int | None = None,
+    target_days: int | None = None,
     horizon: str = "3M",
+    market: str = "all",
     symbols: str | None = None,
     include_pending: bool = True,
+    top_k: int = 20,
     limit: int = 5000,
 ):
     conn = _conn()
@@ -460,8 +477,10 @@ def backtest_price_gap(
             lookback_days=lookback_days,
             target_days=target_days,
             horizon=horizon,
+            market=market,
             symbols=_parse_symbol_list(symbols),
             include_pending=include_pending,
+            top_k=top_k,
             limit=limit,
         )
     finally:
@@ -469,10 +488,14 @@ def backtest_price_gap(
 
 
 @app.get("/api/models/accuracy")
-def models_accuracy():
+def models_accuracy(
+    horizon: str | int | None = Query(None),
+    market: str = Query("all"),
+    top_k: int = Query(20, ge=1),
+):
     conn = _conn()
     try:
-        return {"items": get_model_accuracy(conn)}
+        return {"items": get_model_accuracy(conn, horizon=horizon, market=market, top_k=top_k)}
     finally:
         conn.close()
 

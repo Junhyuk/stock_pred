@@ -489,8 +489,11 @@ SCHEMA_SQL = [
       benchmark_return DOUBLE,
       excess_return DOUBLE,
       is_hit BOOLEAN,
+      direction_hit BOOLEAN,
       is_outperform BOOLEAN,
       is_top20 BOOLEAN,
+      target_is_top20pct BOOLEAN,
+      selected_top20 BOOLEAN,
       rank_no INTEGER,
       sector VARCHAR,
       created_at TIMESTAMP
@@ -505,7 +508,12 @@ SCHEMA_SQL = [
       horizon_days INTEGER,
       sample_count INTEGER,
       hit_ratio DOUBLE,
+      direction_hit_ratio DOUBLE,
+      absolute_up_rate DOUBLE,
       precision_top20 DOUBLE,
+      top20_direction_hit_ratio DOUBLE,
+      top20_absolute_up_rate DOUBLE,
+      top20_sample_count INTEGER,
       avg_actual_return DOUBLE,
       avg_benchmark_return DOUBLE,
       avg_excess_return DOUBLE,
@@ -1212,6 +1220,108 @@ SCHEMA_SQL = [
       global_cutoff TIMESTAMP,
       forecast_status VARCHAR,
       calendar_source VARCHAR
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS market_outlook_forecast_history (
+      forecast_id VARCHAR PRIMARY KEY,
+      asof_date DATE NOT NULL,
+      target_date DATE NOT NULL,
+      horizon VARCHAR NOT NULL,
+      market VARCHAR NOT NULL,
+      expected_return DOUBLE NOT NULL,
+      range_low DOUBLE,
+      range_high DOUBLE,
+      up_probability DOUBLE,
+      down_probability DOUBLE,
+      shock_probability DOUBLE,
+      direction VARCHAR NOT NULL,
+      direction_return_threshold DOUBLE NOT NULL,
+      direction_probability_threshold DOUBLE NOT NULL,
+      confidence DOUBLE,
+      model_version VARCHAR NOT NULL,
+      prediction_session_date DATE,
+      domestic_asof_date DATE,
+      global_cutoff TIMESTAMP,
+      forecast_status VARCHAR NOT NULL,
+      calendar_source VARCHAR,
+      input_status_json VARCHAR NOT NULL,
+      data_quality_json VARCHAR NOT NULL,
+      created_at TIMESTAMP NOT NULL,
+      UNIQUE (asof_date, target_date, horizon, market, model_version)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS market_outlook_forecast_outcomes (
+      forecast_id VARCHAR PRIMARY KEY,
+      asof_date DATE NOT NULL,
+      target_date DATE NOT NULL,
+      horizon VARCHAR NOT NULL,
+      market VARCHAR NOT NULL,
+      model_version VARCHAR NOT NULL,
+      predicted_direction VARCHAR NOT NULL,
+      direction_return_threshold DOUBLE NOT NULL,
+      asof_close DOUBLE NOT NULL,
+      target_close DOUBLE NOT NULL,
+      actual_return DOUBLE NOT NULL,
+      actual_direction VARCHAR NOT NULL,
+      direction_hit BOOLEAN NOT NULL,
+      absolute_error DOUBLE,
+      interval_covered BOOLEAN,
+      matured_at TIMESTAMP NOT NULL,
+      created_at TIMESTAMP NOT NULL
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS market_outlook_direction_shadow_runs (
+      run_id VARCHAR NOT NULL,
+      model_name VARCHAR NOT NULL,
+      model_version VARCHAR NOT NULL,
+      market VARCHAR NOT NULL,
+      horizon VARCHAR NOT NULL,
+      candidate_name VARCHAR NOT NULL,
+      start_date DATE,
+      end_date DATE,
+      oos_count INTEGER NOT NULL,
+      purge_days INTEGER NOT NULL,
+      rolling_window INTEGER NOT NULL,
+      metrics_json VARCHAR NOT NULL,
+      selection_json VARCHAR NOT NULL,
+      status VARCHAR NOT NULL,
+      production_weight DOUBLE NOT NULL,
+      created_at TIMESTAMP NOT NULL,
+      PRIMARY KEY (run_id, candidate_name)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS market_outlook_direction_shadow_observations (
+      run_id VARCHAR NOT NULL,
+      asof_date DATE NOT NULL,
+      target_date DATE NOT NULL,
+      candidate_name VARCHAR NOT NULL,
+      candidate_source VARCHAR NOT NULL,
+      selected BOOLEAN NOT NULL,
+      selection_source VARCHAR,
+      train_end_date DATE,
+      purge_days INTEGER NOT NULL,
+      expected_return DOUBLE NOT NULL,
+      predicted_direction VARCHAR NOT NULL,
+      actual_return DOUBLE NOT NULL,
+      actual_direction VARCHAR NOT NULL,
+      direction_hit BOOLEAN,
+      actionable BOOLEAN NOT NULL,
+      index_weight DOUBLE NOT NULL,
+      breadth_weight DOUBLE NOT NULL,
+      direction_threshold DOUBLE NOT NULL,
+      rolling_direction_accuracy DOUBLE,
+      rolling_action_coverage DOUBLE,
+      conformal_low DOUBLE,
+      conformal_high DOUBLE,
+      conformal_covered BOOLEAN,
+      conformal_width DOUBLE,
+      conformal_calibration_count INTEGER NOT NULL,
+      created_at TIMESTAMP NOT NULL,
+      PRIMARY KEY (run_id, asof_date, candidate_name)
     )
     """,
     """
@@ -1991,6 +2101,22 @@ SCHEMA_SQL = [
     ON market_outlook_forecasts(asof_date, horizon, market)
     """,
     """
+    CREATE INDEX IF NOT EXISTS idx_market_outlook_forecast_history_target
+    ON market_outlook_forecast_history(target_date, market, horizon)
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_market_outlook_forecast_outcomes_target
+    ON market_outlook_forecast_outcomes(target_date, market, horizon)
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_market_outlook_direction_shadow_runs_latest
+    ON market_outlook_direction_shadow_runs(market, horizon, created_at)
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_market_outlook_direction_shadow_observations_run
+    ON market_outlook_direction_shadow_observations(run_id, candidate_name, asof_date)
+    """,
+    """
     CREATE INDEX IF NOT EXISTS idx_market_outlook_attributions_latest
     ON market_outlook_feature_attributions(asof_date, market, horizon)
     """,
@@ -2288,6 +2414,14 @@ MIGRATION_SQL = [
     "ALTER TABLE market_anchor_features_daily ADD COLUMN IF NOT EXISTS us_nikkei_return_1d DOUBLE",
     "ALTER TABLE market_anchor_features_daily ADD COLUMN IF NOT EXISTS semiconductor_global_link_1d DOUBLE",
     "ALTER TABLE market_anchor_features_daily ADD COLUMN IF NOT EXISTS auto_global_link_1d DOUBLE",
+    "ALTER TABLE backtest_results ADD COLUMN IF NOT EXISTS direction_hit BOOLEAN",
+    "ALTER TABLE backtest_results ADD COLUMN IF NOT EXISTS target_is_top20pct BOOLEAN",
+    "ALTER TABLE backtest_results ADD COLUMN IF NOT EXISTS selected_top20 BOOLEAN",
+    "ALTER TABLE model_performance_daily ADD COLUMN IF NOT EXISTS direction_hit_ratio DOUBLE",
+    "ALTER TABLE model_performance_daily ADD COLUMN IF NOT EXISTS absolute_up_rate DOUBLE",
+    "ALTER TABLE model_performance_daily ADD COLUMN IF NOT EXISTS top20_direction_hit_ratio DOUBLE",
+    "ALTER TABLE model_performance_daily ADD COLUMN IF NOT EXISTS top20_absolute_up_rate DOUBLE",
+    "ALTER TABLE model_performance_daily ADD COLUMN IF NOT EXISTS top20_sample_count INTEGER",
 ]
 
 
@@ -2337,6 +2471,37 @@ def append_dedup_table(
         conn.execute(f"DELETE FROM {table} USING {temp_name} WHERE {join_condition}")
         columns = ", ".join(df.columns)
         conn.execute(f"INSERT INTO {table} ({columns}) SELECT {columns} FROM {temp_name}")
+    finally:
+        conn.unregister(temp_name)
+
+
+def append_immutable_table(
+    conn,
+    table: str,
+    df: pd.DataFrame,
+    key_columns: list[str],
+) -> None:
+    """Insert first-seen rows without replacing previously recorded evidence."""
+    if df.empty:
+        return
+    df = align_to_table_columns(conn, table, df)
+    temp_name = f"tmp_{table}_{uuid4().hex}"
+    conn.register(temp_name, df)
+    join_condition = " AND ".join(
+        [f"existing.{column} = {temp_name}.{column}" for column in key_columns]
+    )
+    columns = ", ".join(df.columns)
+    try:
+        conn.execute(
+            f"""
+            INSERT INTO {table} ({columns})
+            SELECT {columns}
+            FROM {temp_name}
+            WHERE NOT EXISTS (
+              SELECT 1 FROM {table} AS existing WHERE {join_condition}
+            )
+            """
+        )
     finally:
         conn.unregister(temp_name)
 

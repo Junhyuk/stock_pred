@@ -3,8 +3,10 @@ from __future__ import annotations
 import json
 import math
 from datetime import UTC, date, datetime, time, timedelta
+from hashlib import sha256
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import numpy as np
 import pandas as pd
@@ -15,7 +17,7 @@ from roboquant.data.freshness import (
     previous_trading_day,
     resolve_next_krx_session,
 )
-from roboquant.db import append_dedup_table, table_exists
+from roboquant.db import append_dedup_table, append_immutable_table, table_exists
 from roboquant.signals.news_signals import (
     DEFAULT_NEGATIVE_BUSINESS_KEYWORDS,
     X_MARKET_NEWS_SOURCE,
@@ -29,6 +31,35 @@ NEWS_WINDOW_HOURS = 24
 MIN_FEATURE_SUPPORT_ROWS = 60
 MIN_FEATURE_SUPPORT_FRACTION = 0.05
 MAX_STANDARDIZED_FEATURE_VALUE = 5.0
+DEFAULT_INDEX_WEIGHT = 0.65
+DEFAULT_BREADTH_WEIGHT = 0.35
+DEFAULT_DIRECTION_RETURN_THRESHOLD = 0.005
+DEFAULT_DIRECTION_PROBABILITY_THRESHOLD = 0.56
+DEFAULT_BREADTH_MIN_COVERAGE = 1.0
+KST = ZoneInfo("Asia/Seoul")
+
+DOMESTIC_INDEX_FEATURE_COLUMNS = [
+    "index_return_1d",
+    "index_return_5d",
+    "index_return_20d",
+    "index_volatility_5d",
+    "index_volatility_20d",
+    "index_ma_gap_5d",
+    "index_ma_gap_20d",
+]
+GLOBAL_REGIME_FEATURE_COLUMNS = [
+    "global_risk_score",
+    "recommended_cash_ratio",
+    "semiconductor_score",
+    "futures_score",
+]
+KORU_FEATURE_COLUMNS = [
+    "koru_return_1d",
+    "ewy_return_1d",
+    "koru_ewy_spread_1d",
+    "koru_impact_score",
+    "usdkrw_change_pct",
+]
 
 INDEX_FEATURE_COLUMNS = [
     "index_return_1d",
@@ -67,6 +98,11 @@ BREADTH_FEATURE_COLUMNS = [
     "prediction_down_probability_avg",
     "prediction_return_avg",
 ]
+SENSITIVE_FEATURE_GROUPS = {
+    "breadth": BREADTH_FEATURE_COLUMNS,
+    "koru": KORU_FEATURE_COLUMNS,
+    "global_regime": GLOBAL_REGIME_FEATURE_COLUMNS,
+}
 FEATURE_COLUMNS = [*INDEX_FEATURE_COLUMNS, *BREADTH_FEATURE_COLUMNS]
 LOCAL_LLM_NEWS_FEATURE_COLUMNS = [
     "llm_news_attention",
@@ -88,6 +124,10 @@ def refresh_market_outlook_forecasts(
     now: datetime | None = None,
     forecast_context: dict[str, Any] | None = None,
 ) -> pd.DataFrame:
+    # Mature outcomes are a separate, append-only evidence stream.  Update it
+    # before a new run so a blocked current input never prevents close-loop
+    # recording for an older prediction session.
+    update_market_outlook_outcomes(conn)
     forecasts = build_market_outlook_forecasts(
         conn,
         config=config,
@@ -106,7 +146,263 @@ def refresh_market_outlook_forecasts(
         forecasts,
         ["asof_date", "target_date", "horizon", "market", "model_version"],
     )
+    _record_immutable_market_outlook_forecasts(conn, forecasts)
     return forecasts
+
+
+def _record_immutable_market_outlook_forecasts(conn, forecasts: pd.DataFrame) -> None:
+    """Persist the first observed prediction independently of the UI cache.
+
+    ``market_outlook_forecasts`` remains a latest-view cache for backward
+    compatibility.  This history table never replaces a prior prediction
+    when a same-day job is retried with a changed artifact.
+    """
+    if forecasts.empty or not table_exists(conn, "market_outlook_forecast_history"):
+        return
+    rows: list[dict[str, Any]] = []
+    for record in forecasts.to_dict(orient="records"):
+        quality = _loads(record.get("data_quality_json"), {})
+        asof = _to_date(record.get("asof_date"))
+        target = _to_date(record.get("target_date"))
+        if asof is None or target is None:
+            continue
+        model_version = str(record.get("model_version") or _model_version())
+        forecast_id = _market_outlook_forecast_id(
+            asof,
+            target,
+            str(record.get("horizon") or ""),
+            str(record.get("market") or ""),
+            model_version,
+        )
+        # Zero is a valid configured return threshold.  Do not use truthiness
+        # here, otherwise a calibrated zero threshold is silently replaced by
+        # the legacy fixed default in the immutable audit record.
+        return_threshold = _safe_float(
+            record.get("direction_return_threshold"), DEFAULT_DIRECTION_RETURN_THRESHOLD
+        )
+        probability_threshold = _safe_float(
+            record.get("direction_probability_threshold"), DEFAULT_DIRECTION_PROBABILITY_THRESHOLD
+        )
+        rows.append(
+            {
+                "forecast_id": forecast_id,
+                "asof_date": asof,
+                "target_date": target,
+                "horizon": str(record.get("horizon") or ""),
+                "market": str(record.get("market") or "").upper(),
+                "expected_return": _safe_float(record.get("expected_return"), 0.0) or 0.0,
+                "range_low": _safe_float(record.get("range_low"), None),
+                "range_high": _safe_float(record.get("range_high"), None),
+                "up_probability": _safe_float(record.get("up_probability"), None),
+                "down_probability": _safe_float(record.get("down_probability"), None),
+                "shock_probability": _safe_float(record.get("shock_probability"), None),
+                "direction": str(record.get("direction") or "NEUTRAL"),
+                "direction_return_threshold": return_threshold,
+                "direction_probability_threshold": probability_threshold,
+                "confidence": _safe_float(record.get("confidence"), None),
+                "model_version": model_version,
+                "prediction_session_date": _to_date(record.get("prediction_session_date")),
+                "domestic_asof_date": _to_date(record.get("domestic_asof_date")),
+                "global_cutoff": record.get("global_cutoff"),
+                "forecast_status": str(record.get("forecast_status") or "legacy"),
+                "calendar_source": record.get("calendar_source"),
+                "input_status_json": _json(quality.get("active_feature_freshness") or {}),
+                "data_quality_json": _json(quality),
+                "created_at": record.get("created_at") or _utcnow(),
+            }
+        )
+    append_immutable_table(
+        conn,
+        "market_outlook_forecast_history",
+        pd.DataFrame(rows),
+        ["forecast_id"],
+    )
+
+
+def update_market_outlook_outcomes(conn) -> dict[str, Any]:
+    """Append realised results only after both stored KRX closes are known."""
+    if not table_exists(conn, "market_outlook_forecast_history") or not table_exists(
+        conn, "market_outlook_forecast_outcomes"
+    ):
+        return {"status": "not_ready", "updated": 0, "pending": 0}
+    pending = conn.execute(
+        """
+        SELECT history.*
+        FROM market_outlook_forecast_history AS history
+        LEFT JOIN market_outlook_forecast_outcomes AS outcome
+          ON outcome.forecast_id = history.forecast_id
+        WHERE outcome.forecast_id IS NULL
+        ORDER BY history.target_date, history.market, history.horizon
+        """
+    ).fetchdf()
+    if pending.empty:
+        return {"status": "ready", "updated": 0, "pending": 0}
+    benchmark = _benchmark_frame(conn)
+    close_by_market_date = {
+        (str(item.market).upper(), _to_date(item.date)): _safe_float(item.close, None)
+        for item in benchmark.itertuples(index=False)
+    }
+    now = _utcnow()
+    outcomes: list[dict[str, Any]] = []
+    for forecast in pending.to_dict(orient="records"):
+        market = str(forecast.get("market") or "").upper()
+        asof = _to_date(forecast.get("asof_date"))
+        target = _to_date(forecast.get("target_date"))
+        if asof is None or target is None:
+            continue
+        asof_close = close_by_market_date.get((market, asof))
+        target_close = close_by_market_date.get((market, target))
+        if asof_close is None or target_close is None or asof_close <= 0:
+            continue
+        actual_return = float(target_close / asof_close - 1.0)
+        threshold = _safe_float(
+            forecast.get("direction_return_threshold"), DEFAULT_DIRECTION_RETURN_THRESHOLD
+        )
+        actual_direction = _return_direction(actual_return, threshold)
+        low = _safe_float(forecast.get("range_low"), None)
+        high = _safe_float(forecast.get("range_high"), None)
+        outcomes.append(
+            {
+                "forecast_id": str(forecast["forecast_id"]),
+                "asof_date": asof,
+                "target_date": target,
+                "horizon": str(forecast.get("horizon") or ""),
+                "market": market,
+                "model_version": str(forecast.get("model_version") or ""),
+                "predicted_direction": str(forecast.get("direction") or "NEUTRAL"),
+                "direction_return_threshold": threshold,
+                "asof_close": asof_close,
+                "target_close": target_close,
+                "actual_return": actual_return,
+                "actual_direction": actual_direction,
+                "direction_hit": str(forecast.get("direction") or "NEUTRAL") == actual_direction,
+                "absolute_error": abs(actual_return - (_safe_float(forecast.get("expected_return"), 0.0) or 0.0)),
+                "interval_covered": None if low is None or high is None else bool(low <= actual_return <= high),
+                "matured_at": now,
+                "created_at": now,
+            }
+        )
+    append_immutable_table(
+        conn,
+        "market_outlook_forecast_outcomes",
+        pd.DataFrame(outcomes),
+        ["forecast_id"],
+    )
+    return {
+        "status": "ready" if outcomes else "pending",
+        "updated": int(len(outcomes)),
+        "pending": int(len(pending) - len(outcomes)),
+    }
+
+
+def get_market_outlook_feedback(
+    conn,
+    *,
+    market: str = "all",
+    horizon: str = "all",
+    limit: int = 100,
+) -> dict[str, Any]:
+    """Return only realised, immutable market-outlook outcomes for evaluation."""
+    if not table_exists(conn, "market_outlook_forecast_outcomes"):
+        return {"status": "not_collected", "summary": [], "items": []}
+    where = ["1 = 1"]
+    params: list[Any] = []
+    if market and str(market).lower() != "all":
+        where.append("outcome.market = ?")
+        params.append(str(market).upper())
+    if horizon and str(horizon).lower() != "all":
+        where.append("outcome.horizon = ?")
+        params.append(str(horizon).upper())
+    rows = conn.execute(
+        f"""
+        SELECT outcome.*, history.expected_return, history.range_low, history.range_high,
+               history.forecast_status, history.global_cutoff, history.domestic_asof_date,
+               history.direction_probability_threshold
+        FROM market_outlook_forecast_outcomes AS outcome
+        INNER JOIN market_outlook_forecast_history AS history
+          ON history.forecast_id = outcome.forecast_id
+        WHERE {' AND '.join(where)}
+        ORDER BY outcome.target_date DESC, outcome.market, outcome.horizon
+        """,
+        params,
+    ).fetchdf()
+    if rows.empty:
+        return {"status": "not_collected", "summary": [], "items": []}
+    # DuckDB returns DATE columns as pandas Timestamps.  Keep this feedback
+    # endpoint consistent with the forecast API's date-only contract.
+    for column in ("asof_date", "target_date", "prediction_session_date", "domestic_asof_date"):
+        if column in rows:
+            rows[column] = pd.to_datetime(rows[column], errors="coerce").dt.date
+    summaries = []
+    summary_columns = [
+        "market",
+        "horizon",
+        "model_version",
+        "forecast_status",
+        "direction_return_threshold",
+        "direction_probability_threshold",
+    ]
+    for values, group in rows.groupby(summary_columns, dropna=False):
+        (
+            item_market,
+            item_horizon,
+            item_model_version,
+            item_forecast_status,
+            item_return_threshold,
+            item_probability_threshold,
+        ) = values
+        direction = group["direction_hit"].astype("boolean").astype("Float64").mean()
+        interval = group["interval_covered"].astype("boolean").astype("Float64").mean()
+        summaries.append(
+            {
+                "market": str(item_market),
+                "horizon": str(item_horizon),
+                "model_version": str(item_model_version),
+                "forecast_status": str(item_forecast_status),
+                "direction_return_threshold": _safe_float(item_return_threshold, None),
+                "direction_probability_threshold": _safe_float(item_probability_threshold, None),
+                "sample_count": int(len(group)),
+                "direction_accuracy": _safe_float(direction, None),
+                "avg_actual_return": _safe_float(pd.to_numeric(group["actual_return"], errors="coerce").mean(), None),
+                "mae": _safe_float(pd.to_numeric(group["absolute_error"], errors="coerce").mean(), None),
+                "interval_coverage": _safe_float(interval, None),
+            }
+        )
+    summaries.sort(
+        key=lambda item: (
+            str(item["market"]),
+            str(item["horizon"]),
+            str(item["model_version"]),
+            str(item["forecast_status"]),
+        )
+    )
+    return {
+        "status": "ready",
+        "summary": summaries,
+        # The display limit must never change aggregate evaluation metrics.
+        "items": _records(rows.head(int(max(1, limit)))),
+    }
+
+
+def _market_outlook_forecast_id(
+    asof: date,
+    target: date,
+    horizon: str,
+    market: str,
+    model_version: str,
+) -> str:
+    payload = "|".join(
+        [asof.isoformat(), target.isoformat(), str(horizon).upper(), str(market).upper(), model_version]
+    )
+    return f"market-outlook:{sha256(payload.encode('utf-8')).hexdigest()}"
+
+
+def _return_direction(value: float, threshold: float) -> str:
+    if value >= threshold:
+        return "BULLISH"
+    if value <= -threshold:
+        return "BEARISH"
+    return "NEUTRAL"
 
 
 def build_market_outlook_forecasts(
@@ -118,7 +414,13 @@ def build_market_outlook_forecasts(
     now: datetime | None = None,
     forecast_context: dict[str, Any] | None = None,
 ) -> pd.DataFrame:
-    dataset = build_market_outlook_dataset(conn, config=config, asof_date=asof_date, now=now)
+    dataset = build_market_outlook_dataset(
+        conn,
+        config=config,
+        asof_date=asof_date,
+        now=now,
+        include_feature_provenance=True,
+    )
     if dataset.empty:
         return _empty_forecast_frame()
     target_asof = resolve_market_outlook_asof(conn, asof_date)
@@ -128,19 +430,34 @@ def build_market_outlook_forecasts(
 
     model = _load_model(model_path) if model_path else None
     if model is None:
-        model = fit_market_outlook_model(dataset)
+        model = fit_market_outlook_model(dataset, config=config)
 
     rows: list[dict[str, Any]] = []
     created_at = _utcnow()
     model_version = str(model.get("model_version") or _model_version())
     for _, row in latest_rows.iterrows():
         row_dict = row.to_dict()
-        forecast = _predict_row(row_dict, model)
+        feature_freshness = _active_feature_freshness(conn, row_dict, model)
+        input_mode = _forecast_input_mode(feature_freshness, model, config)
+        if input_mode == "blocked_stale_input":
+            continue
+        forecast = _predict_row(row_dict, model, input_mode=input_mode)
         drivers = _drivers(row_dict, forecast)
-        quality = _row_data_quality(row_dict, model)
         context = _forecast_context_for_row(row_dict, forecast_context)
+        forecast_status = input_mode if input_mode != "full" else (
+            context.get("forecast_status") if context else "legacy"
+        )
+        quality = _row_data_quality(
+            row_dict,
+            model,
+            feature_freshness=feature_freshness,
+            input_mode=input_mode,
+        )
         if context:
-            quality = {**quality, **_forecast_context_quality(context)}
+            # The context describes domestic collection readiness.  It must
+            # not overwrite the forecast's own fallback/blocked status.
+            quality = {**_forecast_context_quality(context), **quality}
+        quality["forecast_status"] = forecast_status
         rows.append(
             {
                 "asof_date": row_dict.get("asof_date"),
@@ -158,11 +475,13 @@ def build_market_outlook_forecasts(
                 "drivers_json": _json(drivers),
                 "data_quality_json": _json(quality),
                 "model_version": model_version,
+                "direction_return_threshold": forecast["direction_return_threshold"],
+                "direction_probability_threshold": forecast["direction_probability_threshold"],
                 "created_at": created_at,
                 "prediction_session_date": context.get("target_date") if context else None,
                 "domestic_asof_date": context.get("domestic_asof_date") if context else None,
                 "global_cutoff": context.get("global_cutoff") if context else None,
-                "forecast_status": context.get("forecast_status") if context else "legacy",
+                "forecast_status": forecast_status,
                 "calendar_source": context.get("calendar_source") if context else None,
             }
         )
@@ -190,7 +509,7 @@ def build_market_outlook_dataset(
     top50_breadth = _top50_breadth(conn)
     prediction_breadth = _prediction_breadth(conn, config)
     koru = _koru_features(conn)
-    regime = _regime_features(conn)
+    regime = _regime_features(conn, config=config)
     telegram = _telegram_features(conn)
     local_llm_news = _local_llm_news_features(conn) if include_local_llm_features else pd.DataFrame()
     holidays = market_outlook_holidays(config)
@@ -217,21 +536,25 @@ def build_market_outlook_dataset(
             current_asof = item["date"]
             if current_asof > target_asof:
                 continue
+            if current_asof == target_asof:
+                next_prediction_session = (
+                    resolve_market_outlook_target(current_asof, config, now=now)["target_date"]
+                    if use_realtime_target
+                    else _next_trading_day(current_asof, holidays=holidays)
+                )
+            else:
+                next_prediction_session = _next_available_date(current_asof, available_dates)
+
             for horizon in OUTLOOK_HORIZONS:
                 if current_asof == target_asof:
-                    target_today = (
-                        resolve_market_outlook_target(current_asof, config, now=now)["target_date"]
-                        if use_realtime_target
-                        else _next_trading_day(current_asof, holidays=holidays)
-                    )
                     target = target_dates_for_run(
                         current_asof,
-                        today=target_today,
+                        today=next_prediction_session,
                         now=now,
                         holidays=holidays,
                     )[horizon]
                 elif horizon == "TODAY":
-                    target = _next_available_date(current_asof, available_dates)
+                    target = next_prediction_session
                 else:
                     target = _available_week_target(current_asof, available_dates)
                 if target is None:
@@ -247,6 +570,11 @@ def build_market_outlook_dataset(
                     "market": market,
                     "label_return": label,
                     "feature_cutoff_date": current_asof,
+                    # Both horizons are forecast at the next KRX prediction
+                    # session.  In particular, a WEEK label must not receive
+                    # the Friday regime that was unavailable on the prior
+                    # close; it uses the next-session premarket regime.
+                    "regime_session_date": next_prediction_session,
                     "index_close": item["close"],
                     "index_return_1d": item["return_1d"],
                     "index_return_5d": item["return_5d"],
@@ -267,8 +595,12 @@ def build_market_outlook_dataset(
     dataset["target_date"] = pd.to_datetime(dataset["target_date"]).dt.date
     for extra in (top50_breadth, prediction_breadth):
         dataset = _merge_market_features(dataset, extra)
-    for extra in (koru, regime, telegram, news):
+    for extra in (koru, telegram, news):
         dataset = _merge_date_features(dataset, extra)
+    # Regime is built for the next KRX prediction session.  The session is
+    # shared by TODAY and WEEK rows created from a single domestic close, so
+    # a weekly historical label cannot join a later-in-week global signal.
+    dataset = _merge_regime_session_features(dataset, regime)
     if include_local_llm_features:
         dataset = _merge_prediction_date_features(dataset, local_llm_news)
     dataset = _fill_feature_defaults(dataset, include_feature_provenance=include_feature_provenance)
@@ -287,7 +619,7 @@ def train_market_outlook_model(
     asof_date: str | date = "latest",
 ) -> dict[str, Any]:
     dataset = build_market_outlook_dataset(conn, config=config, asof_date=asof_date)
-    model = fit_market_outlook_model(dataset)
+    model = fit_market_outlook_model(dataset, config=config)
     if model_path:
         path = Path(model_path)
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -295,13 +627,20 @@ def train_market_outlook_model(
     return model
 
 
-def fit_market_outlook_model(dataset: pd.DataFrame) -> dict[str, Any]:
+def fit_market_outlook_model(
+    dataset: pd.DataFrame,
+    config: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    settings = _market_outlook_settings(config)
     model: dict[str, Any] = {
         "model_version": _model_version(),
         "created_at": _utcnow().isoformat(),
-        "index_weight": 0.65,
-        "breadth_weight": 0.35,
-        "shock_threshold": SHOCK_THRESHOLD,
+        "index_weight": settings["index_weight"],
+        "breadth_weight": settings["breadth_weight"],
+        "direction_return_threshold": settings["direction_return_threshold"],
+        "direction_probability_threshold": settings["direction_probability_threshold"],
+        "shock_threshold": settings["shock_threshold"],
+        "active_feature_stale_action": settings["active_feature_stale_action"],
         "feature_columns": FEATURE_COLUMNS,
         "models": {},
     }
@@ -314,7 +653,11 @@ def fit_market_outlook_model(dataset: pd.DataFrame) -> dict[str, Any]:
         for market in MARKETS:
             key = _model_key(market, horizon)
             subset = data[(data["horizon"] == horizon) & (data["market"] == market)].copy()
-            model["models"][key] = _fit_market_horizon(subset)
+            model["models"][key] = _fit_market_horizon(
+                subset,
+                index_weight=settings["index_weight"],
+                breadth_weight=settings["breadth_weight"],
+            )
     return model
 
 
@@ -350,7 +693,7 @@ def get_market_outlook(
             market=market,
             limit=limit,
             target_date=context["target_date"],
-            forecast_status="confirmed",
+            forecast_status=["confirmed", "domestic_index_only"],
         )
     else:
         frame = _stored_market_outlook(conn, date=date, horizon=horizon, market=market, limit=limit)
@@ -497,7 +840,7 @@ def market_outlook_input_status(
         messages.append(
             f"{required_asof.isoformat()} Top50 가격 완결성 부족: {universe_price_count}/{universe_total}"
         )
-    global_cutoff = _global_cutoff_for_target(conn, target)
+    global_cutoff = _global_cutoff_for_target(conn, target, config=config)
     status = "confirmed" if asof_ready and benchmark_ready and top50_ready else "blocked_stale_input"
     return {
         "forecast_status": status,
@@ -545,18 +888,27 @@ def _top50_price_completeness(conn, target_date: date) -> tuple[int, int]:
     return int(row[0] or 0), int(row[1] or 0)
 
 
-def _global_cutoff_for_target(conn, target_date: date) -> datetime | None:
+def _global_cutoff_for_target(
+    conn,
+    target_date: date,
+    *,
+    config: dict[str, Any] | None = None,
+) -> datetime | None:
     if not table_exists(conn, "market_regime_daily"):
         return None
+    cutoff_time = str(((config or {}).get("regime") or {}).get("cutoff_time_kst", "08:00"))
+    try:
+        hour, minute = [int(part) for part in cutoff_time.split(":", maxsplit=1)]
+    except (TypeError, ValueError):
+        hour, minute = 8, 0
+    allowed_cutoff = _regime_cutoff_utc(target_date, hour=hour, minute=minute)
     row = conn.execute(
         """
-        SELECT prediction_cutoff
+        SELECT MAX(prediction_cutoff)
         FROM market_regime_daily
-        WHERE prediction_date = ?
-        ORDER BY created_at DESC
-        LIMIT 1
+        WHERE prediction_date = ? AND prediction_cutoff <= ?
         """,
-        [target_date],
+        [target_date, allowed_cutoff],
     ).fetchone()
     return None if not row else row[0]
 
@@ -576,7 +928,9 @@ def _forecast_context_for_row(
 
 def _forecast_context_quality(context: dict[str, Any]) -> dict[str, Any]:
     return {
-        "forecast_status": context.get("forecast_status"),
+        # This describes collection readiness only.  ``forecast_status`` is
+        # assigned by the forecast builder after fallback/blocked handling.
+        "domestic_input_status": context.get("forecast_status"),
         "domestic_asof_date": _date_string(context.get("domestic_asof_date")),
         "required_domestic_asof_date": _date_string(context.get("required_domestic_asof_date")),
         "global_cutoff": _json_default(context.get("global_cutoff")),
@@ -586,6 +940,255 @@ def _forecast_context_quality(context: dict[str, Any]) -> dict[str, Any]:
         "top50_price_count": context.get("top50_price_count"),
         "top50_total": context.get("top50_total"),
     }
+
+
+def _market_outlook_settings(config: dict[str, Any] | None = None) -> dict[str, Any]:
+    values = dict((config or {}).get("market_outlook") or {})
+    # ``0`` is intentional for domestic-only and breadth-only shadow
+    # candidates.  Using ``or DEFAULT`` made those configurations impossible
+    # and effectively kept the historical 65:35 blend in place.
+    index_weight = _safe_float(values.get("index_weight"), DEFAULT_INDEX_WEIGHT)
+    breadth_weight = _safe_float(values.get("breadth_weight"), DEFAULT_BREADTH_WEIGHT)
+    index_weight = max(0.0, float(index_weight))
+    breadth_weight = max(0.0, float(breadth_weight))
+    total_weight = index_weight + breadth_weight
+    if total_weight <= 0:
+        index_weight, breadth_weight = 1.0, 0.0
+    else:
+        index_weight, breadth_weight = index_weight / total_weight, breadth_weight / total_weight
+    action = str(values.get("active_feature_stale_action", "domestic_index_only")).strip().lower()
+    if action not in {"blocked_stale_input", "domestic_index_only"}:
+        action = "domestic_index_only"
+    prediction_horizon = str(values.get("prediction_horizon") or "2M").strip() or "2M"
+    return {
+        "index_weight": index_weight,
+        "breadth_weight": breadth_weight,
+        "direction_return_threshold": max(
+            0.0,
+            _safe_float(values.get("direction_return_threshold"), DEFAULT_DIRECTION_RETURN_THRESHOLD),
+        ),
+        "direction_probability_threshold": min(
+            1.0,
+            max(
+                0.5,
+                _safe_float(
+                    values.get("direction_probability_threshold"),
+                    DEFAULT_DIRECTION_PROBABILITY_THRESHOLD,
+                ),
+            ),
+        ),
+        "shock_threshold": _safe_float(values.get("shock_threshold"), SHOCK_THRESHOLD),
+        "active_feature_stale_action": action,
+        "prediction_horizon": prediction_horizon,
+        "breadth_min_coverage": min(
+            1.0,
+            max(
+                0.0,
+                _safe_float(values.get("breadth_min_coverage"), DEFAULT_BREADTH_MIN_COVERAGE),
+            ),
+        ),
+    }
+
+
+def _blend_weights(
+    spec: dict[str, Any],
+    model: dict[str, Any] | None = None,
+) -> tuple[float, float]:
+    index_weight = _safe_float(
+        spec.get("index_weight"),
+        _safe_float((model or {}).get("index_weight"), DEFAULT_INDEX_WEIGHT),
+    )
+    breadth_weight = _safe_float(
+        spec.get("breadth_weight"),
+        _safe_float((model or {}).get("breadth_weight"), DEFAULT_BREADTH_WEIGHT),
+    )
+    index_weight = max(0.0, float(index_weight or 0.0))
+    breadth_weight = max(0.0, float(breadth_weight or 0.0))
+    total = index_weight + breadth_weight
+    return (1.0, 0.0) if total <= 0 else (index_weight / total, breadth_weight / total)
+
+
+def _active_feature_freshness(
+    conn,
+    row: dict[str, Any],
+    model: dict[str, Any],
+) -> dict[str, Any]:
+    """Describe the source/default state used by this specific forecast row.
+
+    Dataset joins are exact-date joins, therefore a raw value is fresh only
+    when its source's latest eligible date is this forecast's as-of date.
+    This prevents table-level existence from being reported as current input.
+    """
+    key = _model_key(row.get("market"), row.get("horizon"))
+    spec = model.get("models", {}).get(key, {})
+    index_features = set(spec.get("index", {}).get("features") or [])
+    breadth_features = set(spec.get("breadth", {}).get("features") or [])
+    index_weight, breadth_weight = _blend_weights(spec, model)
+    active_features = index_features | breadth_features
+    asof = _to_date(row.get("asof_date"))
+    target = _to_date(row.get("target_date"))
+    source_dates = _active_source_dates(conn, asof, target, str(row.get("market") or ""))
+    feature_status: dict[str, dict[str, Any]] = {}
+    for feature in sorted(active_features):
+        source = _feature_source(feature)
+        source_date = source_dates.get(source)
+        required_date = target if source == "global_regime" else asof
+        raw_key = f"__raw_{feature}"
+        has_raw_provenance = raw_key in row
+        raw_value = row.get(raw_key) if has_raw_provenance else row.get(feature)
+        default_applied = _is_default_applied(row, feature, raw_value, has_raw_provenance)
+        source_stale = source_date is None or (required_date is not None and source_date < required_date)
+        state = "defaulted" if default_applied else ("stale" if source_stale else "fresh")
+        feature_status[feature] = {
+            "status": state,
+            "source": source,
+            "source_asof_date": _date_string(source_date),
+            "required_asof_date": _date_string(required_date),
+            "default_applied": bool(default_applied),
+        }
+
+    components: dict[str, dict[str, Any]] = {}
+    for name, features in SENSITIVE_FEATURE_GROUPS.items():
+        group_active = set(features).intersection(active_features)
+        # A positive breadth blend also activates its intercept.  It is not
+        # safe to keep that intercept when every breadth input is defaulted.
+        if name == "breadth" and breadth_weight > 0:
+            group_active = set(features)
+        statuses = [feature_status[item]["status"] for item in group_active if item in feature_status]
+        if name == "breadth" and group_active and not statuses:
+            statuses = [
+                "defaulted"
+                if _is_default_applied(row, item, row.get(f"__raw_{item}", row.get(item)), f"__raw_{item}" in row)
+                else "fresh"
+                for item in group_active
+            ]
+        if not group_active:
+            state = "inactive"
+        elif statuses and all(item == "fresh" for item in statuses):
+            state = "fresh"
+        else:
+            state = "stale_or_default"
+        components[name] = {
+            "status": state,
+            "active_features": sorted(group_active),
+            "blend_weight": breadth_weight if name == "breadth" else index_weight,
+        }
+    stale_components = [
+        name for name, detail in components.items() if detail["status"] == "stale_or_default"
+    ]
+    return {
+        "asof_date": _date_string(asof),
+        "active_features": feature_status,
+        "components": components,
+        "stale_active_components": stale_components,
+    }
+
+
+def _feature_source(feature: str) -> str:
+    if feature in DOMESTIC_INDEX_FEATURE_COLUMNS:
+        return "domestic_index"
+    if feature in BREADTH_FEATURE_COLUMNS[:4]:
+        return "top50_breadth"
+    if feature in BREADTH_FEATURE_COLUMNS[4:]:
+        return "prediction_breadth"
+    if feature in KORU_FEATURE_COLUMNS:
+        return "koru"
+    if feature in GLOBAL_REGIME_FEATURE_COLUMNS:
+        return "global_regime"
+    if feature.startswith("telegram_"):
+        return "telegram"
+    return "news"
+
+
+def _active_source_dates(
+    conn,
+    asof: date | None,
+    target: date | None,
+    market: str,
+) -> dict[str, date | None]:
+    if asof is None:
+        return {}
+    normalized_market = str(market).upper()
+    benchmark_names = [normalized_market, "1001" if normalized_market == "KOSPI" else "2001"]
+    return {
+        "domestic_index": _latest_source_date(
+            conn,
+            "benchmark_daily",
+            "date",
+            asof,
+            "benchmark IN (?, ?)",
+            benchmark_names,
+        ),
+        "top50_breadth": _latest_source_date(conn, "features_daily", "date", asof, "horizon = '2M'"),
+        "prediction_breadth": _latest_source_date(conn, "predictions", "asof_date", asof, "horizon = '2M'"),
+        "koru": _latest_source_date(conn, "koru_korea_linkage", "trade_date", asof),
+        "global_regime": _latest_source_date(
+            conn,
+            "market_regime_daily",
+            "prediction_date",
+            target or asof,
+        ),
+        "telegram": _latest_source_date(conn, "telegram_market_signal_daily", "signal_date", asof),
+        "news": _latest_source_date(conn, "market_news_feed", "pub_date", asof),
+    }
+
+
+def _latest_source_date(
+    conn,
+    table: str,
+    column: str,
+    asof: date,
+    extra_where: str | None = None,
+    params: list[Any] | None = None,
+) -> date | None:
+    if not table_exists(conn, table):
+        return None
+    where = [f"{column} <= ?"]
+    values: list[Any] = [asof]
+    if extra_where:
+        where.append(extra_where)
+        values.extend(params or [])
+    try:
+        value = conn.execute(
+            f"SELECT MAX({column}) FROM {table} WHERE {' AND '.join(where)}",
+            values,
+        ).fetchone()[0]
+    except Exception:
+        return None
+    return _to_date(value)
+
+
+def _is_default_applied(
+    row: dict[str, Any],
+    feature: str,
+    raw_value: Any,
+    has_raw_provenance: bool,
+) -> bool:
+    marker = row.get(f"__default_applied_{feature}")
+    if marker is not None:
+        try:
+            if not bool(pd.isna(marker)):
+                return bool(marker)
+        except (TypeError, ValueError):
+            return bool(marker)
+    if not has_raw_provenance:
+        return False
+    return _safe_float(raw_value, None) is None
+
+
+def _forecast_input_mode(
+    feature_freshness: dict[str, Any],
+    model: dict[str, Any],
+    config: dict[str, Any] | None,
+) -> str:
+    stale = list(feature_freshness.get("stale_active_components") or [])
+    if not stale:
+        return "full"
+    action = str(
+        model.get("active_feature_stale_action")
+        or _market_outlook_settings(config)["active_feature_stale_action"]
+    ).lower()
+    return "blocked_stale_input" if action == "blocked_stale_input" else "domestic_index_only"
 
 
 def resolve_market_outlook_asof(conn, asof_date: str | date = "latest") -> date:
@@ -613,13 +1216,26 @@ def default_market_outlook_model_path(config: dict[str, Any]) -> Path:
     return Path(config["paths"]["model_dir"]) / "market_outlook" / "model.json"
 
 
-def _fit_market_horizon(subset: pd.DataFrame) -> dict[str, Any]:
+def _fit_market_horizon(
+    subset: pd.DataFrame,
+    *,
+    index_weight: float = DEFAULT_INDEX_WEIGHT,
+    breadth_weight: float = DEFAULT_BREADTH_WEIGHT,
+) -> dict[str, Any]:
     train, validation = _chronological_holdout(subset)
-    validation_spec = _fit_market_horizon_spec(train)
+    validation_spec = _fit_market_horizon_spec(
+        train,
+        index_weight=index_weight,
+        breadth_weight=breadth_weight,
+    )
     validation_fitted = _predict_subset(validation, validation_spec)
     validation_label = pd.to_numeric(validation.get("label_return"), errors="coerce")
 
-    spec = _fit_market_horizon_spec(subset)
+    spec = _fit_market_horizon_spec(
+        subset,
+        index_weight=index_weight,
+        breadth_weight=breadth_weight,
+    )
     spec["validation_sample_count"] = int(len(validation))
     if not validation_fitted.empty and validation_label.notna().any():
         valid = validation_label.notna()
@@ -643,7 +1259,12 @@ def _fit_market_horizon(subset: pd.DataFrame) -> dict[str, Any]:
     return spec
 
 
-def _fit_market_horizon_spec(subset: pd.DataFrame) -> dict[str, Any]:
+def _fit_market_horizon_spec(
+    subset: pd.DataFrame,
+    *,
+    index_weight: float = DEFAULT_INDEX_WEIGHT,
+    breadth_weight: float = DEFAULT_BREADTH_WEIGHT,
+) -> dict[str, Any]:
     sample_count = int(len(subset))
     label = pd.to_numeric(subset.get("label_return"), errors="coerce").dropna()
     fallback_mean = float(label.mean()) if not label.empty else 0.0
@@ -653,6 +1274,8 @@ def _fit_market_horizon_spec(subset: pd.DataFrame) -> dict[str, Any]:
         "sample_count": sample_count,
         "label_mean": fallback_mean,
         "residual_std": fallback_sigma,
+        "index_weight": float(index_weight),
+        "breadth_weight": float(breadth_weight),
         "index": _fit_linear_spec(subset, INDEX_FEATURE_COLUMNS, fallback_mean),
         "breadth": _fit_linear_spec(subset, BREADTH_FEATURE_COLUMNS, 0.0),
     }
@@ -766,18 +1389,29 @@ def _predict_subset(subset: pd.DataFrame, spec: dict[str, Any]) -> pd.Series:
     return pd.Series(predictions, index=subset.index, dtype=float)
 
 
-def _predict_row(row: dict[str, Any], model: dict[str, Any]) -> dict[str, Any]:
+def _predict_row(
+    row: dict[str, Any],
+    model: dict[str, Any],
+    *,
+    input_mode: str = "full",
+) -> dict[str, Any]:
     spec = model.get("models", {}).get(_model_key(row.get("market"), row.get("horizon")), {})
-    mu = _combined_expected_return(row, spec)
+    mu = _combined_expected_return(row, spec, model=model, input_mode=input_mode)
     sigma = _safe_float(spec.get("residual_std"), 0.015) or 0.015
     sigma = max(0.006, min(0.08, sigma))
     up_probability = 1.0 - normal_cdf((0.0 - mu) / sigma)
     shock_probability = normal_cdf((SHOCK_THRESHOLD - mu) / sigma)
     down_probability = 1.0 - up_probability
+    direction_return_threshold = _safe_float(
+        model.get("direction_return_threshold"), DEFAULT_DIRECTION_RETURN_THRESHOLD
+    )
+    direction_probability_threshold = _safe_float(
+        model.get("direction_probability_threshold"), DEFAULT_DIRECTION_PROBABILITY_THRESHOLD
+    )
     direction = "NEUTRAL"
-    if mu >= 0.005 or up_probability >= 0.56:
+    if mu >= direction_return_threshold or up_probability >= direction_probability_threshold:
         direction = "BULLISH"
-    elif mu <= -0.005 or down_probability >= 0.56:
+    elif mu <= -direction_return_threshold or down_probability >= direction_probability_threshold:
         direction = "BEARISH"
     return {
         "expected_return": float(mu),
@@ -787,26 +1421,56 @@ def _predict_row(row: dict[str, Any], model: dict[str, Any]) -> dict[str, Any]:
         "down_probability": float(max(0.0, min(1.0, down_probability))),
         "shock_probability": float(max(0.0, min(1.0, shock_probability))),
         "direction": direction,
-        "index_expected_return": _linear_predict(row, spec.get("index", {})),
-        "breadth_expected_return": _linear_predict(row, spec.get("breadth", {})),
+        "index_expected_return": _linear_predict(
+            row,
+            spec.get("index", {}),
+            allowed_features=DOMESTIC_INDEX_FEATURE_COLUMNS if input_mode == "domestic_index_only" else None,
+        ),
+        "breadth_expected_return": 0.0
+        if input_mode == "domestic_index_only"
+        else _linear_predict(row, spec.get("breadth", {})),
         "sample_count": int(spec.get("sample_count") or 0),
         "residual_std": float(sigma),
+        "direction_return_threshold": float(direction_return_threshold),
+        "direction_probability_threshold": float(direction_probability_threshold),
     }
 
 
-def _combined_expected_return(row: dict[str, Any], spec: dict[str, Any]) -> float:
+def _combined_expected_return(
+    row: dict[str, Any],
+    spec: dict[str, Any],
+    *,
+    model: dict[str, Any] | None = None,
+    input_mode: str = "full",
+) -> float:
     if not spec:
         return 0.0
-    index_mu = _linear_predict(row, spec.get("index", {}))
-    breadth_mu = _linear_predict(row, spec.get("breadth", {}))
+    index_mu = _linear_predict(
+        row,
+        spec.get("index", {}),
+        allowed_features=DOMESTIC_INDEX_FEATURE_COLUMNS if input_mode == "domestic_index_only" else None,
+    )
+    breadth_mu = (
+        0.0
+        if input_mode == "domestic_index_only"
+        else _linear_predict(row, spec.get("breadth", {}))
+    )
     if not math.isfinite(index_mu):
         index_mu = _safe_float(spec.get("label_mean"), 0.0) or 0.0
     if not math.isfinite(breadth_mu):
         breadth_mu = 0.0
-    return float(0.65 * index_mu + 0.35 * breadth_mu)
+    index_weight, breadth_weight = _blend_weights(spec, model)
+    if input_mode == "domestic_index_only":
+        return float(index_mu)
+    return float(index_weight * index_mu + breadth_weight * breadth_mu)
 
 
-def _linear_predict(row: dict[str, Any], spec: dict[str, Any]) -> float:
+def _linear_predict(
+    row: dict[str, Any],
+    spec: dict[str, Any],
+    *,
+    allowed_features: list[str] | None = None,
+) -> float:
     features = list(spec.get("features") or [])
     if not features:
         return float(spec.get("intercept") or 0.0)
@@ -816,8 +1480,12 @@ def _linear_predict(row: dict[str, Any], spec: dict[str, Any]) -> float:
     stds = dict(spec.get("std") or {})
     fills = dict(spec.get("fill") or {})
     for feature, coef in zip(features, coefs, strict=False):
-        raw = _safe_float(row.get(feature), fills.get(feature, 0.0))
         mean = _safe_float(means.get(feature), 0.0) or 0.0
+        raw = (
+            mean
+            if allowed_features is not None and feature not in allowed_features
+            else _safe_float(row.get(feature), fills.get(feature, 0.0))
+        )
         std = _safe_float(stds.get(feature), 1.0) or 1.0
         if abs(std) < 1e-9:
             std = 1.0
@@ -893,7 +1561,13 @@ def _drivers(row: dict[str, Any], forecast: dict[str, Any]) -> list[dict[str, An
     return drivers[:5]
 
 
-def _row_data_quality(row: dict[str, Any], model: dict[str, Any]) -> dict[str, Any]:
+def _row_data_quality(
+    row: dict[str, Any],
+    model: dict[str, Any],
+    *,
+    feature_freshness: dict[str, Any] | None = None,
+    input_mode: str = "full",
+) -> dict[str, Any]:
     components = _loads(row.get("components_json"), {})
     messages = list(_loads(row.get("messages_json"), []))
     key = _model_key(row.get("market"), row.get("horizon"))
@@ -901,10 +1575,20 @@ def _row_data_quality(row: dict[str, Any], model: dict[str, Any]) -> dict[str, A
     if int(spec.get("sample_count") or 0) < 30:
         messages.append("단기 전망 학습 표본이 적어 신뢰도를 낮췄습니다.")
     missing_components = [name for name, status in components.items() if status != "ready"]
-    status = "ready" if not missing_components else "partial_ready"
+    stale_components = list((feature_freshness or {}).get("stale_active_components") or [])
+    if stale_components:
+        messages.append(
+            "활성 입력이 최신 기준일과 맞지 않아 "
+            + ("국내 지수 전용 fallback" if input_mode == "domestic_index_only" else "전망 생성을 차단")
+            + "을 적용했습니다: "
+            + ", ".join(stale_components)
+        )
+    status = input_mode if input_mode != "full" else ("ready" if not missing_components else "partial_ready")
     return {
         "status": status,
         "components": components,
+        "active_feature_freshness": feature_freshness or {},
+        "input_mode": input_mode,
         "messages": messages[:8],
         "model_sample_count": int(spec.get("sample_count") or 0),
         "feature_cutoff_date": _date_string(row.get("feature_cutoff_date") or row.get("asof_date")),
@@ -917,7 +1601,8 @@ def _confidence(forecast: dict[str, Any], quality: dict[str, Any]) -> float:
     sample_score = min(0.35, sample_count / 500.0 * 0.35)
     probability_score = min(0.2, abs(float(forecast.get("up_probability") or 0.5) - 0.5) * 0.6)
     missing_count = sum(1 for status in (quality.get("components") or {}).values() if status != "ready")
-    confidence = 0.35 + sample_score + probability_score - 0.04 * missing_count
+    fallback_penalty = 0.18 if quality.get("input_mode") == "domestic_index_only" else 0.0
+    confidence = 0.35 + sample_score + probability_score - 0.04 * missing_count - fallback_penalty
     return float(max(0.2, min(0.95, confidence)))
 
 
@@ -929,7 +1614,7 @@ def _stored_market_outlook(
     market: str,
     limit: int,
     target_date: date | str | None = None,
-    forecast_status: str | None = None,
+    forecast_status: str | list[str] | tuple[str, ...] | None = None,
 ) -> pd.DataFrame:
     if not table_exists(conn, "market_outlook_forecasts"):
         return pd.DataFrame()
@@ -951,8 +1636,14 @@ def _stored_market_outlook(
         where.append("target_date = ?")
         params.append(pd.to_datetime(target_date).date())
     if forecast_status is not None:
-        where.append("forecast_status = ?")
-        params.append(str(forecast_status))
+        statuses = (
+            [str(item) for item in forecast_status]
+            if isinstance(forecast_status, (list, tuple))
+            else [str(forecast_status)]
+        )
+        placeholders = ", ".join(["?"] * len(statuses))
+        where.append(f"forecast_status IN ({placeholders})")
+        params.extend(statuses)
     params.append(int(max(1, limit or 20)))
     return conn.execute(
         f"""
@@ -1114,24 +1805,50 @@ def _koru_features(conn) -> pd.DataFrame:
     return frame
 
 
-def _regime_features(conn) -> pd.DataFrame:
+def _regime_features(conn, config: dict[str, Any] | None = None) -> pd.DataFrame:
     if not table_exists(conn, "market_regime_daily"):
         return pd.DataFrame()
     frame = conn.execute(
         """
         SELECT
           prediction_date AS date,
+          prediction_cutoff,
+          created_at,
           global_risk_score,
           recommended_cash_ratio,
           semiconductor_score,
           futures_score
         FROM market_regime_daily
-        ORDER BY prediction_date
+        ORDER BY prediction_date, prediction_cutoff, created_at
         """
     ).fetchdf()
-    if not frame.empty:
-        frame["date"] = pd.to_datetime(frame["date"]).dt.date
-    return frame
+    if frame.empty:
+        return frame
+    frame["date"] = pd.to_datetime(frame["date"], errors="coerce").dt.date
+    frame["prediction_cutoff"] = pd.to_datetime(frame["prediction_cutoff"], errors="coerce")
+    cutoff_time = str(((config or {}).get("regime") or {}).get("cutoff_time_kst", "08:00"))
+    try:
+        hour, minute = [int(part) for part in cutoff_time.split(":", maxsplit=1)]
+    except (TypeError, ValueError):
+        hour, minute = 8, 0
+    frame["allowed_cutoff"] = frame["date"].map(
+        lambda day: _regime_cutoff_utc(day, hour=hour, minute=minute)
+    )
+    # Stored timestamps are timezone-naive UTC.  A later same-day rebuild is
+    # not eligible for a historical 08:00 KST forecast.
+    frame = frame[frame["prediction_cutoff"].notna() & (frame["prediction_cutoff"] <= frame["allowed_cutoff"])]
+    if frame.empty:
+        return pd.DataFrame()
+    frame = frame.sort_values(["date", "prediction_cutoff", "created_at"], na_position="first")
+    return frame.drop_duplicates("date", keep="last").drop(
+        columns=["prediction_cutoff", "created_at", "allowed_cutoff"]
+    )
+
+
+def _regime_cutoff_utc(day: date | None, *, hour: int, minute: int) -> datetime | None:
+    if day is None:
+        return None
+    return datetime.combine(day, time(hour, minute), tzinfo=KST).astimezone(UTC).replace(tzinfo=None)
 
 
 def _telegram_features(conn) -> pd.DataFrame:
@@ -1289,6 +2006,21 @@ def _merge_prediction_date_features(dataset: pd.DataFrame, extra: pd.DataFrame) 
     return dataset.merge(frame, left_on="target_date", right_on="date", how="left").drop(columns=["date"], errors="ignore")
 
 
+def _merge_regime_session_features(dataset: pd.DataFrame, extra: pd.DataFrame) -> pd.DataFrame:
+    """Join only the global regime available for the next prediction session."""
+    if extra.empty:
+        return dataset
+    merge_cols = [column for column in extra.columns if column != "date"]
+    frame = extra[["date", *merge_cols]].copy()
+    frame["date"] = pd.to_datetime(frame["date"], errors="coerce").dt.date
+    return dataset.merge(
+        frame,
+        left_on="regime_session_date",
+        right_on="date",
+        how="left",
+    ).drop(columns=["date"], errors="ignore")
+
+
 def _fill_feature_defaults(
     dataset: pd.DataFrame,
     *,
@@ -1309,9 +2041,14 @@ def _fill_feature_defaults(
         "prediction_down_probability_avg": 0.5,
     }
     for column in FEATURE_COLUMNS:
-        if column not in output.columns:
-            output[column] = defaults.get(column, 0.0)
-        raw = pd.to_numeric(output[column], errors="coerce")
+        # Preserve absence before applying a neutral value.  Otherwise a
+        # newly-created default column looks like observed zero/0.5 input and
+        # freshness checks cannot distinguish a missing source from a signal.
+        raw = (
+            pd.to_numeric(output[column], errors="coerce")
+            if column in output.columns
+            else pd.Series(np.nan, index=output.index, dtype=float)
+        )
         if include_feature_provenance:
             provenance[f"__raw_{column}"] = raw
             provenance[f"__default_applied_{column}"] = raw.isna()
@@ -1467,6 +2204,8 @@ def _empty_forecast_frame() -> pd.DataFrame:
             "drivers_json",
             "data_quality_json",
             "model_version",
+            "direction_return_threshold",
+            "direction_probability_threshold",
             "created_at",
             "prediction_session_date",
             "domestic_asof_date",

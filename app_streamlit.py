@@ -274,13 +274,12 @@ def load_today_market_snapshot() -> dict:
 
 
 @st.cache_data(ttl=120)
-def load_price_gap_snapshot(horizon: str) -> dict:
+def load_price_gap_snapshot(horizon: str, market: str) -> dict:
     conn = _conn()
     return build_prediction_price_gap(
         conn,
-        lookback_days=30,
-        target_days=30,
         horizon=horizon,
+        market=market,
         limit=300,
     )
 
@@ -423,10 +422,11 @@ st.markdown(
 )
 
 horizon = st.selectbox("Horizon", ["3M", "6M", "1Y", "2Y"], index=0)
+market = st.selectbox("Market", ["all", "KOSPI", "KOSDAQ"], index=0)
 snapshot = load_dashboard_snapshot()
 recommendations = load_recommendations(horizon)
 today_snapshot = load_today_market_snapshot()
-price_gap_snapshot = load_price_gap_snapshot(horizon)
+price_gap_snapshot = load_price_gap_snapshot(horizon, market)
 
 st.subheader("Today Market Update")
 if not today_snapshot:
@@ -543,13 +543,13 @@ st.subheader("Recent Prediction Price Gap")
 price_gap_summary = price_gap_snapshot.get("summary", {})
 g1, g2, g3, g4 = st.columns(4)
 with g1:
-    _metric_card("표본", str(price_gap_summary.get("sample_count", 0)), f"pending {price_gap_summary.get('pending_count', 0)}")
+    _metric_card("확정 표본", str(price_gap_summary.get("mature_sample_count", 0)), f"pending {price_gap_summary.get('interim_sample_count', 0)}")
 with g2:
-    _metric_card("Latest MAE", _fmt_pct(price_gap_summary.get("mae_latest")), "현재까지 실제수익률 기준")
+    _metric_card("만기 MAE", _fmt_pct(price_gap_summary.get("mature_mae")), "horizon 거래일 완료 기준")
 with g3:
-    _metric_card("Latest Bias", _fmt_pct(price_gap_summary.get("bias_latest")), "양수면 과소예측")
+    _metric_card("만기 Bias", _fmt_pct(price_gap_summary.get("mature_bias")), "양수면 과소예측")
 with g4:
-    _metric_card("방향 적중", _fmt_pct(price_gap_summary.get("direction_accuracy_latest")), "현재까지 방향")
+    _metric_card("방향 적중", _fmt_pct(price_gap_summary.get("mature_direction_accuracy")), "확정 예측만")
 price_gap_items = pd.DataFrame(price_gap_snapshot.get("items", []))
 if price_gap_items.empty:
     st.info("최근 30일 예측 괴리 데이터가 없습니다.")

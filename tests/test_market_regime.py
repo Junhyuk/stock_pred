@@ -1,13 +1,23 @@
 from __future__ import annotations
 
+import json
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
 import pandas as pd
+import pytest
 
 from roboquant.dashboard.dashboard_service import get_focus_stocks_demo
 from roboquant.db import append_dedup_table, connect_database
-from roboquant.global_market.regime import build_market_regime_row, regime_row_to_frame
+from roboquant.global_market.regime import (
+    build_market_regime_row,
+    regime_row_to_frame,
+    resolve_prediction_date,
+)
+
+PREDICTION_DATE = date(2026, 6, 9)
+PREDICTION_CUTOFF = datetime(2026, 6, 9, 8, tzinfo=ZoneInfo("Asia/Seoul"))
+_DEFAULT_SOURCE_TIMESTAMP = object()
 
 
 def test_market_regime_builds_panic_from_synthetic_shock(tmp_path) -> None:
@@ -16,8 +26,8 @@ def test_market_regime_builds_panic_from_synthetic_shock(tmp_path) -> None:
 
     row = build_market_regime_row(
         conn,
-        prediction_date=date(2026, 6, 8),
-        prediction_cutoff=datetime(2026, 6, 8, 8, tzinfo=ZoneInfo("Asia/Seoul")),
+        prediction_date=PREDICTION_DATE,
+        prediction_cutoff=PREDICTION_CUTOFF,
         config={"regime": {"feature_version": "domestic_plus_global_regime_v1"}},
     )
 
@@ -26,7 +36,9 @@ def test_market_regime_builds_panic_from_synthetic_shock(tmp_path) -> None:
     assert row["global_risk_score"] >= 70
     assert row["semiconductor_score"] == 25
     assert row["futures_score"] == 10
+    assert row["asia_score"] == 20
     assert "SOX -4% 이하" in row["reasons_json"]
+    assert "Nikkei -2% 이하" in row["reasons_json"]
 
 
 def test_focus_demo_adjustment_ready_after_regime_row(tmp_path) -> None:
@@ -35,8 +47,8 @@ def test_focus_demo_adjustment_ready_after_regime_row(tmp_path) -> None:
     _seed_global_shock_data(conn)
     row = build_market_regime_row(
         conn,
-        prediction_date=date(2026, 6, 8),
-        prediction_cutoff=datetime(2026, 6, 8, 8, tzinfo=ZoneInfo("Asia/Seoul")),
+        prediction_date=PREDICTION_DATE,
+        prediction_cutoff=PREDICTION_CUTOFF,
         config={"regime": {"feature_version": "domestic_plus_global_regime_v1"}},
     )
     append_dedup_table(
@@ -55,6 +67,124 @@ def test_focus_demo_adjustment_ready_after_regime_row(tmp_path) -> None:
     assert hynix["global_adjustment"]["regime_adjusted_score"] < hynix["display_score"]
 
 
+def test_market_regime_excludes_daily_values_published_after_cutoff(tmp_path) -> None:
+    conn = connect_database(tmp_path / "cutoff_safe_regime.duckdb")
+    rows = pd.DataFrame(
+        [
+            _daily("2026-06-08", "^IXIC", "Nasdaq", 100.0, 0.01),
+            _daily("2026-06-08", "^N225", "Nikkei", 100.0, 0.01, "ASIA_INDEX"),
+            _daily("2026-06-08", "^TWII", "Taiwan", 100.0, 0.01, "ASIA_INDEX"),
+            _daily(
+                "2026-06-09",
+                "^IXIC",
+                "Nasdaq same session row",
+                90.0,
+                -0.50,
+                source_name="same_session_fixture",
+                source_timestamp=datetime(2026, 6, 8, 22, 0),
+            ),
+            _daily(
+                "2026-06-08",
+                "^IXIC",
+                "Nasdaq late-published row",
+                90.0,
+                -0.50,
+                source_name="future_fixture",
+                source_timestamp=datetime(2026, 6, 9, 0, 0),
+            ),
+            _daily(
+                "2026-06-09",
+                "^N225",
+                "Nikkei future row",
+                90.0,
+                -0.50,
+                "ASIA_INDEX",
+                source_name="future_fixture",
+                source_timestamp=datetime(2026, 6, 9, 0, 0),
+            ),
+            _daily(
+                "2026-06-09",
+                "^TWII",
+                "Taiwan future row",
+                90.0,
+                -0.50,
+                "ASIA_INDEX",
+                source_name="future_fixture",
+                source_timestamp=datetime(2026, 6, 9, 0, 0),
+            ),
+        ]
+    )
+    append_dedup_table(conn, "global_market_daily", rows, ["trade_date", "symbol", "source_name"])
+
+    row = build_market_regime_row(
+        conn,
+        prediction_date=PREDICTION_DATE,
+        prediction_cutoff=PREDICTION_CUTOFF,
+        config={"regime": {}},
+    )
+
+    signals = json.loads(row["signals_json"])
+    assert signals["nasdaq_return_1d"] == pytest.approx(0.01)
+    assert signals["nikkei_return_1d"] == pytest.approx(0.01)
+    assert signals["taiwan_return_1d"] == pytest.approx(0.01)
+    assert row["asia_score"] == 0
+    assert row["us_equity_score"] == 0
+
+
+def test_market_regime_uses_legacy_ingested_at_only_before_cutoff(tmp_path) -> None:
+    conn = connect_database(tmp_path / "legacy_availability_regime.duckdb")
+    rows = pd.DataFrame(
+        [
+            _daily(
+                "2026-06-08",
+                "^IXIC",
+                "legacy available Nasdaq",
+                100.0,
+                -0.04,
+                source_name="legacy_before",
+                source_timestamp=None,
+                ingested_at=datetime(2026, 6, 8, 22, 0),
+            ),
+            _daily(
+                "2026-06-09",
+                "^IXIC",
+                "legacy future Nasdaq",
+                100.0,
+                0.50,
+                source_name="legacy_after",
+                source_timestamp=None,
+                ingested_at=datetime(2026, 6, 9, 0, 0),
+            ),
+        ]
+    )
+    append_dedup_table(conn, "global_market_daily", rows, ["trade_date", "symbol", "source_name"])
+
+    row = build_market_regime_row(
+        conn,
+        prediction_date=PREDICTION_DATE,
+        prediction_cutoff=PREDICTION_CUTOFF,
+        config={"regime": {}},
+    )
+
+    signals = json.loads(row["signals_json"])
+    assert signals["nasdaq_return_1d"] == pytest.approx(-0.04)
+    assert row["us_equity_score"] == 25
+
+
+def test_market_regime_rejects_prediction_date_cutoff_mismatch(tmp_path) -> None:
+    conn = connect_database(tmp_path / "invalid_context_regime.duckdb")
+
+    with pytest.raises(ValueError, match="prediction_date must match"):
+        resolve_prediction_date("2026-06-10", PREDICTION_CUTOFF)
+    with pytest.raises(ValueError, match="prediction_date must match"):
+        build_market_regime_row(
+            conn,
+            prediction_date=date(2026, 6, 10),
+            prediction_cutoff=PREDICTION_CUTOFF,
+            config={"regime": {}},
+        )
+
+
 def _seed_global_shock_data(conn) -> None:
     rows = pd.DataFrame(
         [
@@ -68,6 +198,10 @@ def _seed_global_shock_data(conn) -> None:
             _daily("2026-06-08", "^VIX", "VIX", 28.0, 0.40),
             _daily("2026-06-05", "USDKRW=X", "USD/KRW", 1300.0, None, "FX"),
             _daily("2026-06-08", "USDKRW=X", "USD/KRW", 1320.0, 0.015, "FX"),
+            _daily("2026-06-05", "^N225", "Nikkei", 100.0, None, "ASIA_INDEX"),
+            _daily("2026-06-08", "^N225", "Nikkei", 97.0, -0.03, "ASIA_INDEX"),
+            _daily("2026-06-05", "^TWII", "Taiwan", 100.0, None, "ASIA_INDEX"),
+            _daily("2026-06-08", "^TWII", "Taiwan", 97.0, -0.03, "ASIA_INDEX"),
         ]
     )
     snapshots = pd.DataFrame(
@@ -126,7 +260,13 @@ def _daily(
     close: float,
     return_1d: float | None,
     market_group: str = "US_INDEX",
+    *,
+    source_name: str = "fixture",
+    source_timestamp: datetime | None | object = _DEFAULT_SOURCE_TIMESTAMP,
+    ingested_at: datetime | None = None,
 ) -> dict:
+    if source_timestamp is _DEFAULT_SOURCE_TIMESTAMP:
+        source_timestamp = datetime.combine(date.fromisoformat(trade_date), datetime.min.time())
     return {
         "trade_date": trade_date,
         "symbol": symbol,
@@ -134,5 +274,7 @@ def _daily(
         "display_name": display_name,
         "close": close,
         "return_1d": return_1d,
-        "source_name": "fixture",
+        "source_name": source_name,
+        "source_timestamp": source_timestamp,
+        "ingested_at": ingested_at,
     }

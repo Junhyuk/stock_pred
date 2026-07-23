@@ -19,7 +19,12 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Backtest recent prediction-to-price return gaps.")
     parser.add_argument("--config", default="configs/poc.yaml")
     parser.add_argument("--lookback-days", type=int, default=30)
-    parser.add_argument("--target-days", type=int, default=30)
+    parser.add_argument(
+        "--target-days",
+        type=int,
+        default=None,
+        help="Optional trading-session override; default follows the selected horizon (3M=63, 6M=126).",
+    )
     parser.add_argument("--horizon", default="3M", help="3M, 6M, or all")
     parser.add_argument("--symbols", default=None, help="Comma-separated symbols such as 005930,000660")
     parser.add_argument("--as-of-date", default=None)
@@ -78,7 +83,7 @@ def _markdown_report(payload: dict) -> str:
         f"- status: `{payload.get('status')}`",
         f"- horizon: `{payload.get('horizon')}`",
         f"- lookback_days: `{payload.get('lookback_days')}`",
-        f"- target_days: `{payload.get('target_days')}`",
+        f"- target_trading_days: `{payload.get('target_trading_days')}` ({payload.get('target_days_source')})",
         f"- as_of_date: `{payload.get('as_of_date')}`",
         f"- sample_count: `{summary.get('sample_count')}`",
         f"- completed_count: `{summary.get('completed_count')}`",
@@ -87,10 +92,11 @@ def _markdown_report(payload: dict) -> str:
         f"- MAE latest: `{_pct(summary.get('mae_latest'))}`",
         f"- Bias latest: `{_pct(summary.get('bias_latest'))}`",
         f"- Direction accuracy latest: `{_pct(summary.get('direction_accuracy_latest'))}`",
-        f"- MAE {payload.get('target_days')}D completed: `{_pct(summary.get('mae_30d'))}`",
-        f"- Direction accuracy {payload.get('target_days')}D completed: `{_pct(summary.get('direction_accuracy_30d'))}`",
+        f"- Mature MAE: `{_pct(summary.get('mature_mae'))}`",
+        f"- Mature direction accuracy: `{_pct(summary.get('mature_direction_accuracy'))}`",
+        f"- Interim direction observation (not accuracy): `{_pct(summary.get('interim_direction_accuracy'))}`",
         "",
-        "결과는 연구·정보제공용이며, 목표일 미도래 예측은 pending으로 분리했습니다.",
+        "결과는 연구·정보제공용이며, horizon 만기 전 예측은 pending 중간 관측으로만 분리했습니다.",
     ]
     return "\n".join(lines) + "\n"
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from bisect import bisect_right
 from datetime import UTC, datetime
 
 import numpy as np
@@ -41,7 +42,7 @@ def build_backtest_results(conn, horizon_days: int, model: str | None = None) ->
           future_return AS actual_return,
           benchmark_return,
           excess_return,
-          is_top20pct AS is_top20
+          is_top20pct AS target_is_top20pct
         FROM labels
         WHERE horizon = ?
         """,
@@ -69,14 +70,20 @@ def build_backtest_results(conn, horizon_days: int, model: str | None = None) ->
         "recommendation_score"
     ].rank(ascending=False, method="first")
     frame["rank_no"] = frame["rank_no"].astype(int)
-    frame["target_date"] = pd.to_datetime(frame["prediction_date"]) + pd.to_timedelta(
+    fallback_target_dates = pd.to_datetime(frame["prediction_date"]) + pd.to_timedelta(
         frame["horizon_days"].astype(int),
         unit="D",
     )
-    frame["target_date"] = frame["target_date"].dt.date
-    frame["is_hit"] = pd.to_numeric(frame["actual_return"], errors="coerce") > 0
+    target_dates = _target_session_dates(conn, frame)
+    frame["target_date"] = target_dates.where(target_dates.notna(), fallback_target_dates.dt.date)
+    frame["direction_hit"] = _direction_hits(frame["predicted_return"], frame["actual_return"])
+    # Keep the legacy field, but correct its meaning to actual prediction direction hit.
+    frame["is_hit"] = frame["direction_hit"]
     frame["is_outperform"] = pd.to_numeric(frame["excess_return"], errors="coerce") > 0
-    frame["is_top20"] = frame["rank_no"] <= 20
+    # `is_top20` historically means selected by the model. Preserve that contract
+    # while retaining the ground-truth label in `target_is_top20pct`.
+    frame["selected_top20"] = frame["rank_no"] <= 20
+    frame["is_top20"] = frame["selected_top20"]
     frame["result_id"] = frame.apply(
         lambda row: f"{row['prediction_date']}|{row['symbol']}|{row['model_name']}|{row['model_version']}|{row['horizon']}",
         axis=1,
@@ -104,7 +111,10 @@ def summarize_model_performance(results: pd.DataFrame) -> pd.DataFrame:
         actual = pd.to_numeric(group["actual_return"], errors="coerce")
         benchmark = pd.to_numeric(group["benchmark_return"], errors="coerce")
         excess = pd.to_numeric(group["excess_return"], errors="coerce")
-        top20 = group[group["rank_no"] <= 20]
+        top20 = group[group["selected_top20"].fillna(group["rank_no"] <= 20)]
+        direction_hits = group["direction_hit"] if "direction_hit" in group else group["is_hit"]
+        top20_direction_hits = top20["direction_hit"] if "direction_hit" in top20 else top20["is_hit"]
+        target_top20 = top20.get("target_is_top20pct")
         portfolio_returns = (
             top20.assign(actual_return=pd.to_numeric(top20["actual_return"], errors="coerce"))
             .groupby("prediction_date")["actual_return"]
@@ -122,8 +132,13 @@ def summarize_model_performance(results: pd.DataFrame) -> pd.DataFrame:
                 "horizon": horizon,
                 "horizon_days": int(horizon_days),
                 "sample_count": int(len(group)),
-                "hit_ratio": _mean_bool(group["is_hit"]),
-                "precision_top20": _mean_bool(top20["is_hit"]),
+                "hit_ratio": _mean_bool(direction_hits),
+                "direction_hit_ratio": _mean_bool(direction_hits),
+                "absolute_up_rate": _mean_bool(actual > 0),
+                "precision_top20": _mean_bool(target_top20),
+                "top20_direction_hit_ratio": _mean_bool(top20_direction_hits),
+                "top20_absolute_up_rate": _mean_bool(pd.to_numeric(top20["actual_return"], errors="coerce") > 0),
+                "top20_sample_count": int(len(top20)),
                 "avg_actual_return": _mean(actual),
                 "avg_benchmark_return": _mean(benchmark),
                 "avg_excess_return": _mean(excess),
@@ -191,7 +206,9 @@ def calc_precision_at_k(df: pd.DataFrame, k: int = 20) -> float | None:
     if df.empty:
         return None
     top = df.sort_values("recommendation_score", ascending=False).head(k)
-    return _mean_bool(top["actual_return"] > 0)
+    if "target_is_top20pct" not in top:
+        return None
+    return _mean_bool(top["target_is_top20pct"])
 
 
 def _load_standard_predictions(conn, horizon: str) -> pd.DataFrame:
@@ -252,8 +269,8 @@ def _median(series: pd.Series) -> float | None:
     return _none_if_nan(value)
 
 
-def _mean_bool(series: pd.Series) -> float | None:
-    if series.empty:
+def _mean_bool(series: pd.Series | None) -> float | None:
+    if series is None or series.empty:
         return None
     value = series.astype("boolean").astype("Float64").mean()
     return _none_if_nan(value)
@@ -271,6 +288,52 @@ def _horizon_sharpe(returns: pd.Series, horizon_days: int) -> float | None:
         return None
     annualization = np.sqrt(252.0 / max(1, int(horizon_days)))
     return float(values.mean() / values.std(ddof=0) * annualization)
+
+
+def _direction_hits(predicted: pd.Series, actual: pd.Series) -> pd.Series:
+    predicted_values = pd.to_numeric(predicted, errors="coerce")
+    actual_values = pd.to_numeric(actual, errors="coerce")
+    valid = predicted_values.notna() & actual_values.notna()
+    result = pd.Series(pd.NA, index=predicted.index, dtype="boolean")
+    result.loc[valid] = np.sign(predicted_values.loc[valid]) == np.sign(actual_values.loc[valid])
+    return result
+
+
+def _target_session_dates(conn, frame: pd.DataFrame) -> pd.Series:
+    """Resolve label horizons to the actual per-symbol trading session date."""
+    if frame.empty:
+        return pd.Series(dtype=object)
+    symbols = sorted(frame["symbol"].dropna().astype(str).str.zfill(6).unique().tolist())
+    if not symbols:
+        return pd.Series(index=frame.index, dtype=object)
+    placeholders = ", ".join(["?"] * len(symbols))
+    first_prediction_date = pd.to_datetime(frame["prediction_date"]).min().date()
+    prices = conn.execute(
+        f"""
+        SELECT DISTINCT date, symbol
+        FROM prices_daily
+        WHERE symbol IN ({placeholders})
+          AND date >= ?
+        ORDER BY symbol, date
+        """,
+        [*symbols, first_prediction_date],
+    ).fetchdf()
+    if prices.empty:
+        return pd.Series(index=frame.index, dtype=object)
+    prices["date"] = pd.to_datetime(prices["date"]).dt.date
+    prices["symbol"] = prices["symbol"].astype(str).str.zfill(6)
+    sessions_by_symbol = {
+        symbol: group["date"].tolist()
+        for symbol, group in prices.groupby("symbol", sort=False)
+    }
+    target_dates: list[object] = []
+    for row in frame[["prediction_date", "symbol", "horizon_days"]].itertuples(index=False):
+        sessions = sessions_by_symbol.get(str(row.symbol).zfill(6), [])
+        prediction_date = pd.to_datetime(row.prediction_date).date()
+        start_index = bisect_right(sessions, prediction_date)
+        target_index = start_index + int(row.horizon_days) - 1
+        target_dates.append(sessions[target_index] if target_index < len(sessions) else None)
+    return pd.Series(target_dates, index=frame.index, dtype=object)
 
 
 def _utcnow() -> datetime:
@@ -297,8 +360,11 @@ def _empty_results() -> pd.DataFrame:
             "benchmark_return",
             "excess_return",
             "is_hit",
+            "direction_hit",
             "is_outperform",
             "is_top20",
+            "target_is_top20pct",
+            "selected_top20",
             "rank_no",
             "sector",
             "created_at",
@@ -316,7 +382,12 @@ def _empty_performance() -> pd.DataFrame:
             "horizon_days",
             "sample_count",
             "hit_ratio",
+            "direction_hit_ratio",
+            "absolute_up_rate",
             "precision_top20",
+            "top20_direction_hit_ratio",
+            "top20_absolute_up_rate",
+            "top20_sample_count",
             "avg_actual_return",
             "avg_benchmark_return",
             "avg_excess_return",

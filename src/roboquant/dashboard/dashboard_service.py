@@ -9,6 +9,7 @@ from zoneinfo import ZoneInfo
 import numpy as np
 import pandas as pd
 
+from roboquant.backtest.metrics import max_drawdown
 from roboquant.dashboard.portfolio_service import build_portfolio_from_recommendations
 from roboquant.dashboard.price_gap_service import build_prediction_price_gap
 from roboquant.data.freshness import price_freshness_report
@@ -184,12 +185,23 @@ def empty_dashboard_snapshot() -> dict[str, Any]:
     }
 
 
-def get_backtest_summary(conn, horizon: str | int = "3M") -> dict[str, Any]:
-    return _backtest_summary(conn, _normalize_horizon(horizon))
+def get_backtest_summary(
+    conn,
+    horizon: str | int = "3M",
+    market: str | None = None,
+    top_k: int = 20,
+) -> dict[str, Any]:
+    return _backtest_summary(conn, _normalize_horizon(horizon), market=market, top_k=top_k)
 
 
-def get_model_accuracy(conn) -> list[dict[str, Any]]:
-    return _records(_model_accuracy(conn))
+def get_model_accuracy(
+    conn,
+    horizon: str | int | None = None,
+    market: str | None = None,
+    top_k: int = 20,
+) -> list[dict[str, Any]]:
+    normalized_horizon = None if horizon is None else _normalize_horizon(horizon)
+    return _records(_performance_from_backtest_results(conn, normalized_horizon, market, top_k))
 
 
 def get_backtest_by_model(
@@ -197,18 +209,23 @@ def get_backtest_by_model(
     model: str,
     version: str | None = None,
     horizon: str | int = "3M",
+    market: str | None = None,
 ) -> list[dict[str, Any]]:
     query = """
         SELECT *
-        FROM backtest_results
-        WHERE horizon = ?
-          AND model_name = ?
+        FROM backtest_results AS b
+        LEFT JOIN symbols AS s ON b.symbol = s.symbol
+        WHERE b.horizon = ?
+          AND b.model_name = ?
     """
     params: list[Any] = [_normalize_horizon(horizon), model]
     if version:
-        query += " AND model_version = ?"
+        query += " AND b.model_version = ?"
         params.append(version)
-    query += " ORDER BY prediction_date DESC, rank_no LIMIT 500"
+    if _normalize_market_filter(market):
+        query += " AND UPPER(COALESCE(s.market, '')) = ?"
+        params.append(_normalize_market_filter(market))
+    query += " ORDER BY b.prediction_date DESC, b.rank_no LIMIT 500"
     return _records(conn.execute(query, params).fetchdf())
 
 
@@ -227,29 +244,44 @@ def get_stock_backtest(conn, symbol: str, horizon: str | int | None = None) -> l
     return _records(conn.execute(query, params).fetchdf())
 
 
-def get_top20_backtest(conn, horizon: str | int = "3M") -> list[dict[str, Any]]:
+def get_top20_backtest(conn, horizon: str | int = "3M", market: str | None = None) -> list[dict[str, Any]]:
+    market_filter = _normalize_market_filter(market)
+    query = """
+        SELECT b.*, s.name, s.market
+        FROM backtest_results AS b
+        LEFT JOIN symbols AS s ON b.symbol = s.symbol
+        WHERE b.horizon = ?
+    """
+    params: list[Any] = [_normalize_horizon(horizon)]
+    if market_filter:
+        query += " AND UPPER(COALESCE(s.market, '')) = ?"
+        params.append(market_filter)
+    # Rank after applying the requested market scope.  A globally selected
+    # Top-20 filtered down to KOSPI is not the KOSPI Top-20 precision cohort.
+    query += """
+        QUALIFY ROW_NUMBER() OVER (
+            PARTITION BY b.prediction_date, b.horizon, b.model_name, b.model_version
+            ORDER BY b.recommendation_score DESC NULLS LAST, b.symbol
+        ) <= 20
+        ORDER BY b.prediction_date DESC, b.model_name, b.rank_no
+        LIMIT 500
+    """
     return _records(
-        conn.execute(
-            """
-            SELECT b.*, s.name, s.market
-            FROM backtest_results AS b
-            LEFT JOIN symbols AS s ON b.symbol = s.symbol
-            WHERE b.horizon = ?
-              AND b.is_top20 = TRUE
-            ORDER BY b.prediction_date DESC, b.model_name, b.rank_no
-            LIMIT 500
-            """,
-            [_normalize_horizon(horizon)],
-        ).fetchdf()
+        conn.execute(query, params).fetchdf()
     )
 
 
 def get_sector_backtest(conn, sector: str, horizon: str | int = "3M") -> dict[str, Any]:
     frame = conn.execute(
         """
-        SELECT b.*, COALESCE(b.sector, s.sector, s.market, '기타') AS resolved_sector
+        SELECT b.*, l.is_top20pct AS label_target_is_top20pct,
+               COALESCE(b.sector, s.sector, s.market, '기타') AS resolved_sector
         FROM backtest_results AS b
         LEFT JOIN symbols AS s ON b.symbol = s.symbol
+        LEFT JOIN labels AS l
+          ON b.prediction_date = l.asof_date
+         AND b.symbol = l.symbol
+         AND b.horizon = l.horizon
         WHERE b.horizon = ?
           AND COALESCE(b.sector, s.sector, s.market, '기타') = ?
         ORDER BY b.prediction_date DESC, b.model_name, b.rank_no
@@ -259,16 +291,25 @@ def get_sector_backtest(conn, sector: str, horizon: str | int = "3M") -> dict[st
     ).fetchdf()
     if frame.empty:
         return {"sector": sector, "horizon": _normalize_horizon(horizon), "items": [], "summary": {}}
+    frame["actual_return"] = pd.to_numeric(frame["actual_return"], errors="coerce")
+    frame["predicted_return"] = pd.to_numeric(frame["predicted_return"], errors="coerce")
+    frame["direction_hit"] = _direction_hit_series(frame["predicted_return"], frame["actual_return"])
+    target = frame.get("target_is_top20pct")
+    if target is None:
+        frame["target_is_top20pct"] = frame.get("label_target_is_top20pct")
+    else:
+        frame["target_is_top20pct"] = target.where(target.notna(), frame.get("label_target_is_top20pct"))
+    selected = frame[frame.get("selected_top20", frame["is_top20"]).fillna(frame["is_top20"]).astype(bool)]
     return {
         "sector": sector,
         "horizon": _normalize_horizon(horizon),
         "summary": {
             "sample_count": int(len(frame)),
-            "hit_ratio": _safe_float((pd.to_numeric(frame["actual_return"], errors="coerce") > 0).mean()),
+            "hit_ratio": _mean_bool_series(frame["direction_hit"]),
+            "direction_hit_ratio": _mean_bool_series(frame["direction_hit"]),
+            "absolute_up_rate": _mean_bool_series(frame["actual_return"] > 0),
             "avg_excess_return": _safe_float(pd.to_numeric(frame["excess_return"], errors="coerce").mean()),
-            "precision_top20": _safe_float(
-                (pd.to_numeric(frame[frame["rank_no"] <= 20]["actual_return"], errors="coerce") > 0).mean()
-            ),
+            "precision_top20": _mean_bool_series(selected.get("target_is_top20pct")),
         },
         "items": _records(frame),
     }
@@ -1627,8 +1668,6 @@ def get_four_stock_demo(
     regime = get_current_market_regime(conn)
     price_gap = build_prediction_price_gap(
         conn,
-        lookback_days=30,
-        target_days=30,
         horizon=horizon,
         symbols=[str(symbol).zfill(6) for symbol in symbols],
         limit=200,
@@ -2334,45 +2373,53 @@ def _latest_recommendations(conn, horizon: str) -> pd.DataFrame:
     return frame
 
 
-def _backtest_summary(conn, horizon: str) -> dict[str, Any]:
+def _backtest_summary(
+    conn,
+    horizon: str,
+    *,
+    market: str | None = None,
+    top_k: int = 20,
+) -> dict[str, Any]:
     horizon = _normalize_horizon(horizon)
-    perf = conn.execute(
-        """
-        SELECT *
-        FROM model_performance_daily
-        WHERE horizon = ?
-        ORDER BY eval_date DESC, production_weight DESC, created_at DESC
-        LIMIT 1
-        """,
-        [horizon],
-    ).fetchdf()
-    if perf.empty:
+    market_filter = _normalize_market_filter(market)
+    performance = _performance_from_backtest_results(conn, horizon, market_filter, top_k)
+    if performance.empty:
         return {
             "horizon": horizon,
             "horizon_days": _horizon_days(horizon),
+            "market": market_filter or "all",
+            "top_k": int(top_k),
             "sample_count": 0,
             "hit_ratio": None,
+            "direction_hit_ratio": None,
+            "absolute_up_rate": None,
             "precision_top20": None,
+            "precision_top_k": None,
             "avg_excess_return": None,
             "mdd": None,
             "sharpe": None,
             "rank_ic": None,
             "weekly_returns": [],
         }
-    row = perf.iloc[0].to_dict()
-    weekly = conn.execute(
-        """
-        SELECT prediction_date, AVG(actual_return) AS return
-        FROM backtest_results
-        WHERE horizon = ?
-        GROUP BY prediction_date
-        ORDER BY prediction_date DESC
-        LIMIT 12
-        """,
-        [horizon],
-    ).fetchdf()
+    production = performance[performance["model_name"].eq("lightgbm")]
+    selected = production if not production.empty else performance
+    row = selected.sort_values(["eval_date", "production_weight"], ascending=False).iloc[0].to_dict()
+    query = """
+        SELECT b.prediction_date, AVG(b.actual_return) AS return
+        FROM backtest_results AS b
+        LEFT JOIN symbols AS s ON b.symbol = s.symbol
+        WHERE b.horizon = ?
+    """
+    params: list[Any] = [horizon]
+    if market_filter:
+        query += " AND UPPER(COALESCE(s.market, '')) = ?"
+        params.append(market_filter)
+    query += " GROUP BY b.prediction_date ORDER BY b.prediction_date DESC LIMIT 12"
+    weekly = conn.execute(query, params).fetchdf()
     return {
         **_json_safe(row),
+        "market": market_filter or "all",
+        "top_k": int(top_k),
         "weekly_returns": [
             {"label": str(record["prediction_date"]), "return": _safe_float(record["return"])}
             for record in weekly.to_dict(orient="records")
@@ -2381,28 +2428,158 @@ def _backtest_summary(conn, horizon: str) -> dict[str, Any]:
 
 
 def _model_accuracy(conn) -> pd.DataFrame:
-    return conn.execute(
+    return _performance_from_backtest_results(conn, None, None, 20)
+
+
+def _performance_from_backtest_results(
+    conn,
+    horizon: str | None,
+    market: str | None,
+    top_k: int,
+) -> pd.DataFrame:
+    """Recompute public metrics from prediction-level outcomes.
+
+    This deliberately does not trust old aggregate rows, where `hit_ratio` and
+    `precision_top20` meant an unconditional realised-up rate.
+    """
+    market_filter = _normalize_market_filter(market)
+    query = """
+        SELECT b.*, s.market,
+               l.is_top20pct AS label_target_is_top20pct
+        FROM backtest_results AS b
+        LEFT JOIN symbols AS s ON b.symbol = s.symbol
+        LEFT JOIN labels AS l
+          ON b.prediction_date = l.asof_date
+         AND b.symbol = l.symbol
+         AND b.horizon = l.horizon
+        WHERE 1 = 1
+    """
+    params: list[Any] = []
+    if horizon:
+        query += " AND b.horizon = ?"
+        params.append(horizon)
+    if market_filter:
+        query += " AND UPPER(COALESCE(s.market, '')) = ?"
+        params.append(market_filter)
+    frame = conn.execute(query, params).fetchdf()
+    if frame.empty:
+        return pd.DataFrame()
+    frame["prediction_date"] = pd.to_datetime(frame["prediction_date"]).dt.date
+    frame["actual_return"] = pd.to_numeric(frame["actual_return"], errors="coerce")
+    frame["predicted_return"] = pd.to_numeric(frame["predicted_return"], errors="coerce")
+    frame["recommendation_score"] = pd.to_numeric(frame["recommendation_score"], errors="coerce")
+    frame = frame[frame["actual_return"].notna()].copy()
+    if frame.empty:
+        return pd.DataFrame()
+    target_label = frame.get("target_is_top20pct")
+    if target_label is None:
+        frame["target_is_top20pct"] = frame.get("label_target_is_top20pct")
+    else:
+        frame["target_is_top20pct"] = target_label.where(target_label.notna(), frame.get("label_target_is_top20pct"))
+    frame["direction_hit"] = _direction_hit_series(frame["predicted_return"], frame["actual_return"])
+    frame["selected_top_k"] = (
+        frame.groupby(["prediction_date", "horizon", "model_name", "model_version"], dropna=False)["recommendation_score"]
+        .rank(ascending=False, method="first")
+        .le(max(1, int(top_k)))
+    )
+    metadata = conn.execute(
         """
-        SELECT
-          eval_date,
-          model_name,
-          model_version,
-          horizon,
-          horizon_days,
-          sample_count,
-          hit_ratio,
-          precision_top20,
-          avg_excess_return,
-          mdd,
-          sharpe,
-          rank_ic,
-          production_weight,
-          gate_status
+        SELECT model_name, model_version, horizon, production_weight, gate_status, eval_date, created_at
         FROM model_performance_daily
-        ORDER BY eval_date DESC, production_weight DESC, model_name
-        LIMIT 50
         """
     ).fetchdf()
+    metadata = metadata.sort_values(["eval_date", "created_at"], na_position="first").drop_duplicates(
+        ["model_name", "model_version", "horizon"], keep="last"
+    ) if not metadata.empty else metadata
+    rows: list[dict[str, Any]] = []
+    for keys, group in frame.groupby(["model_name", "model_version", "horizon", "horizon_days"], dropna=False):
+        model_name, model_version, group_horizon, horizon_days = keys
+        selected = group[group["selected_top_k"]]
+        target_top = _mean_bool_series(selected.get("target_is_top20pct"))
+        selected_returns = (
+            selected.groupby("prediction_date")["actual_return"]
+            .mean()
+            .sort_index()
+        )
+        evaluation_returns = selected_returns.iloc[:: max(1, int(horizon_days))]
+        meta = pd.Series(dtype=object)
+        if not metadata.empty:
+            matched = metadata[
+                (metadata["model_name"] == model_name)
+                & (metadata["model_version"] == model_version)
+                & (metadata["horizon"] == group_horizon)
+            ]
+            if not matched.empty:
+                meta = matched.iloc[0]
+        rows.append(
+            {
+                "eval_date": max(group["prediction_date"]),
+                "model_name": model_name,
+                "model_version": model_version,
+                "horizon": group_horizon,
+                "horizon_days": int(horizon_days) if pd.notna(horizon_days) else _horizon_days(group_horizon),
+                "market": market_filter or "all",
+                "top_k": int(top_k),
+                "sample_count": int(len(group)),
+                "hit_ratio": _mean_bool_series(group["direction_hit"]),
+                "direction_hit_ratio": _mean_bool_series(group["direction_hit"]),
+                "absolute_up_rate": _mean_bool_series(group["actual_return"] > 0),
+                "precision_top20": target_top if int(top_k) == 20 else None,
+                "precision_top_k": target_top,
+                "top20_direction_hit_ratio": _mean_bool_series(selected["direction_hit"]),
+                "top20_absolute_up_rate": _mean_bool_series(selected["actual_return"] > 0),
+                "top20_sample_count": int(len(selected)),
+                "avg_actual_return": _safe_float(group["actual_return"].mean()),
+                "avg_benchmark_return": _safe_float(pd.to_numeric(group["benchmark_return"], errors="coerce").mean()),
+                "avg_excess_return": _safe_float(pd.to_numeric(group["excess_return"], errors="coerce").mean()),
+                "median_actual_return": _safe_float(group["actual_return"].median()),
+                "win_rate": _mean_bool_series(pd.to_numeric(group["excess_return"], errors="coerce") > 0),
+                "mdd": _filtered_mdd(evaluation_returns),
+                "sharpe": _filtered_sharpe(evaluation_returns, int(horizon_days)),
+                "rank_ic": _filtered_rank_ic(group),
+                "production_weight": _safe_float(meta.get("production_weight")) or (1.0 if model_name == "lightgbm" else 0.0),
+                "gate_status": meta.get("gate_status") if not meta.empty else "candidate",
+                "gate_status_scope": "global_model_gate",
+            }
+        )
+    return pd.DataFrame(rows).sort_values(["eval_date", "production_weight", "model_name"], ascending=[False, False, True])
+
+
+def _direction_hit_series(predicted: pd.Series, actual: pd.Series) -> pd.Series:
+    valid = predicted.notna() & actual.notna()
+    result = pd.Series(pd.NA, index=predicted.index, dtype="boolean")
+    result.loc[valid] = np.sign(predicted.loc[valid]) == np.sign(actual.loc[valid])
+    return result
+
+
+def _mean_bool_series(series: pd.Series | None) -> float | None:
+    if series is None or series.empty:
+        return None
+    value = series.astype("boolean").astype("Float64").mean()
+    return _safe_float(value)
+
+
+def _filtered_rank_ic(group: pd.DataFrame) -> float | None:
+    valid = group.dropna(subset=["recommendation_score", "actual_return"])
+    if len(valid) < 5:
+        return None
+    value = valid["recommendation_score"].rank().corr(valid["actual_return"].rank(), method="spearman")
+    return _safe_float(value)
+
+
+def _filtered_mdd(returns: pd.Series) -> float | None:
+    values = pd.to_numeric(returns, errors="coerce").dropna()
+    if values.empty:
+        return None
+    return _safe_float(max_drawdown((1.0 + values).cumprod()))
+
+
+def _filtered_sharpe(returns: pd.Series, horizon_days: int) -> float | None:
+    values = pd.to_numeric(returns, errors="coerce").dropna()
+    if len(values) < 2 or np.isclose(values.std(ddof=0), 0.0):
+        return None
+    annualization = np.sqrt(252.0 / max(1, int(horizon_days)))
+    return _safe_float(values.mean() / values.std(ddof=0) * annualization)
 
 
 def _snapshot_date(recommendations: pd.DataFrame, performance: pd.DataFrame):
@@ -2426,6 +2603,12 @@ def _normalize_horizon(horizon: str | int) -> str:
             return "1Y"
         return "2Y"
     return str(horizon)
+
+
+def _normalize_market_filter(market: str | None) -> str | None:
+    if market is None or str(market).strip().lower() in {"", "all"}:
+        return None
+    return str(market).strip().upper()
 
 
 def _horizon_days(horizon: str) -> int:

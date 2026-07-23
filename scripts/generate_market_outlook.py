@@ -18,6 +18,7 @@ from roboquant.market_outlook import (
     refresh_market_outlook_forecasts,
     resolve_market_outlook_asof,
     resolve_market_outlook_target,
+    update_market_outlook_outcomes,
 )
 
 KST = ZoneInfo("Asia/Seoul")
@@ -39,6 +40,7 @@ def main() -> None:
     model_path = Path(args.model_path) if args.model_path else default_market_outlook_model_path(config)
     conn = connect_database(get_database_path(config))
     try:
+        outcomes = update_market_outlook_outcomes(conn)
         asof = resolve_market_outlook_asof(conn, args.date)
         target = resolve_market_outlook_target(
             asof,
@@ -56,7 +58,7 @@ def main() -> None:
         if context["forecast_status"] != "confirmed":
             print(
                 f"market_outlook_forecasts blocked_stale_input: target={target['target_date']} "
-                f"asof={asof}; {' · '.join(context['messages'])}"
+                f"asof={asof}; outcomes_updated={outcomes['updated']}; {' · '.join(context['messages'])}"
             )
             return
         frame = refresh_market_outlook_forecasts(
@@ -74,7 +76,7 @@ def main() -> None:
         print("market_outlook_forecasts rows: 0")
         return
     asof = frame["asof_date"].iloc[0]
-    print(f"market_outlook_forecasts rows: {len(frame)} asof: {asof}")
+    print(f"market_outlook_forecasts rows: {len(frame)} asof: {asof}; outcomes_updated={outcomes['updated']}")
     for _, row in frame.sort_values(["horizon", "market"]).iterrows():
         print(
             f"{row['horizon']} {row['market']}: expected={row['expected_return']:.4f} "

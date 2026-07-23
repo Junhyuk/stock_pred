@@ -23,6 +23,7 @@ from roboquant.market_outlook import (
     resolve_market_outlook_asof,
     resolve_market_outlook_target,
     train_market_outlook_model,
+    update_market_outlook_outcomes,
 )
 from roboquant.market_outlook_ml_shadow import run_market_outlook_ml_shadow
 from roboquant.signals.local_llm_news import (
@@ -49,6 +50,7 @@ def main() -> None:
     ensure_project_dirs(config)
     conn = connect_database(get_database_path(config))
     try:
+        outcomes = update_market_outlook_outcomes(conn)
         asof = resolve_market_outlook_asof(conn, args.date)
         target = resolve_market_outlook_target(
             asof,
@@ -68,6 +70,7 @@ def main() -> None:
                 json.dumps(
                     {
                         "status": "blocked_stale_input",
+                        "outcomes": outcomes,
                         "production_forecasts": 0,
                         "target_date": context["target_date"],
                         "domestic_asof_date": context["domestic_asof_date"],
@@ -132,6 +135,7 @@ def main() -> None:
                     "domestic_asof_date": context["domestic_asof_date"],
                     "production_model_version": production_model.get("model_version"),
                     "production_forecasts": int(len(production)),
+                    "outcomes": outcomes,
                     "shadow": shadow,
                     "brief": brief,
                 },

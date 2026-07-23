@@ -31,7 +31,10 @@ def main() -> None:
     config = load_config(args.config)
     ensure_project_dirs(config)
     cutoff = resolve_cutoff(args.cutoff, config.get("regime", {}).get("cutoff_time_kst", "08:00"))
-    prediction_date = resolve_prediction_date(args.prediction_date, cutoff)
+    try:
+        prediction_date = resolve_prediction_date(args.prediction_date, cutoff)
+    except ValueError as exc:
+        raise SystemExit(f"invalid market regime prediction context: {exc}") from exc
     conn = connect_database(get_database_path(config))
     try:
         row = build_market_regime_row(

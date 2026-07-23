@@ -38,9 +38,16 @@ only production market forecast.
 - Both markets are `rejected` for coverage and range-width gates, so
   `production_weight=0.0`. This is intentional: no production forecast or
   recommendation changed.
-- Latest domestic benchmarks end on 2026-07-16 while global data ends on
-  2026-07-17. The 2026-07-20 live candidate stays `blocked_stale_input`; no
-  substitute forecast was created. There are no mature live linkage rows yet.
+- Domestic KOSPI/KOSDAQ benchmarks and all 50 active-universe closes were
+  refreshed through 2026-07-23. The domestic freshness gate now passes.
+- A four-row `market-outlook-v2-2026-07-23` forecast targets 2026-07-24. It is
+  explicitly `domestic_index_only`: fresh Top50 breadth/KORU and the final
+  2026-07-23 U.S. close were not available at the after-close run. The
+  production Ridge is unchanged; no Nasdaq/SOX shadow was promoted.
+- Exported the matching GitHub Pages snapshot at `2026-07-23T12:24:52Z`.
+  `validation.json` is `can_publish=true` / `partial_ready`, retains Top50 50,
+  Top20 20, Long/Short 20, and exposes both 2026-07-24 market cards with the
+  same `domestic_index_only` state.
 
 ## Verification
 
@@ -48,6 +55,13 @@ only production market forecast.
   tests/test_premarket_pipeline.py tests/test_latest_market_impact_retrain.py
   tests/test_github_pages_export.py -q` passed: 21 tests.
 - Targeted Ruff and `python -m compileall -q app scripts src/roboquant` pass.
+- `pytest tests/test_market_outlook.py -q` passed: 16 tests after repairing
+  the forecast freshness/date join helpers; targeted Ruff and compileall pass.
+- `pytest tests/test_schema.py tests/test_dashboard_v7.py
+  tests/test_market_outlook.py tests/test_market_regime.py
+  tests/test_prediction_price_gap.py tests/test_market_outlook_direction_shadow.py
+  -q` passed: 42 tests. Targeted Ruff and compileall pass; desktop/mobile
+  Chrome smoke tests rendered the dynamic and static market demos.
 - FastAPI HTTP smoke passed for the linkage demo and all three APIs. Chrome
   headless rendered the local page; static `docs/` preview and validation pass
   with `can_publish=true`.
@@ -57,13 +71,15 @@ only production market forecast.
 - `HARNESS_AI_ROBO_STOCK_TOKEN_EFFICIENT.md` is absent from the repository root.
 - DuckDB supports one writer: stop writable web/jobs before collector or
   backtest commands.
-- The local domestic close freshness guard correctly blocks a new Monday
-  forecast until the 2026-07-17 KOSPI/KOSDAQ and Top50 closes are available.
+- A full premarket forecast must wait for the final U.S. 2026-07-23 session and
+  an 08:00 KST cutoff-safe regime build; the current 2026-07-24 row is not a
+  substitute for that run.
 
 ## Next Recommended Phase
 
-1. Repair the approved domestic price source and rerun the freshness-gated
-   daily pipeline before attempting a confirmed next-session forecast.
+1. At 07:30-08:00 KST on 2026-07-24, collect the final U.S. close, rebuild the
+   cutoff-safe global regime, then refresh Top50 breadth/KORU and rerun the
+   full next-session forecast plus shadow candidates.
 2. Accumulate at least 60 live final observations. Keep the Nasdaq/SOX overlay
    shadow-only even if it later becomes `accepted_shadow`.
 3. Improve interval calibration with a separate residual/conformal candidate;

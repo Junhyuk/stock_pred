@@ -6,6 +6,7 @@ from roboquant.dashboard.backtest_service import calc_precision_at_k, run_backte
 from roboquant.dashboard.dashboard_service import (
     build_dashboard_snapshot,
     get_backtest_by_model,
+    get_backtest_summary,
     get_latest_dashboard_snapshot,
     get_sector_backtest,
     get_top20_backtest,
@@ -26,7 +27,10 @@ def test_prediction_backtest_persists_results_and_query_helpers(tmp_path) -> Non
     assert len(performance) == 1
     assert performance.iloc[0]["model_name"] == "lightgbm"
     assert performance.iloc[0]["sample_count"] == 30
-    assert performance.iloc[0]["precision_top20"] == 1.0
+    # Precision now measures selected Top20 against the true top-quantile label,
+    # rather than the unconditional realised-up rate.
+    assert performance.iloc[0]["precision_top20"] == 0.3
+    assert round(performance.iloc[0]["absolute_up_rate"], 4) == round(20 / 30, 4)
     assert performance.iloc[0]["rank_ic"] > 0.7
     assert conn.execute("SELECT COUNT(*) FROM backtest_results").fetchone()[0] == 30
     assert conn.execute("SELECT COUNT(*) FROM model_performance_daily").fetchone()[0] == 1
@@ -38,7 +42,7 @@ def test_prediction_backtest_persists_results_and_query_helpers(tmp_path) -> Non
     assert len(top20) == 20
     assert len(by_model) == 30
     assert sector["summary"]["sample_count"] == 15
-    assert calc_precision_at_k(results, k=20) == 1.0
+    assert calc_precision_at_k(results, k=20) == 0.3
 
 
 def test_dashboard_snapshot_builds_from_real_db_tables(tmp_path) -> None:
@@ -56,6 +60,74 @@ def test_dashboard_snapshot_builds_from_real_db_tables(tmp_path) -> None:
     assert snapshot["backtest_summary"]["sample_count"] == 30
     assert stored["snapshot_date"] == snapshot["snapshot_date"]
     assert conn.execute("SELECT COUNT(*) FROM dashboard_snapshot").fetchone()[0] == 1
+
+
+def test_backtest_summary_filters_market_without_redefining_top_quantile_label(tmp_path) -> None:
+    conn = connect_database(tmp_path / "market_filtered_backtest.duckdb")
+    _seed_predictions_and_labels(conn)
+    conn.execute("UPDATE symbols SET market = 'KOSDAQ' WHERE symbol = '000001'")
+    run_backtest_job(conn, horizon_days=60)
+    conn.execute("UPDATE model_performance_daily SET mdd = -0.90, sharpe = 99.0, rank_ic = 0.90")
+
+    all_markets = get_backtest_summary(conn, horizon=60, market="all")
+    kosdaq = get_backtest_summary(conn, horizon=60, market="KOSDAQ")
+    selected = get_top20_backtest(conn, horizon=60, market="KOSDAQ")
+
+    assert all_markets["sample_count"] == 30
+    assert kosdaq["market"] == "KOSDAQ"
+    assert kosdaq["sample_count"] == 1
+    assert kosdaq["direction_hit_ratio"] == kosdaq["hit_ratio"]
+    assert kosdaq["mdd"] == 0.0
+    assert kosdaq["sharpe"] is None
+    assert kosdaq["rank_ic"] is None
+    assert kosdaq["gate_status_scope"] == "global_model_gate"
+    assert len(selected) == 1
+
+
+def test_backtest_direction_hit_is_not_unconditional_up_rate(tmp_path) -> None:
+    conn = connect_database(tmp_path / "direction_hit_backtest.duckdb")
+    _seed_predictions_and_labels(conn)
+    conn.execute("UPDATE predictions SET pred_return = -0.10 WHERE symbol = '000001'")
+
+    _, performance = run_backtest_job(conn, horizon_days=60)
+
+    row = performance.iloc[0]
+    assert row["absolute_up_rate"] == 20 / 30
+    assert row["direction_hit_ratio"] == 19 / 30
+    assert row["hit_ratio"] == row["direction_hit_ratio"]
+
+
+def test_backtest_target_date_uses_observed_trading_session(tmp_path) -> None:
+    conn = connect_database(tmp_path / "trading_session_target.duckdb")
+    _seed_predictions_and_labels(conn)
+    sessions = pd.bdate_range("2024-01-02", periods=61)
+    append_dedup_table(
+        conn,
+        "prices_daily",
+        pd.DataFrame(
+            [
+                {
+                    "date": value.date(),
+                    "symbol": "000001",
+                    "open": 100.0,
+                    "high": 100.0,
+                    "low": 100.0,
+                    "close": 100.0,
+                    "adj_close": 100.0,
+                    "volume": 1000,
+                    "trading_value": 100_000,
+                    "source": "fixture",
+                }
+                for value in sessions
+            ]
+        ),
+        ["date", "symbol", "source"],
+    )
+
+    results, _ = run_backtest_job(conn, horizon_days=60)
+    row = results[results["symbol"].eq("000001")].iloc[0]
+
+    assert row["target_date"] == sessions[60].date()
 
 
 def test_empty_dashboard_snapshot_does_not_write_to_db(tmp_path) -> None:

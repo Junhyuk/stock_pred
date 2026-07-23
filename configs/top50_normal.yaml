@@ -219,6 +219,26 @@ market_outlook:
   require_confirmed_inputs: true
   krx_holidays: []
 
+# Diagnostics only: this never changes market-outlook-v2 production weights.
+market_outlook_direction_shadow:
+  enabled: true
+  initial_train_days: 252
+  purge_days: 1
+  retrain_step_days: 21
+  selection_window: 126
+  min_selection_observations: 60
+  min_oos_rows: 252
+  rolling_window: 60
+  conformal_window: 252
+  min_conformal_observations: 60
+  conformal_coverage: 0.80
+  min_action_coverage: 0.75
+  coverage_lower_bound: 0.75
+  coverage_upper_bound: 0.85
+  max_average_width_ratio: 1.10
+  candidate_index_weights: [1.0, 0.75, 0.65, 0.50, 0.25, 0.0]
+  candidate_direction_thresholds: [0.0, 0.0025, 0.005]
+
 market_investor_flows:
   provider: pykrx
   markets: ["KOSPI", "KOSDAQ"]

@@ -84,6 +84,13 @@ def backtest_html() -> HTMLResponse:
                   <option value="480">2Y</option>
                 </select>
               </label>
+              <label class="inline">시장
+                <select id="market" onchange="bootBacktest()">
+                  <option value="all" selected>전체</option>
+                  <option value="KOSPI">KOSPI</option>
+                  <option value="KOSDAQ">KOSDAQ</option>
+                </select>
+              </label>
             </section>
             <section class="grid two">
               <article class="panel"><h2>요약</h2><div id="backtest" class="metrics"></div></article>
@@ -91,10 +98,10 @@ def backtest_html() -> HTMLResponse:
             </section>
             <article class="panel"><h2>Top20 추천 후 실제 성과</h2><div id="top20Backtest" class="table"></div></article>
             <section class="grid two">
-              <article class="panel"><h2>최근 30일 예측 괴리 요약</h2><div id="priceGapSummary" class="metrics"></div></article>
+              <article class="panel"><h2>horizon 만기 예측 괴리 요약</h2><div id="priceGapSummary" class="metrics"></div></article>
               <article class="panel"><h2>괴리 상태</h2><div id="priceGapStatus" class="stack empty">최근 가격 괴리 데이터를 불러오는 중입니다.</div></article>
             </section>
-            <article class="panel"><h2>최근 30일 예측 vs 실제 가격 괴리</h2><div id="priceGapTable" class="table empty">최근 가격 괴리 데이터를 불러오는 중입니다.</div></article>
+            <article class="panel"><h2>horizon 만기 예측 vs 실제 가격 괴리</h2><div id="priceGapTable" class="table empty">최근 가격 괴리 데이터를 불러오는 중입니다.</div></article>
             <div id="backtestPage" hidden></div>
             """,
         )
@@ -1083,10 +1090,10 @@ async function bootDashboard() {{
 }}
 function renderBacktest(data, target) {{
   document.getElementById(target).innerHTML = [
-    metric("Hit Ratio", pct(data.hit_ratio), "양수 수익률 비율"),
-    metric("Precision@20", pct(data.precision_top20), "Top20 실제 양수 비율"),
+    metric("방향 적중", pct(data.direction_hit_ratio ?? data.hit_ratio), "예측 방향 vs 만기 실제 방향"),
+    metric("Precision@" + (data.top_k || 20), pct(data.precision_top_k ?? data.precision_top20), "선택 Top-K 중 실제 상위 20%"),
     metric("초과수익", pct(data.avg_excess_return), "시장 대비"),
-    metric("Rank IC", num(data.rank_ic), "순위 상관")
+    metric("표본", data.sample_count ?? 0, "완료 horizon만")
   ].join("");
 }}
 function modelColumns() {{
@@ -1094,8 +1101,9 @@ function modelColumns() {{
     {{key:"model_name", label:"모델"}},
     {{key:"model_version", label:"버전"}},
     {{key:"horizon", label:"기간"}},
-    {{key:"hit_ratio", label:"Hit", format:pct}},
+    {{key:"direction_hit_ratio", label:"방향 Hit", format:(value, item) => pct(value ?? item.hit_ratio)}},
     {{key:"precision_top20", label:"P@20", format:pct}},
+    {{key:"absolute_up_rate", label:"상승비율", format:pct}},
     {{key:"avg_excess_return", label:"초과", format:pct}},
     {{key:"rank_ic", label:"IC", format:num}},
     {{key:"gate_status", label:"상태"}}
@@ -1104,11 +1112,12 @@ function modelColumns() {{
 async function bootBacktest() {{
   const horizon = document.getElementById("horizon")?.value || "60";
   const horizonName = horizonToName(horizon);
+  const market = document.getElementById("market")?.value || "all";
   const [backtest, accuracy, top20, priceGap] = await Promise.all([
-    json("/api/backtest/summary?horizon=" + horizon),
-    json("/api/models/accuracy"),
-    json("/api/backtest/top20?horizon=" + horizon),
-    json("/api/backtest/price-gap?lookback_days=30&target_days=30&horizon=" + encodeURIComponent(horizonName) + "&limit=300")
+    json("/api/backtest/summary?horizon=" + horizon + "&market=" + encodeURIComponent(market)),
+    json("/api/models/accuracy?horizon=" + horizon + "&market=" + encodeURIComponent(market)),
+    json("/api/backtest/top20?horizon=" + horizon + "&market=" + encodeURIComponent(market)),
+    json("/api/backtest/price-gap?market=" + encodeURIComponent(market) + "&horizon=" + encodeURIComponent(horizonName) + "&limit=300")
   ]);
   renderBacktest(backtest, "backtest");
   document.getElementById("accuracy").innerHTML = table(accuracy.items || [], modelColumns());
@@ -1130,16 +1139,17 @@ function horizonToName(value) {{
 function renderPriceGap(data) {{
   const summary = data.summary || {{}};
   document.getElementById("priceGapSummary").innerHTML = [
-    metric("표본", summary.sample_count ?? 0, `완료 ${{summary.completed_count ?? 0}} · 대기 ${{summary.pending_count ?? 0}}`),
-    metric("Latest MAE", pct(summary.mae_latest), "현재까지 실제수익률 기준"),
-    metric("Latest Bias", pct(summary.bias_latest), "양수면 과소예측"),
-    metric("방향 적중", pct(summary.direction_accuracy_latest), "현재까지 방향")
+    metric("확정 표본", summary.mature_sample_count ?? 0, `대기 ${{summary.interim_sample_count ?? summary.pending_count ?? 0}}`),
+    metric("만기 MAE", pct(summary.mature_mae ?? summary.mae_30d), "horizon 거래일 완료 기준"),
+    metric("만기 Bias", pct(summary.mature_bias ?? summary.bias_30d), "양수면 과소예측"),
+    metric("방향 적중", pct(summary.mature_direction_accuracy ?? summary.direction_accuracy_30d), "확정 예측만")
   ].join("");
   document.getElementById("priceGapStatus").innerHTML = `
     <div class="row"><span>상태</span><b>${{escapeHtml(data.status || "-")}}</b></div>
     <div class="row"><span>기준일</span><b>${{shortDate(data.as_of_date)}}</b></div>
     <div class="row"><span>조회기간</span><b>${{shortDate(data.start_date)}} ~ ${{shortDate(data.as_of_date)}}</b></div>
-    <div class="row"><span>30D 완료 MAE</span><b>${{pct(summary.mae_30d)}}</b></div>
+    <div class="row"><span>만기 거래일</span><b>${{data.target_trading_days ?? data.target_days ?? "-"}}일</b></div>
+    <div class="row"><span>중간 관측 방향</span><b>${{pct(summary.interim_direction_accuracy)}}</b></div>
     <p class="muted">${{escapeHtml(data.disclaimer || "")}}</p>
   `;
   document.getElementById("priceGapTable").innerHTML = table(data.items || [], [
@@ -1149,11 +1159,11 @@ function renderPriceGap(data) {{
     {{key:"horizon", label:"기간"}},
     {{key:"rank_no", label:"순위"}},
     {{key:"predicted_return", label:"예측수익", format:pct}},
-    {{key:"actual_return_latest", label:"현재 실제", format:pct}},
-    {{key:"return_gap_latest", label:"현재 괴리", format:pct}},
-    {{key:"actual_return_30d", label:"30D 실제", format:(value, item) => item.status === "completed" ? pct(value) : "검증 대기"}},
-    {{key:"return_gap_30d", label:"30D 괴리", format:pct}},
-    {{key:"direction_hit_latest", label:"방향"}}
+    {{key:"actual_return_latest", label:"중간 실제", format:pct}},
+    {{key:"return_gap_latest", label:"중간 괴리", format:pct}},
+    {{key:"actual_return_30d", label:"만기 실제", format:(value, item) => item.status === "completed" ? pct(value) : "검증 대기"}},
+    {{key:"return_gap_30d", label:"만기 괴리", format:pct}},
+    {{key:"direction_hit_30d", label:"만기 방향", format:(value, item) => item.status === "completed" ? String(value) : "검증 대기"}}
   ]);
 }}
 async function bootTwoStockDemo() {{

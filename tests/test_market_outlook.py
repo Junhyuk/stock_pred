@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import json
 from datetime import UTC, date, datetime, timedelta
 
 import pandas as pd
+import pytest
 
 from roboquant.dashboard.dashboard_service import get_market_outlook
 from roboquant.db import append_dedup_table, connect_database
@@ -11,10 +13,12 @@ from roboquant.market_outlook import (
     _linear_predict,
     build_market_outlook_dataset,
     fit_market_outlook_model,
+    get_market_outlook_feedback,
     market_outlook_input_status,
     normal_cdf,
     refresh_market_outlook_forecasts,
     target_dates_for_run,
+    update_market_outlook_outcomes,
 )
 from roboquant.signals.x_news_impact import build_x_market_outlook_impact
 
@@ -257,6 +261,24 @@ def test_market_outlook_model_caps_standardized_feature_values() -> None:
     assert _linear_predict({"signal": -100.0}, spec) == -0.05
 
 
+def test_market_outlook_settings_preserve_zero_calibration_values() -> None:
+    model = fit_market_outlook_model(
+        pd.DataFrame(),
+        config={
+            "market_outlook": {
+                "index_weight": 1.0,
+                "breadth_weight": 0.0,
+                "direction_return_threshold": 0.0,
+                "direction_probability_threshold": 0.5,
+            }
+        },
+    )
+
+    assert model["index_weight"] == 1.0
+    assert model["breadth_weight"] == 0.0
+    assert model["direction_return_threshold"] == 0.0
+
+
 def test_market_outlook_forecasts_four_rows_and_partial_quality(tmp_path) -> None:
     conn = connect_database(tmp_path / "outlook_forecast.duckdb")
     _seed_benchmark(conn)
@@ -269,13 +291,118 @@ def test_market_outlook_forecasts_four_rows_and_partial_quality(tmp_path) -> Non
     assert set(frame["target_date"].astype(str)) == {"2026-06-24", "2026-06-26"}
     assert frame["shock_probability"].between(0.0, 1.0).all()
     quality = frame.iloc[0]["data_quality_json"]
-    assert "partial_ready" in quality
+    assert "domestic_index_only" in quality
     assert "KORU" in quality or "Telegram" in quality
 
     payload = get_market_outlook(conn, date="latest", horizon="all", market="all")
-    assert payload["status"] == "partial_ready"
+    assert payload["status"] == "domestic_index_only"
     assert payload["summary"]["count"] == 4
     assert payload["items"][0]["drivers"]
+
+
+def test_market_outlook_uses_explicit_domestic_index_fallback_and_immutable_outcomes(tmp_path) -> None:
+    conn = connect_database(tmp_path / "outlook_immutable.duckdb")
+    _seed_benchmark(conn)
+
+    frame = refresh_market_outlook_forecasts(conn, asof_date="2026-06-23")
+
+    assert set(frame["forecast_status"]) == {"domestic_index_only"}
+    quality = json.loads(frame.iloc[0]["data_quality_json"])
+    freshness = quality["active_feature_freshness"]
+    assert freshness["components"]["breadth"]["status"] == "stale_or_default"
+    assert quality["input_mode"] == "domestic_index_only"
+    before = conn.execute(
+        "SELECT expected_return, created_at FROM market_outlook_forecast_history ORDER BY forecast_id LIMIT 1"
+    ).fetchone()
+    assert conn.execute("SELECT COUNT(*) FROM market_outlook_forecast_history").fetchone()[0] == 4
+
+    refresh_market_outlook_forecasts(conn, asof_date="2026-06-23")
+    after = conn.execute(
+        "SELECT expected_return, created_at FROM market_outlook_forecast_history ORDER BY forecast_id LIMIT 1"
+    ).fetchone()
+    assert after == before
+
+    asof_close = conn.execute(
+        "SELECT close FROM benchmark_daily WHERE date = ? AND benchmark = 'KOSPI'",
+        [date(2026, 6, 23)],
+    ).fetchone()[0]
+    append_dedup_table(
+        conn,
+        "benchmark_daily",
+        pd.DataFrame(
+            [
+                {
+                    "date": date(2026, 6, 24),
+                    "benchmark": "KOSPI",
+                    "open": asof_close,
+                    "high": asof_close * 1.03,
+                    "low": asof_close * 0.99,
+                    "close": asof_close * 1.02,
+                    "volume": 1.0,
+                    "trading_value": 1.0,
+                    "collected_at": datetime(2026, 6, 24, 16),
+                }
+            ]
+        ),
+        ["date", "benchmark"],
+    )
+    outcome = update_market_outlook_outcomes(conn)
+
+    assert outcome["updated"] == 1
+    saved = conn.execute(
+        """
+        SELECT actual_return, actual_direction, direction_hit, asof_date, target_date
+        FROM market_outlook_forecast_outcomes
+        WHERE market = 'KOSPI' AND horizon = 'TODAY'
+        """
+    ).fetchone()
+    assert saved[0] == pytest.approx(0.02)
+    assert saved[1] == "BULLISH"
+    assert saved[2] in (True, False)
+    assert saved[3:] == (date(2026, 6, 23), date(2026, 6, 24))
+    assert update_market_outlook_outcomes(conn)["updated"] == 0
+    feedback = get_market_outlook_feedback(conn, market="KOSPI", horizon="TODAY")
+    assert feedback["status"] == "ready"
+    assert feedback["summary"][0]["sample_count"] == 1
+    assert feedback["items"][0]["target_date"] == "2026-06-24"
+    conn.close()
+
+
+def test_market_regime_joins_target_session_and_excludes_late_cutoff_rows(tmp_path) -> None:
+    conn = connect_database(tmp_path / "outlook_regime_cutoff.duckdb")
+    _seed_benchmark(conn)
+    rows = [
+        (datetime(2026, 6, 23, 22, 30), 11.0, "eligible"),
+        (datetime(2026, 6, 23, 23, 30), 99.0, "late"),
+    ]
+    for cutoff, score, version in rows:
+        conn.execute(
+            """
+            INSERT INTO market_regime_daily (
+              prediction_date, prediction_cutoff, us_equity_score, semiconductor_score,
+              asia_score, volatility_score, rate_score, fx_score, futures_score,
+              commodity_score, global_risk_score, regime, recommended_cash_ratio,
+              feature_version, created_at
+            ) VALUES (?, ?, 0, 0, 0, 0, 0, 0, 0, 0, ?, 'neutral', 0.15, ?, ?)
+            """,
+            [date(2026, 6, 24), cutoff, score, version, cutoff],
+        )
+
+    frame = build_market_outlook_dataset(
+        conn,
+        config={"regime": {"cutoff_time_kst": "08:00"}},
+        asof_date="2026-06-23",
+        include_feature_provenance=True,
+    )
+    row = frame[
+        (frame["market"] == "KOSPI")
+        & (frame["horizon"] == "TODAY")
+        & (frame["asof_date"] == date(2026, 6, 23))
+    ].iloc[0]
+
+    assert row["__raw_global_risk_score"] == 11.0
+    assert row["global_risk_score"] == 11.0
+    conn.close()
 
 
 def _seed_benchmark(conn) -> None:

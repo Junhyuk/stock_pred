@@ -124,27 +124,26 @@ Top20 예상가격 API는 최신 추천 Top20에 대해 `3M/6M/9M/1Y` 예상가�
 
 ### Recent Prediction Price Gap
 
-최근 예측일 기준 30일 창의 예측수익률과 실제 가격 흐름의 괴리를 확인합니다.
-목표 30일이 아직 지나지 않은 예측은 `pending`으로 분리하고, 현재까지의 실제수익률과
-괴리도 함께 표시합니다.
+최근 조회 창의 예측수익률과 실제 가격 흐름의 괴리를 확인합니다. 확정 성능은 horizon별
+실제 거래일 만기(예: `3M=63`, `6M=126`)가 완료된 예측만 사용합니다. 만기 전 예측은
+`pending` 중간 관측으로 분리하며, 현재까지의 움직임은 정확도로 집계하지 않습니다.
 
 ```bash
 .venv/bin/python scripts/run_prediction_price_gap_backtest.py \
   --config configs/poc.yaml \
-  --lookback-days 30 \
-  --target-days 30 \
+  --lookback-days 180 \
   --horizon 3M
 ```
 
 출력:
 
-- `reports/prediction_price_gap_30d_3m.csv`
-- `reports/prediction_price_gap_30d_3m.md`
+- `reports/prediction_price_gap_180d_3m.csv`
+- `reports/prediction_price_gap_180d_3m.md`
 
 웹/API:
 
 - Backtest page: `http://localhost:8000/backtest`
-- API: `http://localhost:8000/api/backtest/price-gap?lookback_days=30&target_days=30&horizon=3M`
+- API: `http://localhost:8000/api/backtest/price-gap?lookback_days=180&horizon=3M&market=KOSPI`
 
 ## Samsung KOSPI 100 Demo
 
