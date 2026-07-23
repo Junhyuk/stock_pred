@@ -29,10 +29,10 @@
     "marketnewsfeed_llm_assessments": 0,
     "marketnewsfeed_llm_signal_days": 0,
     "local_llm_news_documents": 244,
-    "local_llm_news_assessments": 136,
+    "local_llm_news_assessments": 148,
     "local_llm_news_signal_days": 3,
     "market_moves": 43,
-    "tomorrow_markets": 0
+    "tomorrow_markets": 2
   },
   "errors": [],
   "warnings": [

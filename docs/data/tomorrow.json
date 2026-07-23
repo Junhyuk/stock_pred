@@ -1,31 +1,31 @@
 {
-  "snapshot_date": "2026-07-20",
-  "status": "blocked_stale_input",
+  "snapshot_date": "2026-07-23",
+  "status": "partial_ready",
   "focus_prices": [
     {
-      "date": "2026-07-16T00:00:00",
+      "date": "2026-07-23T00:00:00",
       "symbol": "005930",
       "name": "삼성전자",
       "market": "KOSPI",
       "sector": "통신 및 방송 장비 제조업",
-      "close": 255000.0,
-      "volume": 26605948.0,
-      "trading_value": 6784516740000.0,
+      "close": 270000.0,
+      "volume": 16000165.0,
+      "trading_value": 4320044550000.0,
       "source": "finance_data_reader",
-      "collected_at": "2026-07-19T14:03:14.589589",
+      "collected_at": "2026-07-23T12:04:06.526332",
       "status": "ready"
     },
     {
-      "date": "2026-07-16T00:00:00",
+      "date": "2026-07-23T00:00:00",
       "symbol": "000660",
       "name": "SK하이닉스",
       "market": "KOSPI",
       "sector": "반도체 제조업",
-      "close": 1842000.0,
-      "volume": 5524726.0,
-      "trading_value": 10176545292000.0,
+      "close": 1919000.0,
+      "volume": 4081543.0,
+      "trading_value": 7832481017000.0,
       "source": "finance_data_reader",
-      "collected_at": "2026-07-19T14:03:14.764757",
+      "collected_at": "2026-07-23T12:04:06.704162",
       "status": "ready"
     },
     {
@@ -47,8 +47,8 @@
       "yahoo_symbol": "005930.KS",
       "symbol": "005930",
       "asset_type": "stock",
-      "date": "2026-07-16T00:00:00",
-      "close": 255000.0,
+      "date": "2026-07-23T00:00:00",
+      "close": 270000.0,
       "currency": "KRW",
       "source": "domestic_prices_daily",
       "underlying_source": "finance_data_reader",
@@ -58,8 +58,8 @@
       "yahoo_symbol": "000660.KS",
       "symbol": "000660",
       "asset_type": "stock",
-      "date": "2026-07-16T00:00:00",
-      "close": 1842000.0,
+      "date": "2026-07-23T00:00:00",
+      "close": 1919000.0,
       "currency": "KRW",
       "source": "domestic_prices_daily",
       "underlying_source": "finance_data_reader",
@@ -13174,7 +13174,7 @@
     "data_quality": {
       "status": "partial_ready",
       "components": {
-        "prices": "stale",
+        "prices": "ready",
         "investor_flows": "missing",
         "market_metrics": "ready",
         "global_regime": "ready",
@@ -13187,68 +13187,825 @@
       "messages": [
         "investor_flows 데이터 부족",
         "telegram_news 데이터 부족",
-        "stock_news 데이터 부족",
-        "최신 학습 미완료: 가격 최신일 2026-07-16이 기대 최신 거래일 2026-07-17보다 1일 늦습니다."
+        "stock_news 데이터 부족"
       ]
     },
     "freshness": {
-      "status": "partial_ready",
-      "expected_latest_date": "2026-07-17",
-      "latest_date": "2026-07-16",
-      "age_days": 1,
-      "stale": true,
-      "reason": "가격 최신일 2026-07-16이 기대 최신 거래일 2026-07-17보다 1일 늦습니다.",
+      "status": "ready",
+      "expected_latest_date": "2026-07-23",
+      "latest_date": "2026-07-23",
+      "age_days": 0,
+      "stale": false,
+      "reason": null,
       "messages": [
-        "최신 학습 미완료: 가격 최신일 2026-07-16이 기대 최신 거래일 2026-07-17보다 1일 늦습니다."
+        "가격 최신성 확인: 2026-07-23"
       ]
     }
   },
   "market_outlook": {
-    "asof_date": "2026-07-16",
-    "target_date": "2026-07-20",
+    "asof_date": "2026-07-23",
+    "target_date": "2026-07-24",
     "horizon": "NEXT_TRADING_DAY",
     "source_horizon": "TODAY",
-    "status": "blocked_stale_input",
+    "status": "partial_ready",
     "source": "market_outlook_forecasts",
-    "forecast_status": "blocked_stale_input",
+    "forecast_status": "domestic_index_only",
     "range_multiplier": 1.25,
-    "calendar_source": "weekday_fallback",
+    "calendar_source": "explicit",
     "summary": {
-      "count": 0,
-      "markets": [],
-      "horizons": []
+      "count": 2,
+      "markets": [
+        "KOSDAQ",
+        "KOSPI"
+      ],
+      "horizons": [
+        "NEXT_TRADING_DAY"
+      ]
     },
-    "items": [],
-    "data_quality": {
-      "status": "blocked_stale_input",
-      "forecast_status": "blocked_stale_input",
-      "components": {
-        "domestic_inputs": "blocked_stale_input",
-        "next_day_outlook": "missing",
-        "next_trading_day_calendar": "fallback"
+    "items": [
+      {
+        "asof_date": "2026-07-23T00:00:00",
+        "target_date": "2026-07-24T00:00:00",
+        "horizon": "NEXT_TRADING_DAY",
+        "market": "KOSPI",
+        "expected_return": -0.008962124102025078,
+        "range_low": -0.028275229494374825,
+        "range_high": 0.01035098129032467,
+        "up_probability": 0.28093890781710873,
+        "down_probability": 0.7190610921828913,
+        "shock_probability": 0.237488937651821,
+        "direction": "BEARISH",
+        "confidence": 0.6114366553097348,
+        "drivers_json": "[{\"kind\": \"index_model\", \"label\": \"지수 직접 모델\", \"summary\": \"KOSPI TODAY 지수 momentum/volatility 기반\", \"value\": {\"index_expected_return\": -0.008962124102025078, \"index_return_1d\": 0.04401341630257294, \"index_volatility_20d\": 0.04723689649714295}}, {\"kind\": \"breadth\", \"label\": \"Top50 breadth 모델\", \"summary\": \"Top50 상승 breadth와 기존 2M 예측 분포를 단기 시장 방향 보조 신호로 사용\", \"value\": {\"breadth_expected_return\": 0.0, \"top50_up_share_21d\": 0.0, \"prediction_up_probability_avg\": 0.5, \"prediction_down_probability_avg\": 0.5}}, {\"kind\": \"koru\", \"label\": \"KORU/EWY\", \"summary\": \"미국장 한국 ETF와 3배 레버리지 심리\", \"value\": {\"koru_return_1d\": 0.0, \"ewy_return_1d\": 0.0, \"koru_ewy_spread_1d\": 0.0, \"koru_impact_score\": 0.5}}, {\"kind\": \"regime\", \"label\": \"글로벌 레짐\", \"summary\": \"해외 지수·반도체·선물·환율 위험 레짐\", \"value\": {\"global_risk_score\": 50.0, \"recommended_cash_ratio\": 0.15, \"semiconductor_score\": 50.0, \"futures_score\": 50.0}}, {\"kind\": \"news_telegram\", \"label\": \"뉴스/Telegram\", \"summary\": \"거시 뉴스와 Telegram 시장 attention을 원문 전문 없이 집계\", \"value\": {\"news_count_24h\": 0, \"news_sentiment_score\": 0.5, \"x_news_count_24h\": 0, \"x_news_negative_attention_score\": 0.0, \"x_news_bias_adjusted_sentiment_score\": 0.5, \"telegram_sentiment_score\": 0.5, \"telegram_risk_score\": 0.0}}]",
+        "data_quality_json": "{\"domestic_input_status\": \"confirmed\", \"domestic_asof_date\": \"2026-07-23\", \"required_domestic_asof_date\": \"2026-07-23\", \"global_cutoff\": null, \"calendar_source\": \"explicit\", \"calendar_messages\": [], \"input_messages\": [], \"top50_price_count\": 50, \"top50_total\": 50, \"status\": \"domestic_index_only\", \"components\": {\"benchmark\": \"ready\", \"top50_breadth\": \"ready\", \"prediction_breadth\": \"ready\", \"koru\": \"ready\", \"regime\": \"ready\", \"telegram\": \"missing\", \"news\": \"ready\"}, \"active_feature_freshness\": {\"asof_date\": \"2026-07-23\", \"active_features\": {\"ewy_return_1d\": {\"status\": \"defaulted\", \"source\": \"koru\", \"source_asof_date\": \"2026-07-10\", \"required_asof_date\": \"2026-07-23\", \"default_applied\": true}, \"index_ma_gap_20d\": {\"status\": \"fresh\", \"source\": \"domestic_index\", \"source_asof_date\": \"2026-07-23\", \"required_asof_date\": \"2026-07-23\", \"default_applied\": false}, \"index_ma_gap_5d\": {\"status\": \"fresh\", \"source\": \"domestic_index\", \"source_asof_date\": \"2026-07-23\", \"required_asof_date\": \"2026-07-23\", \"default_applied\": false}, \"index_return_1d\": {\"status\": \"fresh\", \"source\": \"domestic_index\", \"source_asof_date\": \"2026-07-23\", \"required_asof_date\": \"2026-07-23\", \"default_applied\": false}, \"index_return_20d\": {\"status\": \"fresh\", \"source\": \"domestic_index\", \"source_asof_date\": \"2026-07-23\", \"required_asof_date\": \"2026-07-23\", \"default_applied\": false}, \"index_return_5d\": {\"status\": \"fresh\", \"source\": \"domestic_index\", \"source_asof_date\": \"2026-07-23\", \"required_asof_date\": \"2026-07-23\", \"default_applied\": false}, \"index_volatility_20d\": {\"status\": \"fresh\", \"source\": \"domestic_index\", \"source_asof_date\": \"2026-07-23\", \"required_asof_date\": \"2026-07-23\", \"default_applied\": false}, \"index_volatility_5d\": {\"status\": \"fresh\", \"source\": \"domestic_index\", \"source_asof_date\": \"2026-07-23\", \"required_asof_date\": \"2026-07-23\", \"default_applied\": false}, \"koru_ewy_spread_1d\": {\"status\": \"defaulted\", \"source\": \"koru\", \"source_asof_date\": \"2026-07-10\", \"required_asof_date\": \"2026-07-23\", \"default_applied\": true}, \"koru_impact_score\": {\"status\": \"defaulted\", \"source\": \"koru\", \"source_asof_date\": \"2026-07-10\", \"required_asof_date\": \"2026-07-23\", \"default_applied\": true}, \"koru_return_1d\": {\"status\": \"defaulted\", \"source\": \"koru\", \"source_asof_date\": \"2026-07-10\", \"required_asof_date\": \"2026-07-23\", \"default_applied\": true}, \"prediction_down_probability_avg\": {\"status\": \"defaulted\", \"source\": \"prediction_breadth\", \"source_asof_date\": \"2026-07-10\", \"required_asof_date\": \"2026-07-23\", \"default_applied\": true}, \"prediction_return_avg\": {\"status\": \"defaulted\", \"source\": \"prediction_breadth\", \"source_asof_date\": \"2026-07-10\", \"required_asof_date\": \"2026-07-23\", \"default_applied\": true}, \"prediction_up_probability_avg\": {\"status\": \"defaulted\", \"source\": \"prediction_breadth\", \"source_asof_date\": \"2026-07-10\", \"required_asof_date\": \"2026-07-23\", \"default_applied\": true}, \"top50_avg_koru_impact_score\": {\"status\": \"defaulted\", \"source\": \"top50_breadth\", \"source_asof_date\": \"2026-07-10\", \"required_asof_date\": \"2026-07-23\", \"default_applied\": true}, \"top50_avg_momentum_score\": {\"status\": \"defaulted\", \"source\": \"top50_breadth\", \"source_asof_date\": \"2026-07-10\", \"required_asof_date\": \"2026-07-23\", \"default_applied\": true}, \"top50_avg_risk_score\": {\"status\": \"defaulted\", \"source\": \"top50_breadth\", \"source_asof_date\": \"2026-07-10\", \"required_asof_date\": \"2026-07-23\", \"default_applied\": true}, \"top50_up_share_21d\": {\"status\": \"defaulted\", \"source\": \"top50_breadth\", \"source_asof_date\": \"2026-07-10\", \"required_asof_date\": \"2026-07-23\", \"default_applied\": true}, \"usdkrw_change_pct\": {\"status\": \"defaulted\", \"source\": \"koru\", \"source_asof_date\": \"2026-07-10\", \"required_asof_date\": \"2026-07-23\", \"default_applied\": true}}, \"components\": {\"breadth\": {\"status\": \"stale_or_default\", \"active_features\": [\"prediction_down_probability_avg\", \"prediction_return_avg\", \"prediction_up_probability_avg\", \"top50_avg_koru_impact_score\", \"top50_avg_momentum_score\", \"top50_avg_risk_score\", \"top50_up_share_21d\"], \"blend_weight\": 0.35}, \"koru\": {\"status\": \"stale_or_default\", \"active_features\": [\"ewy_return_1d\", \"koru_ewy_spread_1d\", \"koru_impact_score\", \"koru_return_1d\", \"usdkrw_change_pct\"], \"blend_weight\": 0.65}, \"global_regime\": {\"status\": \"inactive\", \"active_features\": [], \"blend_weight\": 0.65}}, \"stale_active_components\": [\"breadth\", \"koru\"]}, \"input_mode\": \"domestic_index_only\", \"messages\": [\"Telegram 시장 신호 데이터 부족: 중립값으로 전망을 생성했습니다.\", \"활성 입력이 최신 기준일과 맞지 않아 국내 지수 전용 fallback을 적용했습니다: breadth, koru\"], \"model_sample_count\": 1854, \"feature_cutoff_date\": \"2026-07-23\", \"lookahead_guard\": \"features use asof_date-or-earlier only\", \"forecast_status\": \"domestic_index_only\"}",
+        "model_version": "market-outlook-v2-2026-07-23",
+        "created_at": "2026-07-23T12:09:53.753304",
+        "prediction_session_date": "2026-07-24T00:00:00",
+        "domestic_asof_date": "2026-07-23T00:00:00",
+        "global_cutoff": "NaT",
+        "forecast_status": "domestic_index_only",
+        "calendar_source": "explicit",
+        "drivers": [
+          {
+            "kind": "index_model",
+            "label": "지수 직접 모델",
+            "summary": "KOSPI TODAY 지수 momentum/volatility 기반",
+            "value": {
+              "index_expected_return": -0.008962124102025078,
+              "index_return_1d": 0.04401341630257294,
+              "index_volatility_20d": 0.04723689649714295
+            }
+          },
+          {
+            "kind": "breadth",
+            "label": "Top50 breadth 모델",
+            "summary": "Top50 상승 breadth와 기존 2M 예측 분포를 단기 시장 방향 보조 신호로 사용",
+            "value": {
+              "breadth_expected_return": 0.0,
+              "top50_up_share_21d": 0.0,
+              "prediction_up_probability_avg": 0.5,
+              "prediction_down_probability_avg": 0.5
+            }
+          },
+          {
+            "kind": "koru",
+            "label": "KORU/EWY",
+            "summary": "미국장 한국 ETF와 3배 레버리지 심리",
+            "value": {
+              "koru_return_1d": 0.0,
+              "ewy_return_1d": 0.0,
+              "koru_ewy_spread_1d": 0.0,
+              "koru_impact_score": 0.5
+            }
+          },
+          {
+            "kind": "regime",
+            "label": "글로벌 레짐",
+            "summary": "해외 지수·반도체·선물·환율 위험 레짐",
+            "value": {
+              "global_risk_score": 50.0,
+              "recommended_cash_ratio": 0.15,
+              "semiconductor_score": 50.0,
+              "futures_score": 50.0
+            }
+          },
+          {
+            "kind": "news_telegram",
+            "label": "뉴스/Telegram",
+            "summary": "거시 뉴스와 Telegram 시장 attention을 원문 전문 없이 집계",
+            "value": {
+              "news_count_24h": 0,
+              "news_sentiment_score": 0.5,
+              "x_news_count_24h": 0,
+              "x_news_negative_attention_score": 0.0,
+              "x_news_bias_adjusted_sentiment_score": 0.5,
+              "telegram_sentiment_score": 0.5,
+              "telegram_risk_score": 0.0
+            }
+          }
+        ],
+        "data_quality": {
+          "domestic_input_status": "confirmed",
+          "domestic_asof_date": "2026-07-23",
+          "required_domestic_asof_date": "2026-07-23",
+          "global_cutoff": null,
+          "calendar_source": "explicit",
+          "calendar_messages": [],
+          "input_messages": [],
+          "top50_price_count": 50,
+          "top50_total": 50,
+          "status": "domestic_index_only",
+          "components": {
+            "benchmark": "ready",
+            "top50_breadth": "ready",
+            "prediction_breadth": "ready",
+            "koru": "ready",
+            "regime": "ready",
+            "telegram": "missing",
+            "news": "ready"
+          },
+          "active_feature_freshness": {
+            "asof_date": "2026-07-23",
+            "active_features": {
+              "ewy_return_1d": {
+                "status": "defaulted",
+                "source": "koru",
+                "source_asof_date": "2026-07-10",
+                "required_asof_date": "2026-07-23",
+                "default_applied": true
+              },
+              "index_ma_gap_20d": {
+                "status": "fresh",
+                "source": "domestic_index",
+                "source_asof_date": "2026-07-23",
+                "required_asof_date": "2026-07-23",
+                "default_applied": false
+              },
+              "index_ma_gap_5d": {
+                "status": "fresh",
+                "source": "domestic_index",
+                "source_asof_date": "2026-07-23",
+                "required_asof_date": "2026-07-23",
+                "default_applied": false
+              },
+              "index_return_1d": {
+                "status": "fresh",
+                "source": "domestic_index",
+                "source_asof_date": "2026-07-23",
+                "required_asof_date": "2026-07-23",
+                "default_applied": false
+              },
+              "index_return_20d": {
+                "status": "fresh",
+                "source": "domestic_index",
+                "source_asof_date": "2026-07-23",
+                "required_asof_date": "2026-07-23",
+                "default_applied": false
+              },
+              "index_return_5d": {
+                "status": "fresh",
+                "source": "domestic_index",
+                "source_asof_date": "2026-07-23",
+                "required_asof_date": "2026-07-23",
+                "default_applied": false
+              },
+              "index_volatility_20d": {
+                "status": "fresh",
+                "source": "domestic_index",
+                "source_asof_date": "2026-07-23",
+                "required_asof_date": "2026-07-23",
+                "default_applied": false
+              },
+              "index_volatility_5d": {
+                "status": "fresh",
+                "source": "domestic_index",
+                "source_asof_date": "2026-07-23",
+                "required_asof_date": "2026-07-23",
+                "default_applied": false
+              },
+              "koru_ewy_spread_1d": {
+                "status": "defaulted",
+                "source": "koru",
+                "source_asof_date": "2026-07-10",
+                "required_asof_date": "2026-07-23",
+                "default_applied": true
+              },
+              "koru_impact_score": {
+                "status": "defaulted",
+                "source": "koru",
+                "source_asof_date": "2026-07-10",
+                "required_asof_date": "2026-07-23",
+                "default_applied": true
+              },
+              "koru_return_1d": {
+                "status": "defaulted",
+                "source": "koru",
+                "source_asof_date": "2026-07-10",
+                "required_asof_date": "2026-07-23",
+                "default_applied": true
+              },
+              "prediction_down_probability_avg": {
+                "status": "defaulted",
+                "source": "prediction_breadth",
+                "source_asof_date": "2026-07-10",
+                "required_asof_date": "2026-07-23",
+                "default_applied": true
+              },
+              "prediction_return_avg": {
+                "status": "defaulted",
+                "source": "prediction_breadth",
+                "source_asof_date": "2026-07-10",
+                "required_asof_date": "2026-07-23",
+                "default_applied": true
+              },
+              "prediction_up_probability_avg": {
+                "status": "defaulted",
+                "source": "prediction_breadth",
+                "source_asof_date": "2026-07-10",
+                "required_asof_date": "2026-07-23",
+                "default_applied": true
+              },
+              "top50_avg_koru_impact_score": {
+                "status": "defaulted",
+                "source": "top50_breadth",
+                "source_asof_date": "2026-07-10",
+                "required_asof_date": "2026-07-23",
+                "default_applied": true
+              },
+              "top50_avg_momentum_score": {
+                "status": "defaulted",
+                "source": "top50_breadth",
+                "source_asof_date": "2026-07-10",
+                "required_asof_date": "2026-07-23",
+                "default_applied": true
+              },
+              "top50_avg_risk_score": {
+                "status": "defaulted",
+                "source": "top50_breadth",
+                "source_asof_date": "2026-07-10",
+                "required_asof_date": "2026-07-23",
+                "default_applied": true
+              },
+              "top50_up_share_21d": {
+                "status": "defaulted",
+                "source": "top50_breadth",
+                "source_asof_date": "2026-07-10",
+                "required_asof_date": "2026-07-23",
+                "default_applied": true
+              },
+              "usdkrw_change_pct": {
+                "status": "defaulted",
+                "source": "koru",
+                "source_asof_date": "2026-07-10",
+                "required_asof_date": "2026-07-23",
+                "default_applied": true
+              }
+            },
+            "components": {
+              "breadth": {
+                "status": "stale_or_default",
+                "active_features": [
+                  "prediction_down_probability_avg",
+                  "prediction_return_avg",
+                  "prediction_up_probability_avg",
+                  "top50_avg_koru_impact_score",
+                  "top50_avg_momentum_score",
+                  "top50_avg_risk_score",
+                  "top50_up_share_21d"
+                ],
+                "blend_weight": 0.35
+              },
+              "koru": {
+                "status": "stale_or_default",
+                "active_features": [
+                  "ewy_return_1d",
+                  "koru_ewy_spread_1d",
+                  "koru_impact_score",
+                  "koru_return_1d",
+                  "usdkrw_change_pct"
+                ],
+                "blend_weight": 0.65
+              },
+              "global_regime": {
+                "status": "inactive",
+                "active_features": [],
+                "blend_weight": 0.65
+              }
+            },
+            "stale_active_components": [
+              "breadth",
+              "koru"
+            ]
+          },
+          "input_mode": "domestic_index_only",
+          "messages": [
+            "Telegram 시장 신호 데이터 부족: 중립값으로 전망을 생성했습니다.",
+            "활성 입력이 최신 기준일과 맞지 않아 국내 지수 전용 fallback을 적용했습니다: breadth, koru"
+          ],
+          "model_sample_count": 1854,
+          "feature_cutoff_date": "2026-07-23",
+          "lookahead_guard": "features use asof_date-or-earlier only",
+          "forecast_status": "domestic_index_only"
+        },
+        "source_horizon": "TODAY",
+        "source_range_low": -0.024412608415904875,
+        "source_range_high": 0.00648836021185472,
+        "range_multiplier": 1.25
       },
-      "messages": [
-        "pykrx business-day helper를 위한 KRX_ID/PW가 없어 weekday fallback으로 다음 거래일을 계산했습니다.",
-        "국내 기준일 2026-07-16이 확정에 필요한 2026-07-17보다 오래되었습니다.",
-        "2026-07-17 지수 종가 누락: KOSDAQ, KOSPI",
-        "2026-07-17 Top50 가격 완결성 부족: 0/50",
-        "국내 종가 입력이 최신이 아니어서 다음 거래일 전망 확정을 보류했습니다."
-      ],
-      "domestic_asof_date": "2026-07-16",
-      "required_domestic_asof_date": "2026-07-17",
-      "global_cutoff": "2026-07-19T23:58:30.046012",
-      "calendar_source": "weekday_fallback",
-      "calendar_messages": [
-        "pykrx business-day helper를 위한 KRX_ID/PW가 없어 weekday fallback으로 다음 거래일을 계산했습니다."
-      ],
-      "input_messages": [
-        "pykrx business-day helper를 위한 KRX_ID/PW가 없어 weekday fallback으로 다음 거래일을 계산했습니다.",
-        "국내 기준일 2026-07-16이 확정에 필요한 2026-07-17보다 오래되었습니다.",
-        "2026-07-17 지수 종가 누락: KOSDAQ, KOSPI",
-        "2026-07-17 Top50 가격 완결성 부족: 0/50"
-      ],
-      "top50_price_count": 0,
+      {
+        "asof_date": "2026-07-23T00:00:00",
+        "target_date": "2026-07-24T00:00:00",
+        "horizon": "NEXT_TRADING_DAY",
+        "market": "KOSDAQ",
+        "expected_return": -0.004763619341907301,
+        "range_low": -0.02668274503185336,
+        "range_high": 0.01715550634803876,
+        "up_probability": 0.39294217758817895,
+        "down_probability": 0.607057822411821,
+        "shock_probability": 0.1924515697459266,
+        "direction": "BEARISH",
+        "confidence": 0.5442346934470925,
+        "drivers_json": "[{\"kind\": \"index_model\", \"label\": \"지수 직접 모델\", \"summary\": \"KOSDAQ TODAY 지수 momentum/volatility 기반\", \"value\": {\"index_expected_return\": -0.004763619341907301, \"index_return_1d\": 0.05217750203038252, \"index_volatility_20d\": 0.041979946577516615}}, {\"kind\": \"breadth\", \"label\": \"Top50 breadth 모델\", \"summary\": \"Top50 상승 breadth와 기존 2M 예측 분포를 단기 시장 방향 보조 신호로 사용\", \"value\": {\"breadth_expected_return\": 0.0, \"top50_up_share_21d\": 0.0, \"prediction_up_probability_avg\": 0.5, \"prediction_down_probability_avg\": 0.5}}, {\"kind\": \"koru\", \"label\": \"KORU/EWY\", \"summary\": \"미국장 한국 ETF와 3배 레버리지 심리\", \"value\": {\"koru_return_1d\": 0.0, \"ewy_return_1d\": 0.0, \"koru_ewy_spread_1d\": 0.0, \"koru_impact_score\": 0.5}}, {\"kind\": \"regime\", \"label\": \"글로벌 레짐\", \"summary\": \"해외 지수·반도체·선물·환율 위험 레짐\", \"value\": {\"global_risk_score\": 50.0, \"recommended_cash_ratio\": 0.15, \"semiconductor_score\": 50.0, \"futures_score\": 50.0}}, {\"kind\": \"news_telegram\", \"label\": \"뉴스/Telegram\", \"summary\": \"거시 뉴스와 Telegram 시장 attention을 원문 전문 없이 집계\", \"value\": {\"news_count_24h\": 0, \"news_sentiment_score\": 0.5, \"x_news_count_24h\": 0, \"x_news_negative_attention_score\": 0.0, \"x_news_bias_adjusted_sentiment_score\": 0.5, \"telegram_sentiment_score\": 0.5, \"telegram_risk_score\": 0.0}}]",
+        "data_quality_json": "{\"domestic_input_status\": \"confirmed\", \"domestic_asof_date\": \"2026-07-23\", \"required_domestic_asof_date\": \"2026-07-23\", \"global_cutoff\": null, \"calendar_source\": \"explicit\", \"calendar_messages\": [], \"input_messages\": [], \"top50_price_count\": 50, \"top50_total\": 50, \"status\": \"domestic_index_only\", \"components\": {\"benchmark\": \"ready\", \"top50_breadth\": \"ready\", \"prediction_breadth\": \"ready\", \"koru\": \"ready\", \"regime\": \"ready\", \"telegram\": \"missing\", \"news\": \"ready\"}, \"active_feature_freshness\": {\"asof_date\": \"2026-07-23\", \"active_features\": {\"ewy_return_1d\": {\"status\": \"defaulted\", \"source\": \"koru\", \"source_asof_date\": \"2026-07-10\", \"required_asof_date\": \"2026-07-23\", \"default_applied\": true}, \"index_ma_gap_20d\": {\"status\": \"fresh\", \"source\": \"domestic_index\", \"source_asof_date\": \"2026-07-23\", \"required_asof_date\": \"2026-07-23\", \"default_applied\": false}, \"index_ma_gap_5d\": {\"status\": \"fresh\", \"source\": \"domestic_index\", \"source_asof_date\": \"2026-07-23\", \"required_asof_date\": \"2026-07-23\", \"default_applied\": false}, \"index_return_1d\": {\"status\": \"fresh\", \"source\": \"domestic_index\", \"source_asof_date\": \"2026-07-23\", \"required_asof_date\": \"2026-07-23\", \"default_applied\": false}, \"index_return_20d\": {\"status\": \"fresh\", \"source\": \"domestic_index\", \"source_asof_date\": \"2026-07-23\", \"required_asof_date\": \"2026-07-23\", \"default_applied\": false}, \"index_return_5d\": {\"status\": \"fresh\", \"source\": \"domestic_index\", \"source_asof_date\": \"2026-07-23\", \"required_asof_date\": \"2026-07-23\", \"default_applied\": false}, \"index_volatility_20d\": {\"status\": \"fresh\", \"source\": \"domestic_index\", \"source_asof_date\": \"2026-07-23\", \"required_asof_date\": \"2026-07-23\", \"default_applied\": false}, \"index_volatility_5d\": {\"status\": \"fresh\", \"source\": \"domestic_index\", \"source_asof_date\": \"2026-07-23\", \"required_asof_date\": \"2026-07-23\", \"default_applied\": false}, \"koru_ewy_spread_1d\": {\"status\": \"defaulted\", \"source\": \"koru\", \"source_asof_date\": \"2026-07-10\", \"required_asof_date\": \"2026-07-23\", \"default_applied\": true}, \"koru_impact_score\": {\"status\": \"defaulted\", \"source\": \"koru\", \"source_asof_date\": \"2026-07-10\", \"required_asof_date\": \"2026-07-23\", \"default_applied\": true}, \"koru_return_1d\": {\"status\": \"defaulted\", \"source\": \"koru\", \"source_asof_date\": \"2026-07-10\", \"required_asof_date\": \"2026-07-23\", \"default_applied\": true}, \"prediction_down_probability_avg\": {\"status\": \"defaulted\", \"source\": \"prediction_breadth\", \"source_asof_date\": \"2026-07-10\", \"required_asof_date\": \"2026-07-23\", \"default_applied\": true}, \"prediction_return_avg\": {\"status\": \"defaulted\", \"source\": \"prediction_breadth\", \"source_asof_date\": \"2026-07-10\", \"required_asof_date\": \"2026-07-23\", \"default_applied\": true}, \"prediction_up_probability_avg\": {\"status\": \"defaulted\", \"source\": \"prediction_breadth\", \"source_asof_date\": \"2026-07-10\", \"required_asof_date\": \"2026-07-23\", \"default_applied\": true}, \"top50_avg_koru_impact_score\": {\"status\": \"defaulted\", \"source\": \"top50_breadth\", \"source_asof_date\": \"2026-07-10\", \"required_asof_date\": \"2026-07-23\", \"default_applied\": true}, \"top50_avg_momentum_score\": {\"status\": \"defaulted\", \"source\": \"top50_breadth\", \"source_asof_date\": \"2026-07-10\", \"required_asof_date\": \"2026-07-23\", \"default_applied\": true}, \"top50_avg_risk_score\": {\"status\": \"defaulted\", \"source\": \"top50_breadth\", \"source_asof_date\": \"2026-07-10\", \"required_asof_date\": \"2026-07-23\", \"default_applied\": true}, \"top50_up_share_21d\": {\"status\": \"defaulted\", \"source\": \"top50_breadth\", \"source_asof_date\": \"2026-07-10\", \"required_asof_date\": \"2026-07-23\", \"default_applied\": true}, \"usdkrw_change_pct\": {\"status\": \"defaulted\", \"source\": \"koru\", \"source_asof_date\": \"2026-07-10\", \"required_asof_date\": \"2026-07-23\", \"default_applied\": true}}, \"components\": {\"breadth\": {\"status\": \"stale_or_default\", \"active_features\": [\"prediction_down_probability_avg\", \"prediction_return_avg\", \"prediction_up_probability_avg\", \"top50_avg_koru_impact_score\", \"top50_avg_momentum_score\", \"top50_avg_risk_score\", \"top50_up_share_21d\"], \"blend_weight\": 0.35}, \"koru\": {\"status\": \"stale_or_default\", \"active_features\": [\"ewy_return_1d\", \"koru_ewy_spread_1d\", \"koru_impact_score\", \"koru_return_1d\", \"usdkrw_change_pct\"], \"blend_weight\": 0.65}, \"global_regime\": {\"status\": \"inactive\", \"active_features\": [], \"blend_weight\": 0.65}}, \"stale_active_components\": [\"breadth\", \"koru\"]}, \"input_mode\": \"domestic_index_only\", \"messages\": [\"Telegram 시장 신호 데이터 부족: 중립값으로 전망을 생성했습니다.\", \"활성 입력이 최신 기준일과 맞지 않아 국내 지수 전용 fallback을 적용했습니다: breadth, koru\"], \"model_sample_count\": 1854, \"feature_cutoff_date\": \"2026-07-23\", \"lookahead_guard\": \"features use asof_date-or-earlier only\", \"forecast_status\": \"domestic_index_only\"}",
+        "model_version": "market-outlook-v2-2026-07-23",
+        "created_at": "2026-07-23T12:09:53.753304",
+        "prediction_session_date": "2026-07-24T00:00:00",
+        "domestic_asof_date": "2026-07-23T00:00:00",
+        "global_cutoff": "NaT",
+        "forecast_status": "domestic_index_only",
+        "calendar_source": "explicit",
+        "drivers": [
+          {
+            "kind": "index_model",
+            "label": "지수 직접 모델",
+            "summary": "KOSDAQ TODAY 지수 momentum/volatility 기반",
+            "value": {
+              "index_expected_return": -0.004763619341907301,
+              "index_return_1d": 0.05217750203038252,
+              "index_volatility_20d": 0.041979946577516615
+            }
+          },
+          {
+            "kind": "breadth",
+            "label": "Top50 breadth 모델",
+            "summary": "Top50 상승 breadth와 기존 2M 예측 분포를 단기 시장 방향 보조 신호로 사용",
+            "value": {
+              "breadth_expected_return": 0.0,
+              "top50_up_share_21d": 0.0,
+              "prediction_up_probability_avg": 0.5,
+              "prediction_down_probability_avg": 0.5
+            }
+          },
+          {
+            "kind": "koru",
+            "label": "KORU/EWY",
+            "summary": "미국장 한국 ETF와 3배 레버리지 심리",
+            "value": {
+              "koru_return_1d": 0.0,
+              "ewy_return_1d": 0.0,
+              "koru_ewy_spread_1d": 0.0,
+              "koru_impact_score": 0.5
+            }
+          },
+          {
+            "kind": "regime",
+            "label": "글로벌 레짐",
+            "summary": "해외 지수·반도체·선물·환율 위험 레짐",
+            "value": {
+              "global_risk_score": 50.0,
+              "recommended_cash_ratio": 0.15,
+              "semiconductor_score": 50.0,
+              "futures_score": 50.0
+            }
+          },
+          {
+            "kind": "news_telegram",
+            "label": "뉴스/Telegram",
+            "summary": "거시 뉴스와 Telegram 시장 attention을 원문 전문 없이 집계",
+            "value": {
+              "news_count_24h": 0,
+              "news_sentiment_score": 0.5,
+              "x_news_count_24h": 0,
+              "x_news_negative_attention_score": 0.0,
+              "x_news_bias_adjusted_sentiment_score": 0.5,
+              "telegram_sentiment_score": 0.5,
+              "telegram_risk_score": 0.0
+            }
+          }
+        ],
+        "data_quality": {
+          "domestic_input_status": "confirmed",
+          "domestic_asof_date": "2026-07-23",
+          "required_domestic_asof_date": "2026-07-23",
+          "global_cutoff": null,
+          "calendar_source": "explicit",
+          "calendar_messages": [],
+          "input_messages": [],
+          "top50_price_count": 50,
+          "top50_total": 50,
+          "status": "domestic_index_only",
+          "components": {
+            "benchmark": "ready",
+            "top50_breadth": "ready",
+            "prediction_breadth": "ready",
+            "koru": "ready",
+            "regime": "ready",
+            "telegram": "missing",
+            "news": "ready"
+          },
+          "active_feature_freshness": {
+            "asof_date": "2026-07-23",
+            "active_features": {
+              "ewy_return_1d": {
+                "status": "defaulted",
+                "source": "koru",
+                "source_asof_date": "2026-07-10",
+                "required_asof_date": "2026-07-23",
+                "default_applied": true
+              },
+              "index_ma_gap_20d": {
+                "status": "fresh",
+                "source": "domestic_index",
+                "source_asof_date": "2026-07-23",
+                "required_asof_date": "2026-07-23",
+                "default_applied": false
+              },
+              "index_ma_gap_5d": {
+                "status": "fresh",
+                "source": "domestic_index",
+                "source_asof_date": "2026-07-23",
+                "required_asof_date": "2026-07-23",
+                "default_applied": false
+              },
+              "index_return_1d": {
+                "status": "fresh",
+                "source": "domestic_index",
+                "source_asof_date": "2026-07-23",
+                "required_asof_date": "2026-07-23",
+                "default_applied": false
+              },
+              "index_return_20d": {
+                "status": "fresh",
+                "source": "domestic_index",
+                "source_asof_date": "2026-07-23",
+                "required_asof_date": "2026-07-23",
+                "default_applied": false
+              },
+              "index_return_5d": {
+                "status": "fresh",
+                "source": "domestic_index",
+                "source_asof_date": "2026-07-23",
+                "required_asof_date": "2026-07-23",
+                "default_applied": false
+              },
+              "index_volatility_20d": {
+                "status": "fresh",
+                "source": "domestic_index",
+                "source_asof_date": "2026-07-23",
+                "required_asof_date": "2026-07-23",
+                "default_applied": false
+              },
+              "index_volatility_5d": {
+                "status": "fresh",
+                "source": "domestic_index",
+                "source_asof_date": "2026-07-23",
+                "required_asof_date": "2026-07-23",
+                "default_applied": false
+              },
+              "koru_ewy_spread_1d": {
+                "status": "defaulted",
+                "source": "koru",
+                "source_asof_date": "2026-07-10",
+                "required_asof_date": "2026-07-23",
+                "default_applied": true
+              },
+              "koru_impact_score": {
+                "status": "defaulted",
+                "source": "koru",
+                "source_asof_date": "2026-07-10",
+                "required_asof_date": "2026-07-23",
+                "default_applied": true
+              },
+              "koru_return_1d": {
+                "status": "defaulted",
+                "source": "koru",
+                "source_asof_date": "2026-07-10",
+                "required_asof_date": "2026-07-23",
+                "default_applied": true
+              },
+              "prediction_down_probability_avg": {
+                "status": "defaulted",
+                "source": "prediction_breadth",
+                "source_asof_date": "2026-07-10",
+                "required_asof_date": "2026-07-23",
+                "default_applied": true
+              },
+              "prediction_return_avg": {
+                "status": "defaulted",
+                "source": "prediction_breadth",
+                "source_asof_date": "2026-07-10",
+                "required_asof_date": "2026-07-23",
+                "default_applied": true
+              },
+              "prediction_up_probability_avg": {
+                "status": "defaulted",
+                "source": "prediction_breadth",
+                "source_asof_date": "2026-07-10",
+                "required_asof_date": "2026-07-23",
+                "default_applied": true
+              },
+              "top50_avg_koru_impact_score": {
+                "status": "defaulted",
+                "source": "top50_breadth",
+                "source_asof_date": "2026-07-10",
+                "required_asof_date": "2026-07-23",
+                "default_applied": true
+              },
+              "top50_avg_momentum_score": {
+                "status": "defaulted",
+                "source": "top50_breadth",
+                "source_asof_date": "2026-07-10",
+                "required_asof_date": "2026-07-23",
+                "default_applied": true
+              },
+              "top50_avg_risk_score": {
+                "status": "defaulted",
+                "source": "top50_breadth",
+                "source_asof_date": "2026-07-10",
+                "required_asof_date": "2026-07-23",
+                "default_applied": true
+              },
+              "top50_up_share_21d": {
+                "status": "defaulted",
+                "source": "top50_breadth",
+                "source_asof_date": "2026-07-10",
+                "required_asof_date": "2026-07-23",
+                "default_applied": true
+              },
+              "usdkrw_change_pct": {
+                "status": "defaulted",
+                "source": "koru",
+                "source_asof_date": "2026-07-10",
+                "required_asof_date": "2026-07-23",
+                "default_applied": true
+              }
+            },
+            "components": {
+              "breadth": {
+                "status": "stale_or_default",
+                "active_features": [
+                  "prediction_down_probability_avg",
+                  "prediction_return_avg",
+                  "prediction_up_probability_avg",
+                  "top50_avg_koru_impact_score",
+                  "top50_avg_momentum_score",
+                  "top50_avg_risk_score",
+                  "top50_up_share_21d"
+                ],
+                "blend_weight": 0.35
+              },
+              "koru": {
+                "status": "stale_or_default",
+                "active_features": [
+                  "ewy_return_1d",
+                  "koru_ewy_spread_1d",
+                  "koru_impact_score",
+                  "koru_return_1d",
+                  "usdkrw_change_pct"
+                ],
+                "blend_weight": 0.65
+              },
+              "global_regime": {
+                "status": "inactive",
+                "active_features": [],
+                "blend_weight": 0.65
+              }
+            },
+            "stale_active_components": [
+              "breadth",
+              "koru"
+            ]
+          },
+          "input_mode": "domestic_index_only",
+          "messages": [
+            "Telegram 시장 신호 데이터 부족: 중립값으로 전망을 생성했습니다.",
+            "활성 입력이 최신 기준일과 맞지 않아 국내 지수 전용 fallback을 적용했습니다: breadth, koru"
+          ],
+          "model_sample_count": 1854,
+          "feature_cutoff_date": "2026-07-23",
+          "lookahead_guard": "features use asof_date-or-earlier only",
+          "forecast_status": "domestic_index_only"
+        },
+        "source_horizon": "TODAY",
+        "source_range_low": -0.02229891989386415,
+        "source_range_high": 0.012771681210049547,
+        "range_multiplier": 1.25
+      }
+    ],
+    "data_quality": {
+      "domestic_input_status": "confirmed",
+      "domestic_asof_date": "2026-07-23",
+      "required_domestic_asof_date": "2026-07-23",
+      "global_cutoff": null,
+      "calendar_source": "explicit",
+      "calendar_messages": [],
+      "input_messages": [],
+      "top50_price_count": 50,
       "top50_total": 50,
+      "status": "partial_ready",
+      "components": {
+        "benchmark": "ready",
+        "top50_breadth": "ready",
+        "prediction_breadth": "ready",
+        "koru": "ready",
+        "regime": "ready",
+        "telegram": "missing",
+        "news": "ready",
+        "next_day_outlook": "ready",
+        "next_trading_day_calendar": "ready"
+      },
+      "active_feature_freshness": {
+        "asof_date": "2026-07-23",
+        "active_features": {
+          "ewy_return_1d": {
+            "status": "defaulted",
+            "source": "koru",
+            "source_asof_date": "2026-07-10",
+            "required_asof_date": "2026-07-23",
+            "default_applied": true
+          },
+          "index_ma_gap_20d": {
+            "status": "fresh",
+            "source": "domestic_index",
+            "source_asof_date": "2026-07-23",
+            "required_asof_date": "2026-07-23",
+            "default_applied": false
+          },
+          "index_ma_gap_5d": {
+            "status": "fresh",
+            "source": "domestic_index",
+            "source_asof_date": "2026-07-23",
+            "required_asof_date": "2026-07-23",
+            "default_applied": false
+          },
+          "index_return_1d": {
+            "status": "fresh",
+            "source": "domestic_index",
+            "source_asof_date": "2026-07-23",
+            "required_asof_date": "2026-07-23",
+            "default_applied": false
+          },
+          "index_return_20d": {
+            "status": "fresh",
+            "source": "domestic_index",
+            "source_asof_date": "2026-07-23",
+            "required_asof_date": "2026-07-23",
+            "default_applied": false
+          },
+          "index_return_5d": {
+            "status": "fresh",
+            "source": "domestic_index",
+            "source_asof_date": "2026-07-23",
+            "required_asof_date": "2026-07-23",
+            "default_applied": false
+          },
+          "index_volatility_20d": {
+            "status": "fresh",
+            "source": "domestic_index",
+            "source_asof_date": "2026-07-23",
+            "required_asof_date": "2026-07-23",
+            "default_applied": false
+          },
+          "index_volatility_5d": {
+            "status": "fresh",
+            "source": "domestic_index",
+            "source_asof_date": "2026-07-23",
+            "required_asof_date": "2026-07-23",
+            "default_applied": false
+          },
+          "koru_ewy_spread_1d": {
+            "status": "defaulted",
+            "source": "koru",
+            "source_asof_date": "2026-07-10",
+            "required_asof_date": "2026-07-23",
+            "default_applied": true
+          },
+          "koru_impact_score": {
+            "status": "defaulted",
+            "source": "koru",
+            "source_asof_date": "2026-07-10",
+            "required_asof_date": "2026-07-23",
+            "default_applied": true
+          },
+          "koru_return_1d": {
+            "status": "defaulted",
+            "source": "koru",
+            "source_asof_date": "2026-07-10",
+            "required_asof_date": "2026-07-23",
+            "default_applied": true
+          },
+          "prediction_down_probability_avg": {
+            "status": "defaulted",
+            "source": "prediction_breadth",
+            "source_asof_date": "2026-07-10",
+            "required_asof_date": "2026-07-23",
+            "default_applied": true
+          },
+          "prediction_return_avg": {
+            "status": "defaulted",
+            "source": "prediction_breadth",
+            "source_asof_date": "2026-07-10",
+            "required_asof_date": "2026-07-23",
+            "default_applied": true
+          },
+          "prediction_up_probability_avg": {
+            "status": "defaulted",
+            "source": "prediction_breadth",
+            "source_asof_date": "2026-07-10",
+            "required_asof_date": "2026-07-23",
+            "default_applied": true
+          },
+          "top50_avg_koru_impact_score": {
+            "status": "defaulted",
+            "source": "top50_breadth",
+            "source_asof_date": "2026-07-10",
+            "required_asof_date": "2026-07-23",
+            "default_applied": true
+          },
+          "top50_avg_momentum_score": {
+            "status": "defaulted",
+            "source": "top50_breadth",
+            "source_asof_date": "2026-07-10",
+            "required_asof_date": "2026-07-23",
+            "default_applied": true
+          },
+          "top50_avg_risk_score": {
+            "status": "defaulted",
+            "source": "top50_breadth",
+            "source_asof_date": "2026-07-10",
+            "required_asof_date": "2026-07-23",
+            "default_applied": true
+          },
+          "top50_up_share_21d": {
+            "status": "defaulted",
+            "source": "top50_breadth",
+            "source_asof_date": "2026-07-10",
+            "required_asof_date": "2026-07-23",
+            "default_applied": true
+          },
+          "usdkrw_change_pct": {
+            "status": "defaulted",
+            "source": "koru",
+            "source_asof_date": "2026-07-10",
+            "required_asof_date": "2026-07-23",
+            "default_applied": true
+          }
+        },
+        "components": {
+          "breadth": {
+            "status": "stale_or_default",
+            "active_features": [
+              "prediction_down_probability_avg",
+              "prediction_return_avg",
+              "prediction_up_probability_avg",
+              "top50_avg_koru_impact_score",
+              "top50_avg_momentum_score",
+              "top50_avg_risk_score",
+              "top50_up_share_21d"
+            ],
+            "blend_weight": 0.35
+          },
+          "koru": {
+            "status": "stale_or_default",
+            "active_features": [
+              "ewy_return_1d",
+              "koru_ewy_spread_1d",
+              "koru_impact_score",
+              "koru_return_1d",
+              "usdkrw_change_pct"
+            ],
+            "blend_weight": 0.65
+          },
+          "global_regime": {
+            "status": "inactive",
+            "active_features": [],
+            "blend_weight": 0.65
+          }
+        },
+        "stale_active_components": [
+          "breadth",
+          "koru"
+        ]
+      },
+      "input_mode": "domestic_index_only",
+      "messages": [
+        "Telegram 시장 신호 데이터 부족: 중립값으로 전망을 생성했습니다.",
+        "활성 입력이 최신 기준일과 맞지 않아 국내 지수 전용 fallback을 적용했습니다: breadth, koru"
+      ],
+      "model_sample_count": 1854,
+      "feature_cutoff_date": "2026-07-23",
+      "lookahead_guard": "features use asof_date-or-earlier only",
+      "forecast_status": "domestic_index_only",
       "source_horizon": "TODAY",
       "range_multiplier": 1.25
     }
@@ -13335,40 +14092,36 @@
     "leverage_warning": "KORU는 일간 3배 레버리지 ETF입니다. 장기 보유 시 기초지수 수익률의 단순 3배와 다르게 움직일 수 있으며, 변동성, 일일 리밸런싱, 복리 효과로 손실이 확대될 수 있습니다. 본 화면은 투자 참고용 분석이며 매수/매도 추천이 아닙니다."
   },
   "data_quality": {
-    "status": "blocked_stale_input",
+    "status": "partial_ready",
     "components": {
-      "domestic_prices": "stale",
+      "domestic_prices": "ready",
       "yahoo_prices": "stale",
       "supply_flows": "missing",
       "market_regime": "ready",
       "global_markets": "ready",
-      "news": "ready",
-      "next_day_outlook": "missing",
-      "next_trading_day_calendar": "fallback",
-      "next_day_long_short_range": "missing",
+      "news": "stale",
+      "next_day_outlook": "ready",
+      "next_trading_day_calendar": "ready",
+      "next_day_long_short_range": "ready",
       "credit_balance": "missing"
     },
     "messages": [
-      "최신 학습 미완료: 가격 최신일 2026-07-16이 기대 최신 거래일 2026-07-17보다 1일 늦습니다.",
       "Yahoo/yfinance 원본 가격이 오래되어 국내/글로벌 최신 데이터로 대체 표시",
-      "거시 뉴스 피드 기준(종목별 네이버 뉴스 없음)",
+      "거시·수급 뉴스가 최신 기준보다 오래됨",
       "수급 데이터 미수집: KOSPI: \"None of [Index(['종가', '시가총액', '거래량', '거래대금'], dtype='object')] are in the [columns]\"; KOSDAQ: \"None of [Index(['종가', '시가총액', '거래량', '거래대금'], dtype='obje",
-      "pykrx business-day helper를 위한 KRX_ID/PW가 없어 weekday fallback으로 다음 거래일을 계산했습니다.",
-      "국내 기준일 2026-07-16이 확정에 필요한 2026-07-17보다 오래되었습니다.",
-      "2026-07-17 지수 종가 누락: KOSDAQ, KOSPI",
-      "2026-07-17 Top50 가격 완결성 부족: 0/50",
-      "국내 종가 입력이 최신이 아니어서 다음 거래일 전망 확정을 보류했습니다.",
+      "Telegram 시장 신호 데이터 부족: 중립값으로 전망을 생성했습니다.",
+      "활성 입력이 최신 기준일과 맞지 않아 국내 지수 전용 fallback을 적용했습니다: breadth, koru",
       "신용잔고 데이터가 없어 중립 pressure로 숏·롱 범위를 계산했습니다."
     ],
     "freshness": {
-      "status": "partial_ready",
-      "expected_latest_date": "2026-07-17",
-      "latest_date": "2026-07-16",
-      "age_days": 1,
-      "stale": true,
-      "reason": "가격 최신일 2026-07-16이 기대 최신 거래일 2026-07-17보다 1일 늦습니다.",
+      "status": "ready",
+      "expected_latest_date": "2026-07-23",
+      "latest_date": "2026-07-23",
+      "age_days": 0,
+      "stale": false,
+      "reason": null,
       "messages": [
-        "최신 학습 미완료: 가격 최신일 2026-07-16이 기대 최신 거래일 2026-07-17보다 1일 늦습니다."
+        "가격 최신성 확인: 2026-07-23"
       ]
     }
   },
@@ -13447,33 +14200,6 @@
         "RATE"
       ],
       "sentiment_score": 0.5
-    },
-    {
-      "article_id": "6482ecb3c02f14b28e4b7a2e5e47f51afab8450cf26e659449c65fe8b572b917",
-      "source": "fed_press",
-      "category": "macro",
-      "title": "Minutes of the Federal Open Market Committee, June 16-17, 2026",
-      "summary": "Minutes of the Federal Open Market Committee, June 16-17, 2026",
-      "link": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260708a.htm",
-      "pub_date": "2026-07-08",
-      "themes": [
-        "RATE"
-      ],
-      "sentiment_score": 0.5
-    },
-    {
-      "article_id": "54babd6ea13fad4c244dc0fc9f711847e6900063c2faa1fe857ef9c631af5cb7",
-      "source": "fed_press",
-      "category": "macro",
-      "title": "Federal Reserve Board requests comment on a proposal to amend its requirements for banks to maintain anti-money laundering programs",
-      "summary": "Federal Reserve Board requests comment on a proposal to amend its requirements for banks to maintain anti-money laundering programs",
-      "link": "https://www.federalreserve.gov/newsevents/pressreleases/bcreg20260707a.htm",
-      "pub_date": "2026-07-07",
-      "themes": [
-        "RATE",
-        "SEMICONDUCTOR"
-      ],
-      "sentiment_score": 0.5
     }
   ],
   "market_context": [
@@ -13523,22 +14249,6 @@
       "source_name": "fed_press",
       "link": "https://www.federalreserve.gov/newsevents/pressreleases/enforcement20260709a.htm",
       "pub_date": "2026-07-09",
-      "category": "macro"
-    },
-    {
-      "kind": "macro_news",
-      "title": "Minutes of the Federal Open Market Committee, June 16-17, 2026",
-      "source_name": "fed_press",
-      "link": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260708a.htm",
-      "pub_date": "2026-07-08",
-      "category": "macro"
-    },
-    {
-      "kind": "macro_news",
-      "title": "Federal Reserve Board requests comment on a proposal to amend its requirements for banks to maintain anti-money laundering programs",
-      "source_name": "fed_press",
-      "link": "https://www.federalreserve.gov/newsevents/pressreleases/bcreg20260707a.htm",
-      "pub_date": "2026-07-07",
       "category": "macro"
     },
     {
@@ -13892,27 +14602,84 @@
     }
   },
   "long_short_range": {
-    "status": "not_collected",
-    "asof_date": "2026-07-16",
-    "target_date": "2026-07-20",
-    "items": [],
+    "status": "partial_ready",
+    "asof_date": "2026-07-23",
+    "target_date": "2026-07-24",
+    "items": [
+      {
+        "market": "KOSPI",
+        "asof_date": "2026-07-23",
+        "target_date": "2026-07-24",
+        "long_center": 0.25077174815375525,
+        "long_low": 0.12961529030697444,
+        "long_high": 0.37192820600053605,
+        "short_low": 0.628071793999464,
+        "short_high": 0.8703847096930255,
+        "band": 0.12115645784678081,
+        "expected_return": -0.008962124102025078,
+        "up_probability": 0.28093890781710873,
+        "down_probability": 0.7190610921828913,
+        "shock_probability": 0.237488937651821,
+        "confidence": 0.6114366553097348,
+        "credit_delta_1d_pct": null,
+        "credit_delta_5d_pct": null,
+        "credit_delta_20d_pct": null,
+        "credit_overheat_score": 0.5,
+        "credit_deleveraging_score": 0.5,
+        "credit_pressure_score": 0.5,
+        "credit_balance_date": null,
+        "credit_balance_krw": null,
+        "credit_source": null,
+        "basis": "market_outlook + market_credit_balance_daily",
+        "disclaimer": "실제 주문·공매도 지시가 아닌 다음 거래일 시장별 모의 노출 범위입니다."
+      },
+      {
+        "market": "KOSDAQ",
+        "asof_date": "2026-07-23",
+        "target_date": "2026-07-24",
+        "long_center": 0.3453725407063293,
+        "long_low": 0.22400151871990498,
+        "long_high": 0.4667435626927536,
+        "short_low": 0.5332564373072464,
+        "short_high": 0.7759984812800951,
+        "band": 0.1213710219864243,
+        "expected_return": -0.004763619341907301,
+        "up_probability": 0.39294217758817895,
+        "down_probability": 0.607057822411821,
+        "shock_probability": 0.1924515697459266,
+        "confidence": 0.5442346934470925,
+        "credit_delta_1d_pct": null,
+        "credit_delta_5d_pct": null,
+        "credit_delta_20d_pct": null,
+        "credit_overheat_score": 0.5,
+        "credit_deleveraging_score": 0.5,
+        "credit_pressure_score": 0.5,
+        "credit_balance_date": null,
+        "credit_balance_krw": null,
+        "credit_source": null,
+        "basis": "market_outlook + market_credit_balance_daily",
+        "disclaimer": "실제 주문·공매도 지시가 아닌 다음 거래일 시장별 모의 노출 범위입니다."
+      }
+    ],
     "summary": {
-      "count": 0,
-      "markets": []
+      "count": 2,
+      "markets": [
+        "KOSDAQ",
+        "KOSPI"
+      ]
     },
     "data_quality": {
-      "status": "not_collected",
+      "status": "partial_ready",
       "components": {
-        "market_outlook": "missing",
+        "market_outlook": "ready",
         "credit_balance": "missing"
       },
       "messages": [
-        "신용잔고 데이터가 없어 중립 pressure로 숏·롱 범위를 계산했습니다.",
-        "다음 거래일 숏·롱 범위를 계산할 시장 전망이 없습니다."
+        "신용잔고 데이터가 없어 중립 pressure로 숏·롱 범위를 계산했습니다."
       ]
     },
     "disclaimer": "다음 거래일 숏·롱 범위는 정보제공용 시뮬레이션이며 투자 결과를 보장하지 않습니다."
   },
-  "next_trading_day": "2026-07-20",
+  "next_trading_day": "2026-07-24",
   "range_multiplier": 1.25
 }
