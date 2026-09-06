@@ -1,0 +1,1779 @@
+{
+  "status": "ready",
+  "generated_at": "2026-09-06T17:28:24Z",
+  "eval_years": 3,
+  "production_weight": 0.0,
+  "disclaimer": "연구·정보제공용입니다. 확률은 상승 확정이 아니고, 신호는 매수/매도 지시가 아닙니다. production_weight=0 이며 production Ridge(market-outlook-v2)는 바꾸지 않았습니다.",
+  "data_freshness": {
+    "latest_asof": "2026-07-23",
+    "stale_vs_calendar": true,
+    "note": "예측 기준일은 마지막 확정 종가일입니다. 창고가 늦으면 달력상 내일이 아닙니다."
+  },
+  "sequential7": {
+    "ready_indexes": [
+      "KOSPI",
+      "KOSDAQ"
+    ],
+    "not_ready_indexes": [
+      "KOSPI100",
+      "KOSDAQ100"
+    ],
+    "items": [
+      {
+        "id": "ux",
+        "agent": "UX Designer",
+        "check": "1D/5D 분리, 예측 vs 실현, 확률≠확정, 데이터 기준일 표시",
+        "pass": true
+      },
+      {
+        "id": "python",
+        "agent": "Python Engineer",
+        "check": "walk-forward·live forecast·Pages JSON이 재현 가능하게 생성됨",
+        "pass": true
+      },
+      {
+        "id": "ml",
+        "agent": "ML Expert",
+        "check": "naive/previous_direction 대비 후보 비교, 1D와 5D 모델 분리",
+        "pass": true
+      },
+      {
+        "id": "sqlite",
+        "agent": "SQLite Architecture",
+        "check": "prediction immutable, production_weight=0",
+        "pass": true
+      },
+      {
+        "id": "terms",
+        "agent": "Stock Terms",
+        "check": "다음 1/5 거래일, 방향 적중, 80% 잔차 범위 용어 고정",
+        "pass": true
+      },
+      {
+        "id": "forecast",
+        "agent": "Market Forecast Expert",
+        "check": "우승 모델을 내일(1D)·다음주(5D) 연구 예측에 적용",
+        "pass": true
+      },
+      {
+        "id": "data",
+        "agent": "Market Data Expert",
+        "check": "KOSPI100=1034, 1028/KOSDAQ150 대체 금지, 없는 지수는 not_ready",
+        "pass": true
+      }
+    ],
+    "all_passed": true
+  },
+  "model_candidates": [
+    "naive",
+    "previous_direction",
+    "ridge",
+    "elasticnet",
+    "hgb",
+    "lightgbm"
+  ],
+  "ingest": {
+    "KOSPI": {
+      "status": "not_ready",
+      "reason": "kospi_index_fetch_failed: '지수명'",
+      "rows": 0,
+      "index_code": "KOSPI",
+      "pykrx_code": "1001"
+    },
+    "KOSDAQ": {
+      "status": "not_ready",
+      "reason": "kosdaq_index_fetch_failed: '지수명'",
+      "rows": 0,
+      "index_code": "KOSDAQ",
+      "pykrx_code": "2001"
+    },
+    "KOSPI100": {
+      "status": "not_ready",
+      "reason": "kospi100_index_fetch_failed: '지수명'",
+      "rows": 0,
+      "index_code": "KOSPI100",
+      "pykrx_code": "1034"
+    },
+    "KOSDAQ100": {
+      "status": "not_ready",
+      "reason": "official_kosdaq100_index_not_listed_no_kosdaq150_substitution",
+      "rows": 0,
+      "index_code": "KOSDAQ100",
+      "pykrx_code": null
+    }
+  },
+  "export": {
+    "index_eod_rows": 3710,
+    "macro_series_rows": 8032,
+    "investor_flow_rows": 0,
+    "market_session_rows": 1855,
+    "kospi100_status": "not_ready",
+    "kospi_status": "ready",
+    "kosdaq_status": "ready",
+    "kosdaq100_status": "not_ready"
+  },
+  "leaderboard": [
+    {
+      "slot": "KOSPI:5D",
+      "index_code": "KOSPI",
+      "horizon": "5D",
+      "model_type": "naive",
+      "group": "price",
+      "direction_hit": 0.5912208504801097,
+      "mae": 0.02934920315143347,
+      "n": 729,
+      "gate_status": "rejected"
+    },
+    {
+      "slot": "KOSPI:1D",
+      "index_code": "KOSPI",
+      "horizon": "1D",
+      "model_type": "ridge",
+      "group": "price",
+      "direction_hit": 0.5673076923076923,
+      "mae": 0.01246568588341541,
+      "n": 728,
+      "gate_status": "accepted_shadow"
+    },
+    {
+      "slot": "KOSDAQ:5D",
+      "index_code": "KOSDAQ",
+      "horizon": "5D",
+      "model_type": "ridge",
+      "group": "price_overnight",
+      "direction_hit": 0.532967032967033,
+      "mae": 0.030174094518781246,
+      "n": 729,
+      "gate_status": "rejected"
+    },
+    {
+      "slot": "KOSDAQ:1D",
+      "index_code": "KOSDAQ",
+      "horizon": "1D",
+      "model_type": "ridge",
+      "group": "price",
+      "direction_hit": 0.5281980742778541,
+      "mae": 0.013684861621688069,
+      "n": 728,
+      "gate_status": "rejected"
+    }
+  ],
+  "indexes": [
+    {
+      "index_code": "KOSPI",
+      "display_name": "KOSPI",
+      "korean_name": "코스피",
+      "pykrx_code": "1001",
+      "status": "ready",
+      "reason": null,
+      "asof_date": "2026-07-23",
+      "last_close": 7096.89,
+      "horizons": {
+        "1D": {
+          "title": "내일 (다음 1 거래일)",
+          "status": "accepted_shadow",
+          "reason": "beats_naive_mae_with_range_coverage",
+          "rows": 1854,
+          "eval_start": "2023-07-23",
+          "champion": {
+            "model_type": "ridge",
+            "group": "price",
+            "model_version": "index-kospi-ridge-price-1d-v1",
+            "gate_status": "accepted_shadow",
+            "gate_reason": "beats_naive_mae_with_range_coverage",
+            "metrics": {
+              "n": 728,
+              "mae": 0.01246568588341541,
+              "rmse": 0.019929822858111502,
+              "direction_hit": 0.5673076923076923,
+              "spearman": 0.1290633871254382,
+              "coverage": 0.7527472527472527,
+              "average_width": 0.03495390076902536
+            },
+            "recent_actual_vs_pred": [
+              {
+                "asof_date": "2026-07-06",
+                "target_date": "2026-07-07",
+                "expected_return": 0.009647816817488034,
+                "actual_return": -0.049062701441873524,
+                "range_low": -0.03801461884758638,
+                "range_high": 0.05731025248256245,
+                "direction_hit": false
+              },
+              {
+                "asof_date": "2026-07-07",
+                "target_date": "2026-07-08",
+                "expected_return": 0.010583630196129751,
+                "actual_return": -0.05348790736007303,
+                "range_low": -0.03707880546894467,
+                "range_high": 0.05824606586120416,
+                "direction_hit": false
+              },
+              {
+                "asof_date": "2026-07-08",
+                "target_date": "2026-07-09",
+                "expected_return": 0.011519810834553102,
+                "actual_return": 0.0062262049817918275,
+                "range_low": -0.03614262483052132,
+                "range_high": 0.059182246499627514,
+                "direction_hit": true
+              },
+              {
+                "asof_date": "2026-07-09",
+                "target_date": "2026-07-10",
+                "expected_return": 0.008455390585831892,
+                "actual_return": 0.02523755778664305,
+                "range_low": -0.03981023060090191,
+                "range_high": 0.05672101177256569,
+                "direction_hit": true
+              },
+              {
+                "asof_date": "2026-07-10",
+                "target_date": "2026-07-13",
+                "expected_return": 0.002996209447397584,
+                "actual_return": -0.08948841215954106,
+                "range_low": -0.04526941173933621,
+                "range_high": 0.05126183063413138,
+                "direction_hit": false
+              },
+              {
+                "asof_date": "2026-07-13",
+                "target_date": "2026-07-14",
+                "expected_return": 0.01117473124889743,
+                "actual_return": 0.007330764382768695,
+                "range_low": -0.037090889937836366,
+                "range_high": 0.05944035243563123,
+                "direction_hit": true
+              },
+              {
+                "asof_date": "2026-07-14",
+                "target_date": "2026-07-15",
+                "expected_return": 0.005521117801811085,
+                "actual_return": 0.06235826176235948,
+                "range_low": -0.045107372050428945,
+                "range_high": 0.05614960765405111,
+                "direction_hit": true
+              },
+              {
+                "asof_date": "2026-07-15",
+                "target_date": "2026-07-16",
+                "expected_return": 0.00082383373438,
+                "actual_return": -0.06367159454231697,
+                "range_low": -0.05228936732834381,
+                "range_high": 0.0539370347971038,
+                "direction_hit": false
+              },
+              {
+                "asof_date": "2026-07-16",
+                "target_date": "2026-07-20",
+                "expected_return": 0.010245042152384712,
+                "actual_return": -0.044619241708940605,
+                "range_low": -0.04471882481332528,
+                "range_high": 0.06520890911809471,
+                "direction_hit": false
+              },
+              {
+                "asof_date": "2026-07-20",
+                "target_date": "2026-07-21",
+                "expected_return": 0.005851187334626699,
+                "actual_return": 0.035554082320100155,
+                "range_low": -0.05429065759203025,
+                "range_high": 0.06599303226128365,
+                "direction_hit": true
+              },
+              {
+                "asof_date": "2026-07-21",
+                "target_date": "2026-07-22",
+                "expected_return": 0.002270376670042053,
+                "actual_return": 0.007372609459169066,
+                "range_low": -0.0578714682566149,
+                "range_high": 0.06241222159669901,
+                "direction_hit": true
+              },
+              {
+                "asof_date": "2026-07-22",
+                "target_date": "2026-07-23",
+                "expected_return": 0.004737453380917841,
+                "actual_return": 0.04401341630257294,
+                "range_low": -0.05540439154573911,
+                "range_high": 0.06487929830757479,
+                "direction_hit": true
+              }
+            ]
+          },
+          "models": [
+            {
+              "group": "price",
+              "model_type": "ridge",
+              "model_version": "index-kospi-ridge-price-1d-v1",
+              "n": 728,
+              "direction_hit": 0.5673076923076923,
+              "mae": 0.01246568588341541,
+              "rmse": 0.019929822858111502,
+              "coverage": 0.7527472527472527,
+              "spearman": 0.1290633871254382,
+              "champion": true
+            },
+            {
+              "group": "price",
+              "model_type": "naive",
+              "model_version": "index-kospi-naive-price-1d-v1",
+              "n": 728,
+              "direction_hit": 0.5673076923076923,
+              "mae": 0.012606663536671552,
+              "rmse": 0.01990975361920456,
+              "coverage": 0.7582417582417582,
+              "spearman": 0.1311014389494519,
+              "champion": false
+            },
+            {
+              "group": "price_overnight",
+              "model_type": "naive",
+              "model_version": "index-kospi-naive-price_overnight-1d-v1",
+              "n": 728,
+              "direction_hit": 0.5673076923076923,
+              "mae": 0.012606663536671552,
+              "rmse": 0.01990975361920456,
+              "coverage": 0.7582417582417582,
+              "spearman": 0.1311014389494519,
+              "champion": false
+            },
+            {
+              "group": "price_overnight_fx",
+              "model_type": "naive",
+              "model_version": "index-kospi-naive-price_overnight_fx-1d-v1",
+              "n": 728,
+              "direction_hit": 0.5673076923076923,
+              "mae": 0.012606663536671552,
+              "rmse": 0.01990975361920456,
+              "coverage": 0.7582417582417582,
+              "spearman": 0.1311014389494519,
+              "champion": false
+            },
+            {
+              "group": "price",
+              "model_type": "elasticnet",
+              "model_version": "index-kospi-elasticnet-price-1d-v1",
+              "n": 728,
+              "direction_hit": 0.5618131868131868,
+              "mae": 0.012488328832944536,
+              "rmse": 0.019894352473511522,
+              "coverage": 0.7513736263736264,
+              "spearman": 0.12303570052309162,
+              "champion": false
+            },
+            {
+              "group": "price_overnight",
+              "model_type": "elasticnet",
+              "model_version": "index-kospi-elasticnet-price_overnight-1d-v1",
+              "n": 728,
+              "direction_hit": 0.5453296703296703,
+              "mae": 0.012505086131272403,
+              "rmse": 0.019909857712761884,
+              "coverage": 0.7513736263736264,
+              "spearman": 0.11724936522430027,
+              "champion": false
+            },
+            {
+              "group": "price_overnight",
+              "model_type": "ridge",
+              "model_version": "index-kospi-ridge-price_overnight-1d-v1",
+              "n": 728,
+              "direction_hit": 0.5425824175824175,
+              "mae": 0.012504010639329278,
+              "rmse": 0.019949812454557053,
+              "coverage": 0.7554945054945055,
+              "spearman": 0.1192375276893082,
+              "champion": false
+            },
+            {
+              "group": "price_overnight",
+              "model_type": "hgb",
+              "model_version": "index-kospi-hgb-price_overnight-1d-v1",
+              "n": 728,
+              "direction_hit": 0.5274725274725275,
+              "mae": 0.012595613419115869,
+              "rmse": 0.019836059516910243,
+              "coverage": 0.7307692307692307,
+              "spearman": 0.06135283531537844,
+              "champion": false
+            },
+            {
+              "group": "price_overnight_fx",
+              "model_type": "elasticnet",
+              "model_version": "index-kospi-elasticnet-price_overnight_fx-1d-v1",
+              "n": 728,
+              "direction_hit": 0.5247252747252747,
+              "mae": 0.012519924188516,
+              "rmse": 0.01992704387420589,
+              "coverage": 0.7513736263736264,
+              "spearman": 0.10102925134256328,
+              "champion": false
+            },
+            {
+              "group": "price_overnight_fx",
+              "model_type": "ridge",
+              "model_version": "index-kospi-ridge-price_overnight_fx-1d-v1",
+              "n": 728,
+              "direction_hit": 0.5247252747252747,
+              "mae": 0.012535771057409193,
+              "rmse": 0.019975368098684044,
+              "coverage": 0.7527472527472527,
+              "spearman": 0.09944071811716623,
+              "champion": false
+            },
+            {
+              "group": "price_overnight_fx",
+              "model_type": "hgb",
+              "model_version": "index-kospi-hgb-price_overnight_fx-1d-v1",
+              "n": 728,
+              "direction_hit": 0.5247252747252747,
+              "mae": 0.012648482472793644,
+              "rmse": 0.019948934753863102,
+              "coverage": 0.7293956043956044,
+              "spearman": 0.0522992506328386,
+              "champion": false
+            },
+            {
+              "group": "price",
+              "model_type": "lightgbm",
+              "model_version": "index-kospi-lightgbm-price-1d-v1",
+              "n": 728,
+              "direction_hit": 0.5096153846153846,
+              "mae": 0.0127581467589982,
+              "rmse": 0.02008105187451093,
+              "coverage": 0.7307692307692307,
+              "spearman": 0.0031762635292319303,
+              "champion": false
+            },
+            {
+              "group": "price_overnight_fx",
+              "model_type": "lightgbm",
+              "model_version": "index-kospi-lightgbm-price_overnight_fx-1d-v1",
+              "n": 728,
+              "direction_hit": 0.5054945054945055,
+              "mae": 0.012721033578580138,
+              "rmse": 0.020122031336209763,
+              "coverage": 0.728021978021978,
+              "spearman": 0.005368869871343389,
+              "champion": false
+            },
+            {
+              "group": "price",
+              "model_type": "hgb",
+              "model_version": "index-kospi-hgb-price-1d-v1",
+              "n": 728,
+              "direction_hit": 0.5054945054945055,
+              "mae": 0.012728847056290496,
+              "rmse": 0.02006147654757986,
+              "coverage": 0.7156593406593407,
+              "spearman": 0.0020502129239235336,
+              "champion": false
+            },
+            {
+              "group": "price",
+              "model_type": "previous_direction",
+              "model_version": "index-kospi-previous_direction-price-1d-v1",
+              "n": 728,
+              "direction_hit": 0.5054945054945055,
+              "mae": 0.018469090124170504,
+              "rmse": 0.02926749339399541,
+              "coverage": 0.7527472527472527,
+              "spearman": -0.012860509956643229,
+              "champion": false
+            },
+            {
+              "group": "price_overnight",
+              "model_type": "previous_direction",
+              "model_version": "index-kospi-previous_direction-price_overnight-1d-v1",
+              "n": 728,
+              "direction_hit": 0.5054945054945055,
+              "mae": 0.018469090124170504,
+              "rmse": 0.02926749339399541,
+              "coverage": 0.7527472527472527,
+              "spearman": -0.012860509956643229,
+              "champion": false
+            },
+            {
+              "group": "price_overnight_fx",
+              "model_type": "previous_direction",
+              "model_version": "index-kospi-previous_direction-price_overnight_fx-1d-v1",
+              "n": 728,
+              "direction_hit": 0.5054945054945055,
+              "mae": 0.018469090124170504,
+              "rmse": 0.02926749339399541,
+              "coverage": 0.7527472527472527,
+              "spearman": -0.012860509956643229,
+              "champion": false
+            },
+            {
+              "group": "price_overnight",
+              "model_type": "lightgbm",
+              "model_version": "index-kospi-lightgbm-price_overnight-1d-v1",
+              "n": 728,
+              "direction_hit": 0.49862637362637363,
+              "mae": 0.012693420977760238,
+              "rmse": 0.02007688561253389,
+              "coverage": 0.7293956043956044,
+              "spearman": 0.011606562242727386,
+              "champion": false
+            }
+          ],
+          "forecast": {
+            "status": "ready",
+            "reason": null,
+            "index_code": "KOSPI",
+            "horizon": "1D",
+            "horizon_days": 1,
+            "asof_date": "2026-07-23",
+            "target": "다음 1 거래일",
+            "last_close": 7096.89,
+            "model_type": "ridge",
+            "group": "price",
+            "model_version": "index-kospi-ridge-price-1d-v1",
+            "expected_return": -0.0022813171152532,
+            "range_low": -0.06263564756319726,
+            "range_high": 0.058073013332690854,
+            "expected_volatility": 0.060354330447944055,
+            "p_up": 0.4736344379206665,
+            "p_flat": 0.0,
+            "p_down": 0.5263655620793335,
+            "signal": "SHORT",
+            "production_weight": 0.0,
+            "disclaimer": "연구용 확률·범위입니다. 상승 확정이나 매수 지시가 아닙니다."
+          }
+        },
+        "5D": {
+          "title": "다음주 (다음 5 거래일)",
+          "status": "rejected",
+          "reason": "no_model_beats_naive_with_coverage_gate",
+          "rows": 1850,
+          "eval_start": "2023-07-16",
+          "champion": {
+            "model_type": "naive",
+            "group": "price",
+            "model_version": "index-kospi-naive-price-5d-v1",
+            "gate_status": "rejected",
+            "gate_reason": "no_model_beats_naive_with_coverage_gate",
+            "metrics": {
+              "n": 729,
+              "mae": 0.02934920315143347,
+              "rmse": 0.04102006229351198,
+              "direction_hit": 0.5912208504801097,
+              "spearman": 0.09076593517919193,
+              "coverage": 0.7311385459533608,
+              "average_width": 0.07805986409925618
+            },
+            "recent_actual_vs_pred": [
+              {
+                "asof_date": "2026-06-30",
+                "target_date": "2026-07-07",
+                "expected_return": 0.004601912894265625,
+                "actual_return": -0.09675832421004937,
+                "range_low": -0.07539808710573438,
+                "range_high": 0.08460191289426562,
+                "direction_hit": false
+              },
+              {
+                "asof_date": "2026-07-01",
+                "target_date": "2026-07-08",
+                "expected_return": 0.004601912894265625,
+                "actual_return": -0.12725133409045197,
+                "range_low": -0.07539808710573438,
+                "range_high": 0.08460191289426562,
+                "direction_hit": false
+              },
+              {
+                "asof_date": "2026-07-02",
+                "target_date": "2026-07-09",
+                "expected_return": 0.004601912894265625,
+                "actual_return": -0.04657110468103809,
+                "range_low": -0.07539808710573438,
+                "range_high": 0.08460191289426562,
+                "direction_hit": false
+              },
+              {
+                "asof_date": "2026-07-03",
+                "target_date": "2026-07-10",
+                "expected_return": 0.004601912894265625,
+                "actual_return": -0.07571392893968365,
+                "range_low": -0.07539808710573438,
+                "range_high": 0.08460191289426562,
+                "direction_hit": false
+              },
+              {
+                "asof_date": "2026-07-06",
+                "target_date": "2026-07-13",
+                "expected_return": 0.004601912894265625,
+                "actual_return": -0.1545583152100336,
+                "range_low": -0.07539808710573438,
+                "range_high": 0.08460191289426562,
+                "direction_hit": false
+              },
+              {
+                "asof_date": "2026-07-07",
+                "target_date": "2026-07-14",
+                "expected_return": 0.004601912894265625,
+                "actual_return": -0.10442105923088285,
+                "range_low": -0.07539808710573438,
+                "range_high": 0.08460191289426562,
+                "direction_hit": false
+              },
+              {
+                "asof_date": "2026-07-08",
+                "target_date": "2026-07-15",
+                "expected_return": 0.004601912894265625,
+                "actual_return": 0.005191263994126949,
+                "range_low": -0.07539808710573438,
+                "range_high": 0.08460191289426562,
+                "direction_hit": true
+              },
+              {
+                "asof_date": "2026-07-09",
+                "target_date": "2026-07-16",
+                "expected_return": 0.004601912894265625,
+                "actual_return": -0.06463464304962618,
+                "range_low": -0.07539808710573438,
+                "range_high": 0.08460191289426562,
+                "direction_hit": false
+              },
+              {
+                "asof_date": "2026-07-10",
+                "target_date": "2026-07-20",
+                "expected_return": 0.004601912894265625,
+                "actual_return": -0.12836780391495906,
+                "range_low": -0.07539808710573438,
+                "range_high": 0.08460191289426562,
+                "direction_hit": false
+              },
+              {
+                "asof_date": "2026-07-13",
+                "target_date": "2026-07-21",
+                "expected_return": 0.004601912894265625,
+                "actual_return": -0.008664699064042103,
+                "range_low": -0.07539808710573438,
+                "range_high": 0.08460191289426562,
+                "direction_hit": false
+              },
+              {
+                "asof_date": "2026-07-14",
+                "target_date": "2026-07-22",
+                "expected_return": 0.004601912894265625,
+                "actual_return": -0.008623518448029222,
+                "range_low": -0.07539808710573438,
+                "range_high": 0.08460191289426562,
+                "direction_hit": false
+              },
+              {
+                "asof_date": "2026-07-15",
+                "target_date": "2026-07-23",
+                "expected_return": 0.004601912894265625,
+                "actual_return": -0.025742647654374173,
+                "range_low": -0.07539808710573438,
+                "range_high": 0.08460191289426562,
+                "direction_hit": false
+              }
+            ]
+          },
+          "models": [
+            {
+              "group": "price",
+              "model_type": "naive",
+              "model_version": "index-kospi-naive-price-5d-v1",
+              "n": 729,
+              "direction_hit": 0.5912208504801097,
+              "mae": 0.02934920315143347,
+              "rmse": 0.04102006229351198,
+              "coverage": 0.7311385459533608,
+              "spearman": 0.09076593517919193,
+              "champion": true
+            },
+            {
+              "group": "price_overnight",
+              "model_type": "naive",
+              "model_version": "index-kospi-naive-price_overnight-5d-v1",
+              "n": 729,
+              "direction_hit": 0.5912208504801097,
+              "mae": 0.02934920315143347,
+              "rmse": 0.04102006229351198,
+              "coverage": 0.7311385459533608,
+              "spearman": 0.09076593517919193,
+              "champion": false
+            },
+            {
+              "group": "price_overnight_fx",
+              "model_type": "naive",
+              "model_version": "index-kospi-naive-price_overnight_fx-5d-v1",
+              "n": 729,
+              "direction_hit": 0.5912208504801097,
+              "mae": 0.02934920315143347,
+              "rmse": 0.04102006229351198,
+              "coverage": 0.7311385459533608,
+              "spearman": 0.09076593517919193,
+              "champion": false
+            },
+            {
+              "group": "price_overnight",
+              "model_type": "elasticnet",
+              "model_version": "index-kospi-elasticnet-price_overnight-5d-v1",
+              "n": 729,
+              "direction_hit": 0.578875171467764,
+              "mae": 0.029312972511147017,
+              "rmse": 0.04161210983357546,
+              "coverage": 0.7242798353909465,
+              "spearman": 0.14652240763351876,
+              "champion": false
+            },
+            {
+              "group": "price_overnight_fx",
+              "model_type": "elasticnet",
+              "model_version": "index-kospi-elasticnet-price_overnight_fx-5d-v1",
+              "n": 729,
+              "direction_hit": 0.578875171467764,
+              "mae": 0.029318529080724097,
+              "rmse": 0.04162276598516321,
+              "coverage": 0.7242798353909465,
+              "spearman": 0.14609567668928403,
+              "champion": false
+            },
+            {
+              "group": "price",
+              "model_type": "elasticnet",
+              "model_version": "index-kospi-elasticnet-price-5d-v1",
+              "n": 729,
+              "direction_hit": 0.5720164609053497,
+              "mae": 0.02934705869505257,
+              "rmse": 0.04165339088876809,
+              "coverage": 0.7297668038408779,
+              "spearman": 0.14562223671812716,
+              "champion": false
+            },
+            {
+              "group": "price",
+              "model_type": "ridge",
+              "model_version": "index-kospi-ridge-price-5d-v1",
+              "n": 729,
+              "direction_hit": 0.5624142661179699,
+              "mae": 0.029360218142783816,
+              "rmse": 0.041722407400868265,
+              "coverage": 0.7242798353909465,
+              "spearman": 0.13988284954799418,
+              "champion": false
+            },
+            {
+              "group": "price_overnight",
+              "model_type": "ridge",
+              "model_version": "index-kospi-ridge-price_overnight-5d-v1",
+              "n": 729,
+              "direction_hit": 0.5555555555555556,
+              "mae": 0.029333856665272908,
+              "rmse": 0.04167488091956493,
+              "coverage": 0.7187928669410151,
+              "spearman": 0.13961207347813134,
+              "champion": false
+            },
+            {
+              "group": "price_overnight_fx",
+              "model_type": "ridge",
+              "model_version": "index-kospi-ridge-price_overnight_fx-5d-v1",
+              "n": 729,
+              "direction_hit": 0.5541838134430727,
+              "mae": 0.029346423753627945,
+              "rmse": 0.04169581066403759,
+              "coverage": 0.720164609053498,
+              "spearman": 0.13675622534070025,
+              "champion": false
+            },
+            {
+              "group": "price",
+              "model_type": "hgb",
+              "model_version": "index-kospi-hgb-price-5d-v1",
+              "n": 729,
+              "direction_hit": 0.5528120713305898,
+              "mae": 0.030430832682755347,
+              "rmse": 0.042587576301617705,
+              "coverage": 0.691358024691358,
+              "spearman": 0.05034778867083972,
+              "champion": false
+            },
+            {
+              "group": "price_overnight",
+              "model_type": "hgb",
+              "model_version": "index-kospi-hgb-price_overnight-5d-v1",
+              "n": 729,
+              "direction_hit": 0.551440329218107,
+              "mae": 0.030292012659631502,
+              "rmse": 0.04238591047153562,
+              "coverage": 0.6817558299039781,
+              "spearman": 0.0801412043717455,
+              "champion": false
+            },
+            {
+              "group": "price_overnight_fx",
+              "model_type": "hgb",
+              "model_version": "index-kospi-hgb-price_overnight_fx-5d-v1",
+              "n": 729,
+              "direction_hit": 0.5390946502057613,
+              "mae": 0.030314800471855672,
+              "rmse": 0.04252483655077881,
+              "coverage": 0.6817558299039781,
+              "spearman": 0.0654112213862734,
+              "champion": false
+            },
+            {
+              "group": "price_overnight",
+              "model_type": "lightgbm",
+              "model_version": "index-kospi-lightgbm-price_overnight-5d-v1",
+              "n": 729,
+              "direction_hit": 0.5377229080932785,
+              "mae": 0.030393824250734225,
+              "rmse": 0.04277568123374425,
+              "coverage": 0.6941015089163237,
+              "spearman": 0.056713485374075785,
+              "champion": false
+            },
+            {
+              "group": "price",
+              "model_type": "lightgbm",
+              "model_version": "index-kospi-lightgbm-price-5d-v1",
+              "n": 729,
+              "direction_hit": 0.5377229080932785,
+              "mae": 0.0304255156572599,
+              "rmse": 0.042748731891591084,
+              "coverage": 0.6941015089163237,
+              "spearman": 0.041797682313152965,
+              "champion": false
+            },
+            {
+              "group": "price_overnight_fx",
+              "model_type": "lightgbm",
+              "model_version": "index-kospi-lightgbm-price_overnight_fx-5d-v1",
+              "n": 729,
+              "direction_hit": 0.5308641975308642,
+              "mae": 0.030364452739281074,
+              "rmse": 0.04288469962434724,
+              "coverage": 0.6954732510288066,
+              "spearman": 0.05604305923125583,
+              "champion": false
+            },
+            {
+              "group": "price",
+              "model_type": "previous_direction",
+              "model_version": "index-kospi-previous_direction-price-5d-v1",
+              "n": 729,
+              "direction_hit": 0.5308641975308642,
+              "mae": 0.03148975296525698,
+              "rmse": 0.04586631732842662,
+              "coverage": 0.7393689986282579,
+              "spearman": 0.060978355879421346,
+              "champion": false
+            },
+            {
+              "group": "price_overnight",
+              "model_type": "previous_direction",
+              "model_version": "index-kospi-previous_direction-price_overnight-5d-v1",
+              "n": 729,
+              "direction_hit": 0.5308641975308642,
+              "mae": 0.03148975296525698,
+              "rmse": 0.04586631732842662,
+              "coverage": 0.7393689986282579,
+              "spearman": 0.060978355879421346,
+              "champion": false
+            },
+            {
+              "group": "price_overnight_fx",
+              "model_type": "previous_direction",
+              "model_version": "index-kospi-previous_direction-price_overnight_fx-5d-v1",
+              "n": 729,
+              "direction_hit": 0.5308641975308642,
+              "mae": 0.03148975296525698,
+              "rmse": 0.04586631732842662,
+              "coverage": 0.7393689986282579,
+              "spearman": 0.060978355879421346,
+              "champion": false
+            }
+          ],
+          "forecast": {
+            "status": "ready",
+            "reason": null,
+            "index_code": "KOSPI",
+            "horizon": "5D",
+            "horizon_days": 5,
+            "asof_date": "2026-07-23",
+            "target": "다음 5 거래일",
+            "last_close": 7096.89,
+            "model_type": "naive",
+            "group": "price",
+            "model_version": "index-kospi-naive-price-5d-v1",
+            "expected_return": 0.0038702049562331178,
+            "range_low": -0.07612979504376688,
+            "range_high": 0.08387020495623312,
+            "expected_volatility": 0.08,
+            "p_up": null,
+            "p_flat": 0.0,
+            "p_down": null,
+            "signal": "LONG",
+            "production_weight": 0.0,
+            "disclaimer": "연구용 확률·범위입니다. 상승 확정이나 매수 지시가 아닙니다."
+          }
+        }
+      }
+    },
+    {
+      "index_code": "KOSDAQ",
+      "display_name": "KOSDAQ",
+      "korean_name": "코스닥",
+      "pykrx_code": "2001",
+      "status": "ready",
+      "reason": null,
+      "asof_date": "2026-07-23",
+      "last_close": 790.28,
+      "horizons": {
+        "1D": {
+          "title": "내일 (다음 1 거래일)",
+          "status": "rejected",
+          "reason": "no_model_beats_naive_with_coverage_gate",
+          "rows": 1854,
+          "eval_start": "2023-07-23",
+          "champion": {
+            "model_type": "ridge",
+            "group": "price",
+            "model_version": "index-kosdaq-ridge-price-1d-v1",
+            "gate_status": "rejected",
+            "gate_reason": "no_model_beats_naive_with_coverage_gate",
+            "metrics": {
+              "n": 728,
+              "mae": 0.013684861621688069,
+              "rmse": 0.02043991265392575,
+              "direction_hit": 0.5281980742778541,
+              "spearman": 0.02525794284696896,
+              "coverage": 0.7637362637362637,
+              "average_width": 0.038090328966395144
+            },
+            "recent_actual_vs_pred": [
+              {
+                "asof_date": "2026-07-06",
+                "target_date": "2026-07-07",
+                "expected_return": 0.005213119490166696,
+                "actual_return": -0.01869975326714446,
+                "range_low": -0.033690486914775,
+                "range_high": 0.044116725895108386,
+                "direction_hit": false
+              },
+              {
+                "asof_date": "2026-07-07",
+                "target_date": "2026-07-08",
+                "expected_return": 0.004188178869556402,
+                "actual_return": -0.055616375732348455,
+                "range_low": -0.03471542753538529,
+                "range_high": 0.04309178527449809,
+                "direction_hit": false
+              },
+              {
+                "asof_date": "2026-07-08",
+                "target_date": "2026-07-09",
+                "expected_return": 0.004242366522771564,
+                "actual_return": 0.01146496815286624,
+                "range_low": -0.03319998529496509,
+                "range_high": 0.04168471834050822,
+                "direction_hit": true
+              },
+              {
+                "asof_date": "2026-07-09",
+                "target_date": "2026-07-10",
+                "expected_return": 0.0014944440291350136,
+                "actual_return": 0.05469773299748115,
+                "range_low": -0.03740916237580668,
+                "range_high": 0.0403980504340767,
+                "direction_hit": true
+              },
+              {
+                "asof_date": "2026-07-10",
+                "target_date": "2026-07-13",
+                "expected_return": 0.0017763570544217034,
+                "actual_return": -0.04546051610283841,
+                "range_low": -0.03712724935051999,
+                "range_high": 0.040679963459363394,
+                "direction_hit": false
+              },
+              {
+                "asof_date": "2026-07-13",
+                "target_date": "2026-07-14",
+                "expected_return": 0.0068724513751737696,
+                "actual_return": -0.019240392313851107,
+                "range_low": -0.033510840234787946,
+                "range_high": 0.047255742985135483,
+                "direction_hit": false
+              },
+              {
+                "asof_date": "2026-07-14",
+                "target_date": "2026-07-15",
+                "expected_return": 0.006189740948262275,
+                "actual_return": 0.05797341768922659,
+                "range_low": -0.038359230194936735,
+                "range_high": 0.05073871209146128,
+                "direction_hit": true
+              },
+              {
+                "asof_date": "2026-07-15",
+                "target_date": "2026-07-16",
+                "expected_return": 0.0014731780858449144,
+                "actual_return": -0.04532028019242118,
+                "range_low": -0.04181444359477536,
+                "range_high": 0.04476079976646519,
+                "direction_hit": false
+              },
+              {
+                "asof_date": "2026-07-16",
+                "target_date": "2026-07-20",
+                "expected_return": 0.008109841007277345,
+                "actual_return": -0.05329359466558903,
+                "range_low": -0.03632811502925677,
+                "range_high": 0.05254779704381146,
+                "direction_hit": false
+              },
+              {
+                "asof_date": "2026-07-20",
+                "target_date": "2026-07-21",
+                "expected_return": 0.006300528396746561,
+                "actual_return": 0.004935702470519221,
+                "range_low": -0.03857364347229855,
+                "range_high": 0.05117470026579167,
+                "direction_hit": true
+              },
+              {
+                "asof_date": "2026-07-21",
+                "target_date": "2026-07-22",
+                "expected_return": 0.003695958427289362,
+                "actual_return": -0.0029866992327501896,
+                "range_low": -0.042212881220860074,
+                "range_high": 0.0496047980754388,
+                "direction_hit": false
+              },
+              {
+                "asof_date": "2026-07-22",
+                "target_date": "2026-07-23",
+                "expected_return": 0.004295125547353671,
+                "actual_return": 0.05217750203038252,
+                "range_low": -0.041613714100795764,
+                "range_high": 0.05020396519550311,
+                "direction_hit": true
+              }
+            ]
+          },
+          "models": [
+            {
+              "group": "price",
+              "model_type": "ridge",
+              "model_version": "index-kosdaq-ridge-price-1d-v1",
+              "n": 728,
+              "direction_hit": 0.5281980742778541,
+              "mae": 0.013684861621688069,
+              "rmse": 0.02043991265392575,
+              "coverage": 0.7637362637362637,
+              "spearman": 0.02525794284696896,
+              "champion": true
+            },
+            {
+              "group": "price",
+              "model_type": "elasticnet",
+              "model_version": "index-kosdaq-elasticnet-price-1d-v1",
+              "n": 728,
+              "direction_hit": 0.5185694635488308,
+              "mae": 0.013640942499594024,
+              "rmse": 0.02039107603910679,
+              "coverage": 0.7651098901098901,
+              "spearman": 0.020067039212830227,
+              "champion": false
+            },
+            {
+              "group": "price",
+              "model_type": "naive",
+              "model_version": "index-kosdaq-naive-price-1d-v1",
+              "n": 728,
+              "direction_hit": 0.515818431911967,
+              "mae": 0.013581776465324612,
+              "rmse": 0.02035565916625234,
+              "coverage": 0.7692307692307693,
+              "spearman": -0.04884707044977099,
+              "champion": false
+            },
+            {
+              "group": "price_overnight",
+              "model_type": "naive",
+              "model_version": "index-kosdaq-naive-price_overnight-1d-v1",
+              "n": 728,
+              "direction_hit": 0.515818431911967,
+              "mae": 0.013581776465324612,
+              "rmse": 0.02035565916625234,
+              "coverage": 0.7692307692307693,
+              "spearman": -0.04884707044977099,
+              "champion": false
+            },
+            {
+              "group": "price_overnight_fx",
+              "model_type": "naive",
+              "model_version": "index-kosdaq-naive-price_overnight_fx-1d-v1",
+              "n": 728,
+              "direction_hit": 0.515818431911967,
+              "mae": 0.013581776465324612,
+              "rmse": 0.02035565916625234,
+              "coverage": 0.7692307692307693,
+              "spearman": -0.04884707044977099,
+              "champion": false
+            },
+            {
+              "group": "price_overnight_fx",
+              "model_type": "hgb",
+              "model_version": "index-kosdaq-hgb-price_overnight_fx-1d-v1",
+              "n": 728,
+              "direction_hit": 0.5116918844566712,
+              "mae": 0.013902724431923297,
+              "rmse": 0.020667376195725326,
+              "coverage": 0.75,
+              "spearman": -0.004658627811879042,
+              "champion": false
+            },
+            {
+              "group": "price",
+              "model_type": "lightgbm",
+              "model_version": "index-kosdaq-lightgbm-price-1d-v1",
+              "n": 728,
+              "direction_hit": 0.5103163686382394,
+              "mae": 0.01391908006705599,
+              "rmse": 0.02062759583885101,
+              "coverage": 0.7431318681318682,
+              "spearman": -0.0001400371063349995,
+              "champion": false
+            },
+            {
+              "group": "price_overnight",
+              "model_type": "ridge",
+              "model_version": "index-kosdaq-ridge-price_overnight-1d-v1",
+              "n": 728,
+              "direction_hit": 0.5075653370013755,
+              "mae": 0.013754425918048058,
+              "rmse": 0.020485772928976253,
+              "coverage": 0.7596153846153846,
+              "spearman": 0.001961181519453736,
+              "champion": false
+            },
+            {
+              "group": "price",
+              "model_type": "hgb",
+              "model_version": "index-kosdaq-hgb-price-1d-v1",
+              "n": 728,
+              "direction_hit": 0.5061898211829436,
+              "mae": 0.013939068467028578,
+              "rmse": 0.02059406634221382,
+              "coverage": 0.7513736263736264,
+              "spearman": 0.0011598728110110146,
+              "champion": false
+            },
+            {
+              "group": "price_overnight_fx",
+              "model_type": "lightgbm",
+              "model_version": "index-kosdaq-lightgbm-price_overnight_fx-1d-v1",
+              "n": 728,
+              "direction_hit": 0.5048143053645117,
+              "mae": 0.01392379322869218,
+              "rmse": 0.020728445979248677,
+              "coverage": 0.7431318681318682,
+              "spearman": -0.03177942022364997,
+              "champion": false
+            },
+            {
+              "group": "price_overnight_fx",
+              "model_type": "elasticnet",
+              "model_version": "index-kosdaq-elasticnet-price_overnight_fx-1d-v1",
+              "n": 728,
+              "direction_hit": 0.5020632737276479,
+              "mae": 0.013676018644113832,
+              "rmse": 0.020416339421000095,
+              "coverage": 0.7692307692307693,
+              "spearman": 0.009919896325929451,
+              "champion": false
+            },
+            {
+              "group": "price_overnight",
+              "model_type": "elasticnet",
+              "model_version": "index-kosdaq-elasticnet-price_overnight-1d-v1",
+              "n": 728,
+              "direction_hit": 0.5006877579092159,
+              "mae": 0.013673099626390087,
+              "rmse": 0.020410770534929002,
+              "coverage": 0.7692307692307693,
+              "spearman": 0.013343461483282455,
+              "champion": false
+            },
+            {
+              "group": "price_overnight",
+              "model_type": "hgb",
+              "model_version": "index-kosdaq-hgb-price_overnight-1d-v1",
+              "n": 728,
+              "direction_hit": 0.49793672627235214,
+              "mae": 0.013915869544556005,
+              "rmse": 0.02069100963169497,
+              "coverage": 0.7458791208791209,
+              "spearman": 0.007987350817324348,
+              "champion": false
+            },
+            {
+              "group": "price_overnight_fx",
+              "model_type": "ridge",
+              "model_version": "index-kosdaq-ridge-price_overnight_fx-1d-v1",
+              "n": 728,
+              "direction_hit": 0.4965612104539202,
+              "mae": 0.013765900999592625,
+              "rmse": 0.020497702464536312,
+              "coverage": 0.7582417582417582,
+              "spearman": -0.00537208817406051,
+              "champion": false
+            },
+            {
+              "group": "price_overnight",
+              "model_type": "lightgbm",
+              "model_version": "index-kosdaq-lightgbm-price_overnight-1d-v1",
+              "n": 728,
+              "direction_hit": 0.4896836313617607,
+              "mae": 0.013945030501595387,
+              "rmse": 0.0207482769794553,
+              "coverage": 0.7445054945054945,
+              "spearman": -0.031865954625866694,
+              "champion": false
+            },
+            {
+              "group": "price",
+              "model_type": "previous_direction",
+              "model_version": "index-kosdaq-previous_direction-price-1d-v1",
+              "n": 728,
+              "direction_hit": 0.4889807162534435,
+              "mae": 0.019612759535325378,
+              "rmse": 0.030082551835976513,
+              "coverage": 0.7513736263736264,
+              "spearman": -0.036806012160591366,
+              "champion": false
+            },
+            {
+              "group": "price_overnight",
+              "model_type": "previous_direction",
+              "model_version": "index-kosdaq-previous_direction-price_overnight-1d-v1",
+              "n": 728,
+              "direction_hit": 0.4889807162534435,
+              "mae": 0.019612759535325378,
+              "rmse": 0.030082551835976513,
+              "coverage": 0.7513736263736264,
+              "spearman": -0.036806012160591366,
+              "champion": false
+            },
+            {
+              "group": "price_overnight_fx",
+              "model_type": "previous_direction",
+              "model_version": "index-kosdaq-previous_direction-price_overnight_fx-1d-v1",
+              "n": 728,
+              "direction_hit": 0.4889807162534435,
+              "mae": 0.019612759535325378,
+              "rmse": 0.030082551835976513,
+              "coverage": 0.7513736263736264,
+              "spearman": -0.036806012160591366,
+              "champion": false
+            }
+          ],
+          "forecast": {
+            "status": "ready",
+            "reason": null,
+            "index_code": "KOSDAQ",
+            "horizon": "1D",
+            "horizon_days": 1,
+            "asof_date": "2026-07-23",
+            "target": "다음 1 거래일",
+            "last_close": 790.28,
+            "model_type": "ridge",
+            "group": "price",
+            "model_version": "index-kosdaq-ridge-price-1d-v1",
+            "expected_return": -0.0001701937458345646,
+            "range_low": -0.04674075993042042,
+            "range_high": 0.04640037243875129,
+            "expected_volatility": 0.046570566184585854,
+            "p_up": 0.5808558600882576,
+            "p_flat": 0.0,
+            "p_down": 0.4191441399117424,
+            "signal": "NEUTRAL",
+            "production_weight": 0.0,
+            "disclaimer": "연구용 확률·범위입니다. 상승 확정이나 매수 지시가 아닙니다."
+          }
+        },
+        "5D": {
+          "title": "다음주 (다음 5 거래일)",
+          "status": "rejected",
+          "reason": "no_model_beats_naive_with_coverage_gate",
+          "rows": 1850,
+          "eval_start": "2023-07-16",
+          "champion": {
+            "model_type": "ridge",
+            "group": "price_overnight",
+            "model_version": "index-kosdaq-ridge-price_overnight-5d-v1",
+            "gate_status": "rejected",
+            "gate_reason": "no_model_beats_naive_with_coverage_gate",
+            "metrics": {
+              "n": 729,
+              "mae": 0.030174094518781246,
+              "rmse": 0.04206549311680385,
+              "direction_hit": 0.532967032967033,
+              "spearman": 0.04998695988041499,
+              "coverage": 0.7448559670781894,
+              "average_width": 0.08299852873683378
+            },
+            "recent_actual_vs_pred": [
+              {
+                "asof_date": "2026-06-30",
+                "target_date": "2026-07-07",
+                "expected_return": 0.02311889263350021,
+                "actual_return": -0.09272195420113949,
+                "range_low": -0.05688110736649979,
+                "range_high": 0.10311889263350021,
+                "direction_hit": false
+              },
+              {
+                "asof_date": "2026-07-01",
+                "target_date": "2026-07-08",
+                "expected_return": 0.019605033855251842,
+                "actual_return": -0.15532361327809763,
+                "range_low": -0.06039496614474816,
+                "range_high": 0.09960503385525185,
+                "direction_hit": false
+              },
+              {
+                "asof_date": "2026-07-02",
+                "target_date": "2026-07-09",
+                "expected_return": 0.0397142207664528,
+                "actual_return": -0.08390252907513385,
+                "range_low": -0.0402857792335472,
+                "range_high": 0.1197142207664528,
+                "direction_hit": false
+              },
+              {
+                "asof_date": "2026-07-03",
+                "target_date": "2026-07-10",
+                "expected_return": 0.03590035238301413,
+                "actual_return": -0.035674393431674,
+                "range_low": -0.04409964761698587,
+                "range_high": 0.11590035238301413,
+                "direction_hit": false
+              },
+              {
+                "asof_date": "2026-07-06",
+                "target_date": "2026-07-13",
+                "expected_return": 0.01639122494613842,
+                "actual_return": -0.05632356239744063,
+                "range_low": -0.06360877505386159,
+                "range_high": 0.09639122494613842,
+                "direction_hit": false
+              },
+              {
+                "asof_date": "2026-07-07",
+                "target_date": "2026-07-14",
+                "expected_return": 0.012395740432319695,
+                "actual_return": -0.056843472925664384,
+                "range_low": -0.0676042595676803,
+                "range_high": 0.0923957404323197,
+                "direction_hit": false
+              },
+              {
+                "asof_date": "2026-07-08",
+                "target_date": "2026-07-15",
+                "expected_return": 0.012040685467446641,
+                "actual_return": 0.05659872611464967,
+                "range_low": -0.06795931453255336,
+                "range_high": 0.09204068546744665,
+                "direction_hit": true
+              },
+              {
+                "asof_date": "2026-07-09",
+                "target_date": "2026-07-16",
+                "expected_return": 0.00679056718411291,
+                "actual_return": -0.0027204030226699594,
+                "range_low": -0.0732094328158871,
+                "range_high": 0.0867905671841129,
+                "direction_hit": false
+              },
+              {
+                "asof_date": "2026-07-10",
+                "target_date": "2026-07-20",
+                "expected_return": 0.01103432728183703,
+                "actual_return": -0.10483264272834736,
+                "range_low": -0.06896567271816298,
+                "range_high": 0.09103432728183702,
+                "direction_hit": false
+              },
+              {
+                "asof_date": "2026-07-13",
+                "target_date": "2026-07-21",
+                "expected_return": 0.021236287942302465,
+                "actual_return": -0.057571056845476365,
+                "range_low": -0.05876371205769754,
+                "range_high": 0.10123628794230247,
+                "direction_hit": false
+              },
+              {
+                "asof_date": "2026-07-14",
+                "target_date": "2026-07-22",
+                "expected_return": 0.02430966377284,
+                "actual_return": -0.04195260083165386,
+                "range_low": -0.055690336227160006,
+                "range_high": 0.10430966377284,
+                "direction_hit": false
+              },
+              {
+                "asof_date": "2026-07-15",
+                "target_date": "2026-07-23",
+                "expected_return": 0.02091067552593939,
+                "actual_return": -0.04720108990511551,
+                "range_low": -0.05908932447406061,
+                "range_high": 0.1009106755259394,
+                "direction_hit": false
+              }
+            ]
+          },
+          "models": [
+            {
+              "group": "price_overnight",
+              "model_type": "ridge",
+              "model_version": "index-kosdaq-ridge-price_overnight-5d-v1",
+              "n": 729,
+              "direction_hit": 0.532967032967033,
+              "mae": 0.030174094518781246,
+              "rmse": 0.04206549311680385,
+              "coverage": 0.7448559670781894,
+              "spearman": 0.04998695988041499,
+              "champion": true
+            },
+            {
+              "group": "price_overnight",
+              "model_type": "elasticnet",
+              "model_version": "index-kosdaq-elasticnet-price_overnight-5d-v1",
+              "n": 729,
+              "direction_hit": 0.5302197802197802,
+              "mae": 0.030032308338674103,
+              "rmse": 0.04190997813981753,
+              "coverage": 0.7448559670781894,
+              "spearman": 0.04976558758902748,
+              "champion": false
+            },
+            {
+              "group": "price_overnight_fx",
+              "model_type": "ridge",
+              "model_version": "index-kosdaq-ridge-price_overnight_fx-5d-v1",
+              "n": 729,
+              "direction_hit": 0.5302197802197802,
+              "mae": 0.030193445786828668,
+              "rmse": 0.042087507783713674,
+              "coverage": 0.7421124828532236,
+              "spearman": 0.04853659503583401,
+              "champion": false
+            },
+            {
+              "group": "price_overnight_fx",
+              "model_type": "elasticnet",
+              "model_version": "index-kosdaq-elasticnet-price_overnight_fx-5d-v1",
+              "n": 729,
+              "direction_hit": 0.5260989010989011,
+              "mae": 0.03004298244004348,
+              "rmse": 0.04191814479340553,
+              "coverage": 0.7434842249657064,
+              "spearman": 0.049392318037675735,
+              "champion": false
+            },
+            {
+              "group": "price",
+              "model_type": "naive",
+              "model_version": "index-kosdaq-naive-price-5d-v1",
+              "n": 729,
+              "direction_hit": 0.5247252747252747,
+              "mae": 0.02910190778631585,
+              "rmse": 0.0401159927735989,
+              "coverage": 0.7613168724279835,
+              "spearman": -0.11912366068041455,
+              "champion": false
+            },
+            {
+              "group": "price_overnight",
+              "model_type": "naive",
+              "model_version": "index-kosdaq-naive-price_overnight-5d-v1",
+              "n": 729,
+              "direction_hit": 0.5247252747252747,
+              "mae": 0.02910190778631585,
+              "rmse": 0.0401159927735989,
+              "coverage": 0.7613168724279835,
+              "spearman": -0.11912366068041455,
+              "champion": false
+            },
+            {
+              "group": "price_overnight_fx",
+              "model_type": "naive",
+              "model_version": "index-kosdaq-naive-price_overnight_fx-5d-v1",
+              "n": 729,
+              "direction_hit": 0.5247252747252747,
+              "mae": 0.02910190778631585,
+              "rmse": 0.0401159927735989,
+              "coverage": 0.7613168724279835,
+              "spearman": -0.11912366068041455,
+              "champion": false
+            },
+            {
+              "group": "price",
+              "model_type": "ridge",
+              "model_version": "index-kosdaq-ridge-price-5d-v1",
+              "n": 729,
+              "direction_hit": 0.521978021978022,
+              "mae": 0.030079570097461844,
+              "rmse": 0.041942693064511566,
+              "coverage": 0.747599451303155,
+              "spearman": 0.05257172220642541,
+              "champion": false
+            },
+            {
+              "group": "price",
+              "model_type": "elasticnet",
+              "model_version": "index-kosdaq-elasticnet-price-5d-v1",
+              "n": 729,
+              "direction_hit": 0.5206043956043956,
+              "mae": 0.029992002193487736,
+              "rmse": 0.04184097770442108,
+              "coverage": 0.7448559670781894,
+              "spearman": 0.0523576598158029,
+              "champion": false
+            },
+            {
+              "group": "price",
+              "model_type": "lightgbm",
+              "model_version": "index-kosdaq-lightgbm-price-5d-v1",
+              "n": 729,
+              "direction_hit": 0.5123626373626373,
+              "mae": 0.03151025809050837,
+              "rmse": 0.0433943847586996,
+              "coverage": 0.7160493827160493,
+              "spearman": -0.05684729830630742,
+              "champion": false
+            },
+            {
+              "group": "price",
+              "model_type": "previous_direction",
+              "model_version": "index-kosdaq-previous_direction-price-5d-v1",
+              "n": 729,
+              "direction_hit": 0.5075653370013755,
+              "mae": 0.032295506505797385,
+              "rmse": 0.04636782304404139,
+              "coverage": 0.7626886145404664,
+              "spearman": 0.007390449114343955,
+              "champion": false
+            },
+            {
+              "group": "price_overnight",
+              "model_type": "previous_direction",
+              "model_version": "index-kosdaq-previous_direction-price_overnight-5d-v1",
+              "n": 729,
+              "direction_hit": 0.5075653370013755,
+              "mae": 0.032295506505797385,
+              "rmse": 0.04636782304404139,
+              "coverage": 0.7626886145404664,
+              "spearman": 0.007390449114343955,
+              "champion": false
+            },
+            {
+              "group": "price_overnight_fx",
+              "model_type": "previous_direction",
+              "model_version": "index-kosdaq-previous_direction-price_overnight_fx-5d-v1",
+              "n": 729,
+              "direction_hit": 0.5075653370013755,
+              "mae": 0.032295506505797385,
+              "rmse": 0.04636782304404139,
+              "coverage": 0.7626886145404664,
+              "spearman": 0.007390449114343955,
+              "champion": false
+            },
+            {
+              "group": "price",
+              "model_type": "hgb",
+              "model_version": "index-kosdaq-hgb-price-5d-v1",
+              "n": 729,
+              "direction_hit": 0.5027472527472527,
+              "mae": 0.032399144648509,
+              "rmse": 0.0442885880311126,
+              "coverage": 0.7023319615912208,
+              "spearman": -0.07681604481005126,
+              "champion": false
+            },
+            {
+              "group": "price_overnight",
+              "model_type": "hgb",
+              "model_version": "index-kosdaq-hgb-price_overnight-5d-v1",
+              "n": 729,
+              "direction_hit": 0.5013736263736264,
+              "mae": 0.03238696732244674,
+              "rmse": 0.04436250951550326,
+              "coverage": 0.6899862825788752,
+              "spearman": -0.07616466895258694,
+              "champion": false
+            },
+            {
+              "group": "price_overnight_fx",
+              "model_type": "hgb",
+              "model_version": "index-kosdaq-hgb-price_overnight_fx-5d-v1",
+              "n": 729,
+              "direction_hit": 0.4945054945054945,
+              "mae": 0.03234446421560677,
+              "rmse": 0.04430327453882328,
+              "coverage": 0.6941015089163237,
+              "spearman": -0.0708456752476496,
+              "champion": false
+            },
+            {
+              "group": "price_overnight",
+              "model_type": "lightgbm",
+              "model_version": "index-kosdaq-lightgbm-price_overnight-5d-v1",
+              "n": 729,
+              "direction_hit": 0.49175824175824173,
+              "mae": 0.031384229585973616,
+              "rmse": 0.043210989917691504,
+              "coverage": 0.7119341563786008,
+              "spearman": -0.07596246074035419,
+              "champion": false
+            },
+            {
+              "group": "price_overnight_fx",
+              "model_type": "lightgbm",
+              "model_version": "index-kosdaq-lightgbm-price_overnight_fx-5d-v1",
+              "n": 729,
+              "direction_hit": 0.4848901098901099,
+              "mae": 0.031462424859815374,
+              "rmse": 0.04332960907490631,
+              "coverage": 0.7064471879286695,
+              "spearman": -0.06921932290020709,
+              "champion": false
+            }
+          ],
+          "forecast": {
+            "status": "ready",
+            "reason": null,
+            "index_code": "KOSDAQ",
+            "horizon": "5D",
+            "horizon_days": 5,
+            "asof_date": "2026-07-23",
+            "target": "다음 5 거래일",
+            "last_close": 790.28,
+            "model_type": "ridge",
+            "group": "price_overnight",
+            "model_version": "index-kosdaq-ridge-price_overnight-5d-v1",
+            "expected_return": 0.0029989388475072177,
+            "range_low": -0.07700106115249278,
+            "range_high": 0.08299893884750723,
+            "expected_volatility": 0.08,
+            "p_up": 0.530875986183669,
+            "p_flat": 0.0,
+            "p_down": 0.46912401381633095,
+            "signal": "LONG",
+            "production_weight": 0.0,
+            "disclaimer": "연구용 확률·범위입니다. 상승 확정이나 매수 지시가 아닙니다."
+          }
+        }
+      }
+    },
+    {
+      "index_code": "KOSPI100",
+      "display_name": "KOSPI 100",
+      "korean_name": "코스피 100",
+      "pykrx_code": "1034",
+      "status": "not_ready",
+      "reason": "KOSPI100_history_missing",
+      "asof_date": null,
+      "last_close": null,
+      "horizons": {
+        "1D": {
+          "title": "내일 (다음 1 거래일)",
+          "status": "not_ready",
+          "reason": "KOSPI100_history_missing",
+          "rows": null,
+          "eval_start": null,
+          "champion": {
+            "model_type": null,
+            "group": null,
+            "model_version": null,
+            "gate_status": "not_ready",
+            "gate_reason": "KOSPI100_history_missing",
+            "metrics": {},
+            "recent_actual_vs_pred": []
+          },
+          "models": [],
+          "forecast": null
+        },
+        "5D": {
+          "title": "다음주 (다음 5 거래일)",
+          "status": "not_ready",
+          "reason": "KOSPI100_history_missing",
+          "rows": null,
+          "eval_start": null,
+          "champion": {
+            "model_type": null,
+            "group": null,
+            "model_version": null,
+            "gate_status": "not_ready",
+            "gate_reason": "KOSPI100_history_missing",
+            "metrics": {},
+            "recent_actual_vs_pred": []
+          },
+          "models": [],
+          "forecast": null
+        }
+      }
+    },
+    {
+      "index_code": "KOSDAQ100",
+      "display_name": "KOSDAQ 100",
+      "korean_name": "코스닥 100",
+      "pykrx_code": null,
+      "status": "not_ready",
+      "reason": "KOSDAQ100_history_missing",
+      "asof_date": null,
+      "last_close": null,
+      "horizons": {
+        "1D": {
+          "title": "내일 (다음 1 거래일)",
+          "status": "not_ready",
+          "reason": "KOSDAQ100_history_missing",
+          "rows": null,
+          "eval_start": null,
+          "champion": {
+            "model_type": null,
+            "group": null,
+            "model_version": null,
+            "gate_status": "not_ready",
+            "gate_reason": "KOSDAQ100_history_missing",
+            "metrics": {},
+            "recent_actual_vs_pred": []
+          },
+          "models": [],
+          "forecast": null
+        },
+        "5D": {
+          "title": "다음주 (다음 5 거래일)",
+          "status": "not_ready",
+          "reason": "KOSDAQ100_history_missing",
+          "rows": null,
+          "eval_start": null,
+          "champion": {
+            "model_type": null,
+            "group": null,
+            "model_version": null,
+            "gate_status": "not_ready",
+            "gate_reason": "KOSDAQ100_history_missing",
+            "metrics": {},
+            "recent_actual_vs_pred": []
+          },
+          "models": [],
+          "forecast": null
+        }
+      }
+    }
+  ]
+}
