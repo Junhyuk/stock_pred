@@ -1,0 +1,13 @@
+# Offline release gate
+- [ ] Python minimum 3.10, no pip required for runtime
+- [ ] Fresh DB created and contains zero observations
+- [ ] No unverified web scrape, SEC contact User-Agent, KRX/DART API keys externalized
+- [ ] HTML parser only via explicit host+confirm rights+robots allow
+- [ ] Test malformed columns/dates/duplicate imports/rollback
+- [ ] SEC USD change Jan 2023, amendments exclusion, CUSIP mapping safeguard
+- [ ] PIT cutoff: late-imported data excluded from old reports
+- [ ] FINRA volume vs interest and CFTC macro vs single-stock distinctions present
+- [ ] All sources and parser limitations documented
+- [ ] Sample output reports evidence, counterevidence and missing inputs
+- [ ] No fabricated live trades, performance promises or auto-trade capability
+- [ ] LICENSE/TOS manually reviewed prior to production automation

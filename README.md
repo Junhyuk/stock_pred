@@ -1073,6 +1073,47 @@ streamlit run app_streamlit.py
 - `long_short_recommendations`, `long_short_backtest_results` DuckDB tables
 - `http://localhost:8000/dashboard`, `http://localhost:8000/backtest`
 
+## 한국·미국 지수와 국제 뉴스 연구
+
+Python 3.12의 `.venv-forecast` 환경에서 실제 수집 시각을 가진 미국 원본 CSV를 정규화한 뒤,
+한국·미국 리포트를 각각 생성합니다. 원본 필드는
+`symbol,session_date,close,source,source_url,fetched_at`이며 `fetched_at`은 실제 UTC 수집 시각입니다.
+
+```bash
+.venv-forecast/bin/python scripts/prepare_us_index_inputs.py \
+  --raw-csv data/raw/us_market_daily_raw.csv \
+  --output data/processed/us_market_observations_v2.csv
+.venv-forecast/bin/python scripts/run_reliable_index_forecast.py \
+  --sqlite data/processed/index_forecast.sqlite \
+  --config configs/reliable_index_forecast.yaml --output-dir docs/data
+.venv-forecast/bin/python scripts/run_us_index_forecast.py \
+  --us-observations data/processed/us_market_observations_v2.csv \
+  --config configs/reliable_index_forecast.yaml --output-dir docs/data/us
+```
+
+통합 화면은 `docs/reliable-index-forecast.html`입니다. 미국 진행 중 봉과 휴일/GTH 자료를
+완료된 RTH 종가로 쓰지 않습니다. DST·거래일·조기폐장을 적용하고 VIX의 일반 종료 시각은
+16:15 ET로 구분합니다. 공식 VIX 조기폐장 종료 시각이 검증되지 않은 경우 보수적인 16:15 ET
+상한을 가정으로 명시합니다. 종가 후 15분은 검증된 공개 시각이 아닌 보수적 가용성 가정입니다.
+과거 공개·수정 이력이 없는 자료는 회고 재구성으로 표시합니다.
+
+한국 `price_us` 후보는 SPX/Nasdaq/SOX 1일 수익률, VIX 수준·수익률, SOX−Nasdaq 차이를
+사전 고정해 가격 모델과 같은 학습/OOS 날짜로 비교합니다. 선택되지 않은 미국 입력 선형
+후보도 별도 연구 진단으로 표시합니다. 미국 S&P 500/Nasdaq 예측은 각각 자체 가격·보정 이력과
+미국 거래 세션을 사용합니다. 미국 월요일 종가는 한국 시각 화요일 새벽이므로 한국 월요일
+예측의 관측 입력이 아닙니다. 각 목표 종가의 UTC 시각을 함께 확인해야 합니다.
+
+현재 사건 근거는 `data/processed/verified_us_iran_context.json`, 국제 피드 메타데이터는
+`data/processed/international_news_snapshot.json`에서 읽습니다. 기사 공개 확인과 사건 자체의
+검증을 구분하며 현재 기사를 과거에 소급하지 않습니다. 출처·신선도 attention과 수익률 혼합
+가중치 α는 별개입니다. 충분한 과거 PIT/OOS 증거가 없으면 α=0으로 원래 수치를 유지합니다.
+임의 확률 보정이나 미확인 사건의 인과 효과를 만들지 않습니다.
+
+원본 대형 JSON은 `unpublished` 초안입니다. 같은 run ID·체크섬의 publication manifest가 있어야
+공개된 연구 결과로 읽습니다. 한국과 미국은 독립된 공개 기한·receipt를 사용합니다.
+검증 실패는 `rejected`/`not_ready`로 유지하고 production weight는 0입니다.
+상세 계약은 [US market/event protocol](docs/US_MARKET_EVENT_PROTOCOL.md)을 따릅니다.
+
 ## Important Disclaimer
 
 본 PoC의 출력은 투자 참고용 정보이며 특정 금융투자상품의 매수 또는 매도 권유가 아닙니다. 목표가와 애널리스트 의견은 보정된 참고 정보이며 수익을 보장하지 않습니다. 과거 성과는 미래 수익을 보장하지 않으며 투자 판단과 책임은 이용자 본인에게 있습니다.

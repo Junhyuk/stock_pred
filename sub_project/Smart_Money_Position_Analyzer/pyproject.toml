@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+[project]
+name = "smartmoney-position-research"
+version = "0.1.0"
+description = "KR/US public-money-flow and institution holding analysis starter"
+requires-python = ">=3.10"
+dependencies = []
+[project.scripts]
+smartmoney = "smartmoney.cli:main"
+[tool.setuptools.package-data]
+smartmoney = ["schema.sql"]

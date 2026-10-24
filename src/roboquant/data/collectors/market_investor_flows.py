@@ -26,6 +26,11 @@ INVESTOR_LABELS = (
     "기관합계",
 )
 TOP_PURCHASE_INVESTORS = ("외국인", "기관합계", "개인")
+FOREIGN_INVESTOR_ALIASES = {
+    "외국인": "외국인",
+    "외국인합계": "외국인",
+}
+KOSPI200_FUTURES_INSTRUMENT = "KOSPI200_FUTURES"
 FINAL_STAGE = "final"
 PRELIMINARY_STAGE = "preliminary"
 FLOW_STAGES = (FINAL_STAGE, PRELIMINARY_STAGE)
@@ -217,6 +222,119 @@ def normalize_market_investor_flows(
     return output.sort_values("investor").reset_index(drop=True)
 
 
+def combine_trading_value_by_date_panels(
+    buy: pd.DataFrame,
+    sell: pd.DataFrame,
+    net: pd.DataFrame | None = None,
+    *,
+    market: str,
+    source: str = "pykrx",
+    run_id: str | None = None,
+    is_final: bool = True,
+    availability_policy: str = "after_close_18_20_kst",
+    collected_at: datetime | None = None,
+) -> pd.DataFrame:
+    """Convert pykrx by-date buy/sell/net panels into long investor-flow rows."""
+
+    buy_long = _melt_trading_value_panel(buy, "buy_value")
+    sell_long = _melt_trading_value_panel(sell, "sell_value")
+    if buy_long.empty or sell_long.empty:
+        raise IncompleteInvestorFlowError(f"{market}: pykrx by-date buy/sell panels are empty")
+    merged = buy_long.merge(sell_long, on=["trade_date", "investor"], how="inner")
+    if net is None or (hasattr(net, "empty") and net.empty):
+        merged["net_value"] = merged["buy_value"] - merged["sell_value"]
+    else:
+        net_long = _melt_trading_value_panel(net, "net_value")
+        merged = merged.merge(net_long, on=["trade_date", "investor"], how="left")
+        merged["net_value"] = merged["net_value"].where(
+            merged["net_value"].notna(),
+            merged["buy_value"] - merged["sell_value"],
+        )
+    if merged.empty:
+        raise IncompleteInvestorFlowError(f"{market}: no overlapping by-date investor rows")
+    stamp = collected_at or _utcnow()
+    current_run_id = run_id or new_run_id()
+    merged["market"] = str(market).upper()
+    merged["source"] = source
+    merged["run_id"] = current_run_id
+    merged["is_final"] = bool(is_final)
+    merged["availability_policy"] = availability_policy
+    merged["collected_at"] = stamp
+    return merged[
+        [
+            "trade_date",
+            "market",
+            "investor",
+            "buy_value",
+            "sell_value",
+            "net_value",
+            "source",
+            "run_id",
+            "is_final",
+            "availability_policy",
+            "collected_at",
+        ]
+    ].sort_values(["trade_date", "investor"]).reset_index(drop=True)
+
+
+def fetch_market_trading_value_by_date_panels(
+    start_date: str | date,
+    end_date: str | date,
+    *,
+    market: str = "KOSPI",
+    stock_api: Any | None = None,
+    run_id: str | None = None,
+    now: datetime | None = None,
+) -> pd.DataFrame:
+    """Fetch leakage-safe historical cash investor buy/sell/net via existing pykrx APIs."""
+
+    start = _to_date(start_date)
+    end = _to_date(end_date)
+    if end < start:
+        raise ValueError("end_date must be on or after start_date")
+    _validate_finality(end, FINAL_STAGE, now=now)
+    client = stock_api or _load_pykrx_stock()
+    start_text = start.strftime("%Y%m%d")
+    end_text = end.strftime("%Y%m%d")
+    kwargs = {"etf": False, "etn": False, "elw": False, "detail": True}
+    buy = client.get_market_trading_value_by_date(start_text, end_text, market, on="매수", **kwargs)
+    sell = client.get_market_trading_value_by_date(start_text, end_text, market, on="매도", **kwargs)
+    net = client.get_market_trading_value_by_date(start_text, end_text, market, on="순매수", **kwargs)
+    return combine_trading_value_by_date_panels(
+        buy,
+        sell,
+        net,
+        market=market,
+        source="pykrx",
+        run_id=run_id,
+        is_final=True,
+        availability_policy="after_close_18_20_kst",
+        collected_at=_utcnow(),
+    )
+
+
+def kospi_futures_investor_source_status() -> dict[str, Any]:
+    """KOSPI200 futures investor buy/sell is not available from the current official adapters."""
+
+    return {
+        "status": "blocked_missing_official_source",
+        "instrument": KOSPI200_FUTURES_INSTRUMENT,
+        "source": None,
+        "reason": (
+            "pykrx exposes KOSPI200 futures OHLCV only. Investor buy/sell requires a mapped "
+            "KRX Open API or KIS derivatives endpoint. No unofficial crawler is added."
+        ),
+        "production_weight": 0.0,
+    }
+
+
+def panel_has_complete_investors(flows: pd.DataFrame) -> bool:
+    if flows is None or flows.empty or "investor" not in flows.columns:
+        return False
+    grouped = flows.groupby(["trade_date", "market"])["investor"].nunique()
+    return bool(len(grouped) > 0 and (grouped == len(INVESTOR_LABELS)).all())
+
+
 def normalize_top_net_purchases(
     raw: pd.DataFrame,
     *,
@@ -354,6 +472,42 @@ def _find_column(frame: pd.DataFrame, candidates: tuple[str, ...]) -> str:
     return column
 
 
+def _melt_trading_value_panel(raw: pd.DataFrame, value_name: str) -> pd.DataFrame:
+    if raw is None or raw.empty:
+        return pd.DataFrame(columns=["trade_date", "investor", value_name])
+    frame = raw.copy()
+    if isinstance(frame.columns, pd.MultiIndex):
+        frame.columns = [str(column[-1] if isinstance(column, tuple) else column) for column in frame.columns]
+    if not any(str(column) in {"날짜", "date", "trade_date"} for column in frame.columns):
+        frame = frame.reset_index()
+    date_column = _find_column(frame, ("날짜", "date", "trade_date", "index"))
+    dates = pd.to_datetime(frame[date_column], errors="coerce").dt.date
+    parts: list[pd.DataFrame] = []
+    seen: set[str] = set()
+    ordered_columns = sorted(
+        (column for column in frame.columns if column != date_column),
+        key=lambda name: 0 if str(name).strip() == "외국인" else 1,
+    )
+    for column in ordered_columns:
+        investor = FOREIGN_INVESTOR_ALIASES.get(str(column).strip(), _normalize_investor_label(column))
+        if investor not in INVESTOR_LABELS or investor in seen:
+            continue
+        seen.add(investor)
+        parts.append(
+            pd.DataFrame(
+                {
+                    "trade_date": dates,
+                    "investor": investor,
+                    value_name: _to_number(frame[column]),
+                }
+            )
+        )
+    if not parts:
+        return pd.DataFrame(columns=["trade_date", "investor", value_name])
+    output = pd.concat(parts, ignore_index=True)
+    return output.dropna(subset=["trade_date", value_name])
+
+
 def _find_optional_column(frame: pd.DataFrame, candidates: tuple[str, ...]) -> str | None:
     lookup = {str(column).strip().lower(): str(column) for column in frame.columns}
     for candidate in candidates:
@@ -371,6 +525,7 @@ def _normalize_investor_label(value: Any) -> str:
         "기타외국인": "기타외국인",
         "기관합계": "기관합계",
         "외국인": "외국인",
+        "외국인합계": "외국인",
         "금융투자": "금융투자",
         "보험": "보험",
         "투신": "투신",
