@@ -185,6 +185,33 @@ def _resolved_run(payload: dict, manifest: dict) -> dict:
     return result
 
 
+_PAGES_ROW_KEYS = frozenset({"candidate_observations", "observations", "calibration_observations"})
+PAGES_OMITTED_NOTE = (
+    "candidate_observations, observations, and calibration_observations are omitted from this Pages file; "
+    "the returned report and archive JSON keep the full rows"
+)
+
+
+def _without_pages_rows(value: Any) -> Any:
+    """Copy a document tree without the embedded out-of-fold row payloads."""
+    if isinstance(value, dict):
+        return {key: _without_pages_rows(item) for key, item in value.items() if key not in _PAGES_ROW_KEYS}
+    if isinstance(value, list):
+        return [_without_pages_rows(item) for item in value]
+    return value
+
+
+def pages_public_document(document: dict) -> dict:
+    """Pages copy used by both forecast pipelines.
+
+    The in-memory report and ``archive/{run_id}.json`` stay complete. Checksums
+    hash the bytes actually written, including this shorter Pages body.
+    """
+    compact = _without_pages_rows(document)
+    compact["pages_omitted"] = PAGES_OMITTED_NOTE
+    return compact
+
+
 def resolve_reliable_publication(output_dir: str | Path, *, run_id: str | None = None) -> dict:
     """Resolve only a checksummed payload with an authoritative commit manifest."""
     output = Path(output_dir)
@@ -525,10 +552,12 @@ def run_reliable_pipeline(sqlite_path: str | Path, output_dir: str | Path, *, co
                                       "model_hash": record["model_hash"]})
         record["forecast"]["forecast_id"] = record["forecast_id"]
     run["run_id"] = _hash({key: value for key, value in run.items() if key != "run_id"})
-    documents = {f"archive/{run['run_id']}.json": run, "reliable_index_forecast.json": run,
-                 "reliable_validation_report.json": {"run_id": run["run_id"], "status": "unpublished", "markets": [
+    validation = {"run_id": run["run_id"], "status": "unpublished", "markets": [
         {"market": item["market"], "forecast_id": item["forecast_id"], "evaluation": item["evaluation"],
-         "evidence_cards": item["evidence_cards"]} for item in run["markets"]]},
+         "evidence_cards": item["evidence_cards"]} for item in run["markets"]]}
+    documents = {f"archive/{run['run_id']}.json": run,
+                 "reliable_index_forecast.json": pages_public_document(run),
+                 "reliable_validation_report.json": pages_public_document(validation),
                  "reliable_model_card.json": {"run_id": run["run_id"], "status": "unpublished", "production_weight": 0.0,
         "settings": asdict(settings), "restrictions": run["restrictions"], "interval_note": run["interval_note"],
         "markets": [{"market": item["market"], "forecast_id": item["forecast_id"],

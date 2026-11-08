@@ -1,4 +1,5 @@
 """Integration contracts for actual-time, fail-closed research publication."""
+import hashlib
 import importlib.util
 import json
 import sqlite3
@@ -259,3 +260,44 @@ def test_current_research_archive_is_immutable_and_missing_groups_are_explicit(t
     assert stored["markets"][0]["forecast"]["issued_at"] is None
     assert mod.resolve_reliable_publication(tmp_path / "report", run_id=first["run_id"])["markets"][0]["forecast"] == first["markets"][0]["forecast"]
     assert ReliableSettings().test_days == 252
+
+
+def _pages_rows_absent(value):
+    if isinstance(value, dict):
+        assert {"candidate_observations", "observations", "calibration_observations"}.isdisjoint(value)
+        for item in value.values():
+            _pages_rows_absent(item)
+    elif isinstance(value, list):
+        for item in value:
+            _pages_rows_absent(item)
+
+
+def test_pages_file_omits_oof_rows_while_archive_keeps_them(tmp_path):
+    mod = pipeline()
+    path, sessions = database(tmp_path)
+    output = tmp_path / "pages"
+    report = mod.run_reliable_pipeline(path, output, config=config(), sessions=sessions,
+                now=datetime(2026, 10, 23, 14, tzinfo=UTC))
+    assert report["status"] == "research_only"
+    assert report["production_weight"] == 0
+    assert report["markets"][0]["evaluation"]["candidate_observations"]
+    assert report["markets"][0]["evaluation"]["calibration_observations"]
+    assert "pages_omitted" not in report
+    written = json.loads((output / "reliable_index_forecast.json").read_text())
+    validation = json.loads((output / "reliable_validation_report.json").read_text())
+    archive = json.loads((output / "archive" / f"{report['run_id']}.json").read_text())
+    _pages_rows_absent(written)
+    _pages_rows_absent(validation)
+    assert "candidate_observations" in written["pages_omitted"]
+    assert archive["markets"][0]["evaluation"]["candidate_observations"]
+    assert archive["markets"][0]["evaluation"]["calibration_observations"]
+    assert "pages_omitted" not in archive
+    assert mod.resolve_reliable_publication(output)["status"] == "research_only"
+    manifest = json.loads((output / "reliable_publication.json").read_text())
+    for name in ("reliable_index_forecast.json", "reliable_validation_report.json"):
+        digest = hashlib.sha256((output / name).read_bytes()).hexdigest()
+        assert manifest["payload_checksums"][name] == digest
+    archive_name = f"archive/{report['run_id']}.json"
+    assert manifest["payload_checksums"][archive_name] == hashlib.sha256(
+        (output / "archive" / f"{report['run_id']}.json").read_bytes()).hexdigest()
+    assert manifest["payload_checksums"][archive_name] != manifest["payload_checksums"]["reliable_index_forecast.json"]

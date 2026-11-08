@@ -1,8 +1,10 @@
 """Four-market session clocks, paired US inputs and non-numeric event context."""
 from __future__ import annotations
 
+import hashlib
 import importlib
 import importlib.util
+import json
 import sqlite3
 from datetime import UTC, datetime
 
@@ -11,7 +13,10 @@ import pandas as pd
 
 from roboquant.index_forecast.dataset import PRICE_FEATURES
 from roboquant.index_forecast.reliable import ReliableSettings, evaluate_reliable_forecasts
-from roboquant.index_forecast.reliable_pipeline import run_reliable_pipeline
+from roboquant.index_forecast.reliable_pipeline import (
+    resolve_reliable_publication,
+    run_reliable_pipeline,
+)
 from roboquant.index_forecast.us_market_inputs import normalize_us_observations, us_close_schedule
 
 
@@ -182,3 +187,33 @@ def test_verified_report_is_context_not_verified_incident_or_numeric_news_featur
     assert dated["event_count"] == 1
     assert dated["observed"][0]["published_at"] is None
     assert dated["observed"][0]["availability_basis"] == "actual_receipt_publication_clock_unknown"
+
+
+def test_us_pages_file_omits_oof_rows_while_archive_keeps_them(tmp_path):
+    module = importlib.import_module("roboquant.index_forecast.us_market_pipeline")
+    _, _, observations = fixture(tmp_path)
+    from dataclasses import asdict
+    output = tmp_path / "us-pages"
+    result = module.run_us_reliable_pipeline(observations, output, config={"settings": asdict(settings())},
+                now=datetime(2026, 10, 23, 23, 30, tzinfo=UTC))
+    assert result["status"] == "research_only"
+    assert result["markets"][0]["evaluation"]["candidate_observations"]
+    written = json.loads((output / "reliable_index_forecast.json").read_text())
+    archive = json.loads((output / "archive" / f"{result['run_id']}.json").read_text())
+
+    def absent(value):
+        if isinstance(value, dict):
+            assert {"candidate_observations", "observations", "calibration_observations"}.isdisjoint(value)
+            for item in value.values():
+                absent(item)
+        elif isinstance(value, list):
+            for item in value:
+                absent(item)
+
+    absent(written)
+    absent(json.loads((output / "reliable_validation_report.json").read_text()))
+    assert archive["markets"][0]["evaluation"]["candidate_observations"]
+    assert resolve_reliable_publication(output)["status"] == "research_only"
+    manifest = json.loads((output / "reliable_publication.json").read_text())
+    digest = hashlib.sha256((output / "reliable_index_forecast.json").read_bytes()).hexdigest()
+    assert manifest["payload_checksums"]["reliable_index_forecast.json"] == digest

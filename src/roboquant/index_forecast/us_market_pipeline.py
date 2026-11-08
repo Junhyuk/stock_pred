@@ -24,6 +24,7 @@ from roboquant.index_forecast.reliable_pipeline import (
     _hash,
     _load_news_inputs,
     _publish_staged_run,
+    pages_public_document,
 )
 from roboquant.index_forecast.us_market_inputs import (
     HISTORICAL_MODE,
@@ -194,9 +195,12 @@ def run_us_reliable_pipeline(observations: pd.DataFrame | str | Path, output_dir
             "position_subproject": {"status": "not_used"}})
     run["prepared_at"] = _utc(datetime.now(UTC)).isoformat() if now is None else None
     run["run_id"] = _hash(run)
-    documents = {f"archive/{run['run_id']}.json": run, "reliable_index_forecast.json": run,
-                 "reliable_validation_report.json": {"run_id": run["run_id"], "status": "unpublished", "markets": [
-                     {"market": item["market"], "forecast_id": item["forecast_id"], "evaluation": item["evaluation"]} for item in run["markets"]]},
+    validation = {"run_id": run["run_id"], "status": "unpublished", "markets": [
+        {"market": item["market"], "forecast_id": item["forecast_id"], "evaluation": item["evaluation"]}
+        for item in run["markets"]]}
+    documents = {f"archive/{run['run_id']}.json": run,
+                 "reliable_index_forecast.json": pages_public_document(run),
+                 "reliable_validation_report.json": pages_public_document(validation),
                  "reliable_model_card.json": {"run_id": run["run_id"], "status": "unpublished", "settings": asdict(settings),
                                              "candidate_matrix": {"US_SPX": ["price"], "US_NASDAQ": ["price"]},
                                              "markets": [{"market": m["market"], "forecast_id": m["forecast_id"], "model_hash": m["model_hash"],

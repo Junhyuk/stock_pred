@@ -1,0 +1,182 @@
+{
+  "schema_version": "verified_event_context_v1",
+  "retrieved_at": "2026-11-08T13:41:00+09:00",
+  "prior_context_retrieved_at": "2026-11-08T02:05:50Z",
+  "scope": "Current contextual reporting only. Not a historical feature archive. Does not authorize a manual probability change. November 8 X posts are stored from the user receipt only; X was not scraped.",
+  "bounded_search_result": "Full article bodies were not retrieved: AP returned HTTP errors and the canonical Reuters URL returned 401. Facts below are limited to publisher headlines, timestamps, and descriptions visible in the search results. That does not establish every attributed explosion or a market-impact size.",
+  "events": [
+    {
+      "event_id": "reuters_qeshm_defensive_strikes_20261103",
+      "title": "US carries out defensive strikes on Iran's Qeshm Island, officials say",
+      "source": "Reuters",
+      "source_url": "https://www.reuters.com/world/middle-east/us-struck-irans-qeshm-island-wall-street-journal-reports-2026-11-03/",
+      "published_at": "2026-11-03T01:05:00Z",
+      "published_date": "2026-11-03",
+      "first_seen_at": "2026-11-08T02:05:50Z",
+      "topic": "us_iran",
+      "verification_status": "headline timestamp seen in search result; article body not retrieved (HTTP 401)",
+      "claims": [
+        {
+          "text": "A US official said the United States carried out strikes on Iran's Qeshm Island and described them as limited, not a return to major combat.",
+          "attribution": "Reuters, citing an unnamed US official",
+          "verification_status": "attributed_anonymous"
+        },
+        {
+          "text": "Another official described the strikes as defensive measures against Iranian surface-to-air missiles used against US assets.",
+          "attribution": "Reuters, citing a second unnamed official",
+          "verification_status": "attributed_anonymous"
+        },
+        {
+          "text": "CENTCOM had not responded, and Iranian state media IRNA reported several explosions on Qeshm.",
+          "attribution": "Reuters account of CENTCOM non-response and IRNA",
+          "verification_status": "reported_unverified"
+        }
+      ],
+      "channels": [
+        "energy_risk",
+        "shipping_risk",
+        "us_equity_context",
+        "korean_equity_context"
+      ],
+      "scenario_conditions": [
+        "If a Hormuz disruption is independently verified, oil, shipping, and risk-premium channels can matter for US equities and Korea. No magnitude is estimated from this headline.",
+        "An anonymous official's description of a limited defensive strike is not evidence of a resumed full-scale war."
+      ]
+    },
+    {
+      "event_id": "ap_limited_qeshm_strikes_trump_minor_20261107",
+      "title": "US military carries out new targeted strikes on Iran as Tehran's leaders weigh mediator's proposals",
+      "source": "Associated Press",
+      "source_url": "https://apnews.com/article/iran-war-nuclear-program-negotiations-trump-53ed5d271b9aef6f880aebc133ea6a55",
+      "published_at": null,
+      "published_date": "2026-11-07",
+      "first_seen_at": "2026-11-08T02:05:50Z",
+      "topic": "us_iran",
+      "verification_status": "AP headline and lead seen via search; page fetch failed, so the exact clock is unknown",
+      "claims": [
+        {
+          "text": "President Trump said the US military carried out new limited strikes on an Iranian air-defense system and described the action as minor.",
+          "attribution": "Associated Press reporting of Trump's remarks to reporters",
+          "verification_status": "reported_statement"
+        },
+        {
+          "text": "Trump said an anti-aircraft device was knocked out in about 15 minutes, or maybe five.",
+          "attribution": "President Trump, as quoted in the AP lead",
+          "verification_status": "attributed_statement; duration not independently verified"
+        },
+        {
+          "text": "Iranian state media reported two explosions in the Suza area of Qeshm Island, in the Strait of Hormuz.",
+          "attribution": "Iranian state media, as reported by AP",
+          "verification_status": "attributed_unverified"
+        }
+      ],
+      "channels": [
+        "energy_risk",
+        "shipping_risk",
+        "volatility_risk",
+        "us_equity_context",
+        "korean_equity_context"
+      ],
+      "scenario_conditions": [
+        "A reported strike inside the Strait of Hormuz is a conditional energy and shipping risk for the next session. It does not by itself set an index return.",
+        "Trump's 'minor' description and ongoing mediator talks are reported de-escalation language, not confirmation that the risk has ended."
+      ]
+    },
+    {
+      "event_id": "financialjuice_houthi_riyadh_claim_20261108",
+      "title": "Houthis claim Khalid international airport, Aramco oil storage tanks and financial center in Riyadh",
+      "source": "FinancialJuice",
+      "source_url": "https://x.com/financialjuice/status/2119424982388490444",
+      "published_at": "2026-11-08T13:41:00+09:00",
+      "published_date": "2026-11-08",
+      "first_seen_at": "2026-11-08T13:41:00+09:00",
+      "publisher_timestamp_raw": "22:41 KST",
+      "claim_status": "reported_unverified",
+      "verification_status": "reported_unverified",
+      "claims": [
+        {
+          "text": "Houthis claim Khalid international airport, Aramco oil storage tanks and financial center in Riyadh",
+          "attribution": "FinancialJuice post, user-supplied receipt",
+          "claim_status": "reported_unverified",
+          "verification_status": "reported_unverified"
+        }
+      ],
+      "channels": [
+        "shipping_energy",
+        "escalation"
+      ],
+      "scenario_conditions": [
+        "A reported claim is not an independently verified strike. No numeric index impact is assigned."
+      ]
+    },
+    {
+      "event_id": "financialjuice_houthi_abqaiq_claim_20261108",
+      "title": "Houthis claim Aramco targeted in Abqaiq",
+      "source": "FinancialJuice",
+      "source_url": "https://x.com/financialjuice/status/2119425058557120790",
+      "published_at": "2026-11-08T13:41:00+09:00",
+      "published_date": "2026-11-08",
+      "first_seen_at": "2026-11-08T13:41:00+09:00",
+      "publisher_timestamp_raw": "22:41 KST",
+      "claim_status": "reported_unverified",
+      "verification_status": "reported_unverified",
+      "claims": [
+        {
+          "text": "Houthis claim Aramco targeted in Abqaiq",
+          "attribution": "FinancialJuice post, user-supplied receipt",
+          "claim_status": "reported_unverified",
+          "verification_status": "reported_unverified"
+        }
+      ],
+      "channels": [
+        "shipping_energy",
+        "escalation"
+      ],
+      "scenario_conditions": [
+        "A reported claim is not an independently verified strike. No numeric index impact is assigned."
+      ]
+    }
+  ],
+  "excluded_receipts": [
+    {
+      "event_id": "firstsquawk_egypt_train_20261108",
+      "reason": "not_index_relevant",
+      "source": "FirstSquawk",
+      "source_url": "https://x.com/FirstSquawk/status/2119416299809812677",
+      "published_at": "2026-11-08T22:06:00+09:00",
+      "title": "Egypt health ministry: 64 injured in train collision at Al-Ayyat",
+      "receipt": "user_supplied_post",
+      "note": "Stored from the user receipt only. X was not scraped. Not an index input."
+    },
+    {
+      "event_id": "firstsquawk_syria_condemnation_20261108",
+      "reason": "not_index_relevant",
+      "source": "FirstSquawk",
+      "source_url": "https://x.com/FirstSquawk/status/2119416435906912292",
+      "published_at": "2026-11-08T22:07:00+09:00",
+      "title": "Syria condemns Houthis targeting civilian sites in Saudi Arabia",
+      "receipt": "user_supplied_post",
+      "note": "Stored from the user receipt only. X was not scraped. Not an index input."
+    },
+    {
+      "event_id": "firstsquawk_iraq_pm_weapons_20261108",
+      "reason": "not_index_relevant",
+      "source": "FirstSquawk",
+      "source_url": "https://x.com/FirstSquawk/status/2119416473370480898",
+      "published_at": "2026-11-08T22:07:00+09:00",
+      "title": "Iraqi PM: weapons outside the state",
+      "receipt": "user_supplied_post",
+      "note": "Stored from the user receipt only. X was not scraped. Not an index input."
+    },
+    {
+      "event_id": "firstsquawk_iraq_pm_profiteers_20261108",
+      "reason": "not_index_relevant",
+      "source": "FirstSquawk",
+      "source_url": "https://x.com/FirstSquawk/status/2119416512549359978",
+      "published_at": "2026-11-08T22:07:00+09:00",
+      "title": "Iraqi PM: war profiteers",
+      "receipt": "user_supplied_post",
+      "note": "Stored from the user receipt only. X was not scraped. Not an index input."
+    }
+  ]
+}
