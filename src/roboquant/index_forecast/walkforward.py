@@ -1,4 +1,9 @@
-"""Expanding walk-forward comparison for 1D/5D index return and 80% range."""
+"""Expanding walk-forward comparison for 1D and 2D index return and 80% range.
+
+A horizon longer than one session is the close that many sessions ahead, not a
+chain of one-day forecasts. Training drops that many sessions (embargo). The
+champion is chosen on non-overlapping sessions so one move is not counted twice.
+"""
 
 from __future__ import annotations
 
@@ -78,6 +83,7 @@ def run_index_forecast_walkforward(
             frame,
             index_code=index_code,
             horizon=horizon,
+            horizon_days=horizon_days,
             group_name=group_name,
             feature_columns=columns,
             initial_train_days=initial_train_days,
@@ -123,6 +129,7 @@ def _run_group(
     *,
     index_code: str,
     horizon: str,
+    horizon_days: int,
     group_name: str,
     feature_columns: list[str],
     initial_train_days: int,
@@ -157,7 +164,7 @@ def _run_group(
             calibration_window=calibration_window,
             eval_start=eval_start,
         )
-        metrics = _score(predictions)
+        metrics = _score(_decision_rows(predictions, horizon_days))
         model_version = f"index-{index_code.lower()}-{model_type}-{group_name}-{horizon.lower()}-v1"
         if persist and not predictions.empty:
             _persist_run(
@@ -404,6 +411,15 @@ def _make_estimator(model_type: str):
 def _matrix(frame: pd.DataFrame, feature_columns: list[str]) -> np.ndarray:
     matrix = frame.reindex(columns=feature_columns)
     return matrix.apply(pd.to_numeric, errors="coerce").to_numpy(dtype=float)
+
+
+def _decision_rows(predictions: pd.DataFrame, horizon_days: int) -> pd.DataFrame:
+    """Keep every horizon-th session so overlapping forward returns are not double-counted."""
+    step = max(1, int(horizon_days))
+    if predictions.empty or step == 1:
+        return predictions
+    ordered = predictions.sort_values("asof_date")
+    return ordered.iloc[::step].reset_index(drop=True)
 
 
 def _score(predictions: pd.DataFrame) -> dict[str, Any]:
@@ -704,7 +720,7 @@ def forecast_latest(
         "horizon": horizon,
         "horizon_days": int(horizon_days),
         "asof_date": str(asof),
-        "target": "다음 1 거래일" if horizon_days == 1 else "다음 5 거래일",
+        "target": "다음 1 거래일" if int(horizon_days) == 1 else f"다음 {int(horizon_days)} 거래일",
         "last_close": last_close,
         "model_type": model_type,
         "group": group_name,

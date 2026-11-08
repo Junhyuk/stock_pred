@@ -45,7 +45,7 @@ OFFICIAL_INDEXES: dict[str, OfficialIndex] = {
 }
 
 RESEARCH_INDEXES = ("KOSPI", "KOSDAQ", "KOSPI100", "KOSDAQ100")
-FORECAST_HORIZONS = (1, 5)
+FORECAST_HORIZONS = (1, 2)
 
 
 def get_official_index(index_code: str) -> OfficialIndex:
@@ -61,3 +61,12 @@ def flow_market_for(index_code: str) -> str:
 
 def horizon_label(horizon_days: int) -> str:
     return f"{int(horizon_days)}D"
+
+
+def horizon_title(horizon_days: int) -> str:
+    days = int(horizon_days)
+    if days == 1:
+        return "내일 (다음 1 거래일)"
+    if days == 2:
+        return "모레 (다음 2 거래일)"
+    return f"다음 {days} 거래일"

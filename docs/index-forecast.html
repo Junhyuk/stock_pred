@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>지수 1D/5D 연구 예측 리포트</title>
+  <title>지수 1D/2D 연구 예측 리포트</title>
   <link rel="stylesheet" href="assets/site.css" />
   <style>
     .forecast-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
@@ -31,6 +31,7 @@
     </header>
     <nav class="quick-nav" aria-label="리포트 섹션">
       <a href="index.html">일일 대시보드</a>
+      <a href="reliable-index-forecast.html">1D 확률·구간 보정 연구</a>
       <a href="#cards">4지수 카드</a>
       <a href="#leaderboard">3년 정확도</a>
       <a href="#compare">예측 vs 실현</a>
@@ -42,7 +43,7 @@
     <section class="layout" style="margin-top:14px">
       <article id="leaderboard" class="panel wide">
         <h2>3년 백테스트 우승 모델 (실제 등락 부호 vs 예측 부호)</h2>
-        <p class="tiny">방향 적중률이 1순위, MAE가 2순위입니다. 1D와 5D는 따로 고릅니다. 승자도 production Ridge를 대체하지 않습니다.</p>
+        <p class="tiny">방향 적중률이 1순위, MAE가 2순위입니다. 1D와 2D는 따로 고릅니다. 2거래일은 1일 예측을 두 번 잇지 않고, 2거래일 뒤 종가를 직접 맞춥니다. 학습에서 그 2거래일을 빼고, 우승은 겹치지 않는 2거래일마다 한 번씩 센 결과로 고릅니다. 승자도 production Ridge를 대체하지 않습니다.</p>
         <div id="leaderboardTable" class="table"></div>
       </article>
       <article id="compare" class="panel wide">

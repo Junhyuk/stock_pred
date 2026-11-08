@@ -1,19 +1,66 @@
-"""GitHub Pages payload for the four-index 1D/5D research report."""
+"""GitHub Pages payload for the four-index 1D/2D research report."""
 
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-from roboquant.index_forecast.indexes import RESEARCH_INDEXES, get_official_index
+import pandas as pd
+
+from roboquant.index_forecast.indexes import (
+    RESEARCH_INDEXES,
+    get_official_index,
+    horizon_label,
+    horizon_title,
+)
+from roboquant.index_forecast.reliable_inputs import KST, session_schedule
 from roboquant.index_forecast.sqlite_store import PRODUCTION_WEIGHT
 
 DISCLAIMER = (
     "연구·정보제공용입니다. 확률은 상승 확정이 아니고, 신호는 매수/매도 지시가 아닙니다. "
     "production_weight=0 이며 production Ridge(market-outlook-v2)는 바꾸지 않았습니다."
 )
+CURRENT_CLOSE_NOTE = "예측 기준일은 마지막 확정 종가일입니다. 오늘 장 마감 전에는 그 종가가 달력 날짜와 다를 수 있습니다."
+STALE_WAREHOUSE_NOTE = "예측 기준일은 마지막 확정 종가일입니다. 창고가 최근 거래일보다 늦으면 페이지의 내일은 달력상 내일이 아닙니다."
+METHOD_NOTE = (
+    "2거래일 예측은 1일 예측을 두 번 이은 값이 아닙니다. "
+    "2거래일 뒤 종가수익률을 직접 맞추고, 학습에서는 그 2거래일을 빼며, "
+    "우승 모델은 같은 수익이 겹치지 않게 2거래일마다 한 번씩 센 방향 적중과 MAE로 고릅니다."
+)
+
+
+def _latest_completed_session(generated_at: str) -> str | None:
+    """Last XKRX session whose close is at or before the report clock."""
+    stamp = pd.Timestamp(generated_at)
+    if pd.isna(stamp):
+        return None
+    stamp = (stamp.tz_localize("UTC") if stamp.tzinfo is None else stamp.tz_convert("UTC"))
+    local = stamp.tz_convert(KST)
+    try:
+        schedule, _source = session_schedule(local.date() - timedelta(days=21), local.date())
+    except (ValueError, OverflowError):
+        return None
+    closed = schedule.loc[pd.to_datetime(schedule["close_at"], utc=True) <= stamp]
+    if closed.empty:
+        return None
+    return str(closed["date"].iloc[-1])
+
+
+def _data_freshness(asof_dates: list[Any], generated_at: str) -> dict[str, Any]:
+    latest = max(str(item) for item in asof_dates) if asof_dates else None
+    expected = _latest_completed_session(generated_at) if latest else None
+    if latest and expected:
+        stale = latest < expected
+    else:
+        stale = bool(latest) and latest < generated_at[:10]
+    return {
+        "latest_asof": latest,
+        "expected_asof": expected,
+        "stale_vs_calendar": stale,
+        "note": STALE_WAREHOUSE_NOTE if stale else CURRENT_CLOSE_NOTE,
+    }
 
 
 def build_github_pages_payload(
@@ -28,18 +75,15 @@ def build_github_pages_payload(
     cards = [_index_card(slots, index_code) for index_code in RESEARCH_INDEXES]
     leaderboard = _leaderboard(slots)
     asof_dates = [card.get("asof_date") for card in cards if card.get("asof_date")]
-    stale = bool(asof_dates) and max(str(item) for item in asof_dates) < generated_at[:10]
+    freshness = _data_freshness(asof_dates, generated_at)
     return {
         "status": "ready" if any(card["status"] == "ready" for card in cards) else "not_ready",
         "generated_at": generated_at,
         "eval_years": eval_years,
         "production_weight": PRODUCTION_WEIGHT,
         "disclaimer": DISCLAIMER,
-        "data_freshness": {
-            "latest_asof": max(str(item) for item in asof_dates) if asof_dates else None,
-            "stale_vs_calendar": stale,
-            "note": "예측 기준일은 마지막 확정 종가일입니다. 창고가 늦으면 달력상 내일이 아닙니다.",
-        },
+        "method_note": METHOD_NOTE,
+        "data_freshness": freshness,
         "sequential7": _sequential7_checklist(cards, leaderboard),
         "model_candidates": list(model_types or []),
         "ingest": ingest or {},
@@ -60,26 +104,34 @@ def write_github_pages_report(output_dir: str | Path, payload: dict[str, Any]) -
 
 def _index_card(slots: dict[str, Any], index_code: str) -> dict[str, Any]:
     spec = get_official_index(index_code)
-    one = slots.get(f"{index_code}:1D") or {}
-    five = slots.get(f"{index_code}:5D") or {}
-    ready = bool(one.get("rows") or five.get("rows"))
-    live_1d = one.get("live_forecast") or {}
-    live_5d = five.get("live_forecast") or {}
-    asof = live_1d.get("asof_date") or live_5d.get("asof_date")
+    labels = _horizon_labels(slots, index_code)
+    reports = [slots.get(f"{index_code}:{label}") or {} for label in labels]
+    ready = any(item.get("rows") for item in reports)
+    lives = [item.get("live_forecast") or {} for item in reports]
+    asof = next((item.get("asof_date") for item in lives if item.get("asof_date")), None)
+    last_close = next((item.get("last_close") for item in lives if item.get("last_close") is not None), None)
+    first = reports[0] if reports else {}
     return {
         "index_code": index_code,
         "display_name": spec.display_name,
         "korean_name": spec.korean_name,
         "pykrx_code": spec.pykrx_code,
         "status": "ready" if ready else "not_ready",
-        "reason": one.get("reason") if not ready else None,
+        "reason": first.get("reason") if not ready else None,
         "asof_date": asof,
-        "last_close": live_1d.get("last_close") or live_5d.get("last_close"),
+        "last_close": last_close,
         "horizons": {
-            "1D": _horizon_block(one, title="내일 (다음 1 거래일)"),
-            "5D": _horizon_block(five, title="다음주 (다음 5 거래일)"),
+            label: _horizon_block(report, title=horizon_title(int(label[:-1])))
+            for label, report in zip(labels, reports, strict=True)
         },
     }
+
+
+def _horizon_labels(slots: dict[str, Any], index_code: str) -> list[str]:
+    labels = [key.split(":", 1)[1] for key in slots if key.startswith(f"{index_code}:")]
+    if not labels:
+        labels = [horizon_label(days) for days in (1, 2)]
+    return sorted(set(labels), key=lambda label: int(label[:-1]) if label[:-1].isdigit() else 99)
 
 
 def _horizon_block(report: dict[str, Any], *, title: str) -> dict[str, Any]:
@@ -158,14 +210,14 @@ def _sequential7_checklist(cards: list[dict[str, Any]], leaderboard: list[dict[s
     missing = [card["index_code"] for card in cards if card["status"] != "ready"]
     has_forecast = any(
         (card.get("horizons") or {}).get("1D", {}).get("forecast")
-        or (card.get("horizons") or {}).get("5D", {}).get("forecast")
+        or any((block or {}).get("forecast") for block in (card.get("horizons") or {}).values())
         for card in cards
     )
     items = [
         {
             "id": "ux",
             "agent": "UX Designer",
-            "check": "1D/5D 분리, 예측 vs 실현, 확률≠확정, 데이터 기준일 표시",
+            "check": "1D/2D 분리, 예측 vs 실현, 확률≠확정, 데이터 기준일 표시",
             "pass": True,
         },
         {
@@ -177,7 +229,7 @@ def _sequential7_checklist(cards: list[dict[str, Any]], leaderboard: list[dict[s
         {
             "id": "ml",
             "agent": "ML Expert",
-            "check": "naive/previous_direction 대비 후보 비교, 1D와 5D 모델 분리",
+            "check": "naive/previous_direction 대비 후보 비교, 1D와 2D 모델 분리",
             "pass": bool(leaderboard),
         },
         {
@@ -189,13 +241,13 @@ def _sequential7_checklist(cards: list[dict[str, Any]], leaderboard: list[dict[s
         {
             "id": "terms",
             "agent": "Stock Terms",
-            "check": "다음 1/5 거래일, 방향 적중, 80% 잔차 범위 용어 고정",
+            "check": "다음 1/2 거래일, 방향 적중, 80% 잔차 범위 용어 고정",
             "pass": True,
         },
         {
             "id": "forecast",
             "agent": "Market Forecast Expert",
-            "check": "우승 모델을 내일(1D)·다음주(5D) 연구 예측에 적용",
+            "check": "우승 모델을 내일(1D)·모레(2D) 연구 예측에 적용",
             "pass": has_forecast,
         },
         {

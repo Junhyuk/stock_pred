@@ -16,14 +16,14 @@ function signalLabel(signal) {
 }
 
 function renderStatus(payload) {
-  const status = document.getElementById("runStatus");
-  status.textContent = `${payload.status || "unknown"} · ${payload.generated_at || ""}`;
-  const freshness = document.getElementById("freshness");
   const info = payload.data_freshness || {};
+  const status = document.getElementById("runStatus");
+  status.textContent = `종가 ${info.latest_asof || "없음"} · ${payload.status || "unknown"} · 파일 작성 ${payload.generated_at || ""}`;
+  const freshness = document.getElementById("freshness");
   const stale = info.stale_vs_calendar
-    ? `마지막 확정 종가 ${info.latest_asof || "없음"} 기준입니다. 달력상 오늘·내일과 다를 수 있습니다.`
-    : `기준 종가일 ${info.latest_asof || "없음"}.`;
-  freshness.textContent = `${stale} ${info.note || ""}`;
+    ? `마지막 확정 종가 ${info.latest_asof || "없음"} 기준입니다. 이 날짜는 가장 최근 거래일 종가보다 이릅니다.`
+    : `마지막 확정 종가 ${info.latest_asof || "없음"} 기준입니다. 가장 최근 거래일 종가와 같습니다.`;
+  freshness.textContent = `${stale} ${info.note || ""} ${payload.method_note || ""}`.trim();
   document.getElementById("disclaimer").textContent = payload.disclaimer || "";
 }
 
@@ -47,15 +47,13 @@ function metric(label, value) {
 function renderCards(payload) {
   const root = document.getElementById("cards");
   root.innerHTML = (payload.indexes || []).map((card) => {
-    const one = card.horizons?.["1D"] || {};
-    const five = card.horizons?.["5D"] || {};
+    const boxes = Object.values(card.horizons || {}).map((block) => horizonBox(block)).join("");
     return `
       <article class="panel">
         <h2>${card.korean_name} <span class="tiny">${card.display_name} · pykrx ${card.pykrx_code || "없음"}</span></h2>
         <p class="tiny">상태 ${card.status}${card.reason ? ` · ${card.reason}` : ""} · 종가 ${card.last_close ?? "—"} · 기준일 ${card.asof_date || "—"}</p>
         <div class="horizon-split">
-          ${horizonBox(one)}
-          ${horizonBox(five)}
+          ${boxes}
         </div>
       </article>`;
   }).join("");
@@ -69,6 +67,11 @@ function horizonBox(block) {
   }
   const pUp = forecast ? pct(forecast.p_up) : "—";
   const pDown = forecast ? pct(forecast.p_down) : "—";
+  const gate = champion.gate_status || block.status || "—";
+  const rejected = gate === "rejected" || block.status === "rejected";
+  const probability = forecast && forecast.p_up == null
+    ? "상승 확률은 추정하지 않습니다"
+    : `상승 확률 ${pUp} · 하락 확률 ${pDown}`;
   return `
     <div class="horizon-box">
       <h3>${block.title || ""}</h3>
@@ -77,8 +80,8 @@ function horizonBox(block) {
       <div class="inline-metric"><span>3년 MAE</span><strong>${num(champion.metrics?.mae, 5)}</strong></div>
       <div class="inline-metric"><span>예상 수익률</span><strong>${forecast ? pct(forecast.expected_return) : "—"}</strong></div>
       <div class="inline-metric"><span>80% 범위</span><strong>${forecast ? `${pct(forecast.range_low)} ~ ${pct(forecast.range_high)}` : "—"}</strong></div>
-      <p class="prob">상승 확률 ${pUp} · 하락 확률 ${pDown} · ${signalLabel(forecast?.signal)}</p>
-      <p class="tiny">게이트 ${champion.gate_status || "—"} · 연구 예측이며 수익을 보장하지 않습니다.</p>
+      <p class="prob">${probability} · ${signalLabel(forecast?.signal)}${rejected ? " · 검증 미통과" : ""}</p>
+      <p class="tiny">게이트 ${gate} · 연구 예측이며 수익을 보장하지 않습니다.</p>
     </div>`;
 }
 

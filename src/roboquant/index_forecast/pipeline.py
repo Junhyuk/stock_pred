@@ -1,4 +1,4 @@
-"""Sequential-7 research run: 3-year OOS, champion, live 1D/5D, GitHub Pages payload."""
+"""Sequential-7 research run: 3-year OOS, champion, live 1D/2D, GitHub Pages payload."""
 
 from __future__ import annotations
 
