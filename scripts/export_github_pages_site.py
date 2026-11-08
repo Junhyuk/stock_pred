@@ -32,6 +32,39 @@ from roboquant.market_us_linkage import get_market_us_linkage_shadow
 
 DEFAULT_OUTPUT = ROOT / "reports" / "github_pages_site"
 DISCLAIMER = "연구·정보제공용 대시보드입니다. 투자 판단과 책임은 사용자 본인에게 있으며 수익을 보장하지 않습니다."
+INDEX_FORECAST_PAGE_FILES = (
+    "index-forecast.html",
+    "reliable-index-forecast.html",
+    "assets/index-forecast.js",
+    "data/index_forecast.json",
+    "data/reliable_index_forecast.json",
+    "data/reliable_publication.json",
+    "data/reliable_model_card.json",
+    "data/us/reliable_index_forecast.json",
+    "data/us/reliable_publication.json",
+    "data/us/reliable_model_card.json",
+)
+
+
+def _preserve_index_forecast_pages(output: Path) -> dict[str, bytes]:
+    preserved: dict[str, bytes] = {}
+    sources = [output]
+    repo_docs = ROOT / "docs"
+    if repo_docs.resolve() != output.resolve():
+        sources.append(repo_docs)
+    for base in sources:
+        for rel in INDEX_FORECAST_PAGE_FILES:
+            path = base / rel
+            if rel not in preserved and path.exists():
+                preserved[rel] = path.read_bytes()
+    return preserved
+
+
+def _restore_index_forecast_pages(output: Path, preserved: dict[str, bytes]) -> None:
+    for rel, data in preserved.items():
+        dest = output / rel
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_bytes(data)
 
 
 def parse_args() -> argparse.Namespace:
@@ -70,6 +103,7 @@ def export_site(
     output = Path(output_dir)
     data_dir = output / "data"
     assets_dir = output / "assets"
+    preserved = _preserve_index_forecast_pages(output)
     if output.exists():
         shutil.rmtree(output)
     data_dir.mkdir(parents=True, exist_ok=True)
@@ -103,6 +137,7 @@ def export_site(
     (assets_dir / "site.css").write_text(_site_css(), encoding="utf-8")
     (assets_dir / "site.js").write_text(_site_js(), encoding="utf-8")
     (output / ".nojekyll").write_text("", encoding="utf-8")
+    _restore_index_forecast_pages(output, preserved)
     return {
         "status": "exported",
         "output": str(output),
@@ -734,6 +769,8 @@ def _index_html(version: str) -> str:
       <div id="runStatus" class="status">loading</div>
     </header>
     <nav class="quick-nav" aria-label="대시보드 섹션 이동">
+      <a href="reliable-index-forecast.html">다음 거래일 예측</a>
+      <a href="index-forecast.html">지수 1D/5D 리포트</a>
       <a href="#top20-section">Top20</a>
       <a href="#top50-section">Top50</a>
       <a href="#long-short-section">롱·숏</a>
