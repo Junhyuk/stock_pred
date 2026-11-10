@@ -242,10 +242,6 @@ def insert_immutable(
     return len(records)
 
 
-def read_table(conn: sqlite3.Connection, table: str) -> pd.DataFrame:
-    return pd.read_sql_query(f"SELECT * FROM {table}", conn)
-
-
 def table_count(conn: sqlite3.Connection, table: str) -> int:
     row = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()
     return int(row[0] if row else 0)

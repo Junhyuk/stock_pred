@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import importlib.util
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -11,7 +11,7 @@ import pandas as pd
 import pytest
 
 from roboquant.index_forecast.sqlite_store import connect_index_forecast
-from roboquant.index_forecast.us_market_inputs import US_SYMBOLS
+from roboquant.index_forecast.us_market_inputs import US_SYMBOLS, normalize_us_observations
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT_PATH = ROOT / "scripts" / "refresh_premarket_prices.py"
@@ -106,3 +106,129 @@ def test_sqlite_schema_is_created_for_a_clean_path(tmp_path):
     conn = connect_index_forecast(tmp_path / "index_forecast.sqlite")
     assert conn.execute("SELECT name FROM sqlite_master WHERE name='index_eod'").fetchone()[0] == "index_eod"
     conn.close()
+
+
+def _seed_backfill(conn, *, sessions: int = 1000) -> None:
+    start = datetime(2019, 1, 2)
+    rows = []
+    for offset in range(sessions):
+        day = (start + timedelta(days=offset)).date().isoformat()
+        for index_code in ("KOSPI", "KOSDAQ"):
+            rows.append((index_code, day, 10.0, "seed", None, "2019-01-02T10:00:00+00:00"))
+    conn.executemany(
+        "INSERT INTO index_eod (index_code, session_date, close, source, published_at, ingested_at) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        rows,
+    )
+    conn.commit()
+
+
+class _RecordingYahoo:
+    def __init__(self):
+        self.calls = []
+
+    def download(self, symbol, start, end, **kwargs):
+        self.calls.append((symbol, start, end))
+        return pd.DataFrame()
+
+
+def test_short_history_still_requests_the_2019_backfill(tmp_path):
+    conn = connect_index_forecast(tmp_path / "index_forecast.sqlite")
+    conn.execute(
+        "INSERT INTO index_eod (index_code, session_date, close, source, published_at, ingested_at) "
+        "VALUES ('KOSPI', '2019-01-02', 1, 'seed', NULL, '2019-01-02T00:00:00+00:00')"
+    )
+    conn.execute(
+        "INSERT INTO index_eod (index_code, session_date, close, source, published_at, ingested_at) "
+        "VALUES ('KOSDAQ', '2024-01-02', 1, 'seed', NULL, '2024-01-02T00:00:00+00:00')"
+    )
+    conn.commit()
+    summary = refresh.kr_history_summary(conn)
+    assert refresh.series_history_covered(summary, set(refresh.KR_SYMBOLS), requested_start="2019-01-01") is False
+    assert refresh.incremental_start("2024-01-02", requested_start="2019-01-01", covered=False) == "2019-01-01"
+    conn.close()
+    yahoo = _RecordingYahoo()
+    with pytest.raises(RuntimeError, match="no completed KOSPI/KOSDAQ"):
+        refresh.refresh_premarket_prices(
+            sqlite_path=tmp_path / "empty.sqlite", output_dir=tmp_path, yf_module=yahoo,
+            fetched_at=datetime(2026, 11, 9, 7, 50, tzinfo=KST),
+        )
+    assert yahoo.calls == [("^KS11", "2019-01-01", "2026-11-10"), ("^KQ11", "2019-01-01", "2026-11-10")]
+
+
+def test_cached_2019_history_appends_instead_of_rebuilding(tmp_path):
+    db_path = tmp_path / "index_forecast.sqlite"
+    conn = connect_index_forecast(db_path)
+    _seed_backfill(conn)
+    summary = refresh.kr_history_summary(conn)
+    conn.close()
+    expected = refresh.incremental_start(
+        refresh.lagging_latest(summary), requested_start="2019-01-01", covered=True)
+    assert expected != "2019-01-01"
+    start = datetime(2019, 1, 2)
+    rows = []
+    for offset in range(1000):
+        day = (start + timedelta(days=offset)).date().isoformat()
+        for symbol in US_SYMBOLS:
+            rows.append({"symbol": symbol, "session_date": day, "close": 10.0})
+    prior = tmp_path / "us_market_observations_v2_20261106.csv"
+    pd.DataFrame(rows).to_csv(prior, index=False)
+    yahoo = _RecordingYahoo()
+    fetched = datetime(2026, 11, 9, 7, 50, tzinfo=KST)
+    result = refresh.refresh_premarket_prices(
+        sqlite_path=db_path, output_dir=tmp_path, yf_module=yahoo, fetched_at=fetched)
+    assert {start_day for _symbol, start_day, _end in yahoo.calls} == {expected}
+    assert all(end == "2026-11-10" for _symbol, _start, end in yahoo.calls)
+    assert [symbol for symbol, _start, _end in yahoo.calls] == ["^KS11", "^KQ11", *US_SYMBOLS]
+    written = Path(result["us_csv"])
+    assert written.name == "us_market_observations_v2_20261109.csv"
+    assert "2019-01-02" in written.read_text(encoding="utf-8")
+    stored = connect_index_forecast(db_path)
+    assert stored.execute("SELECT COUNT(*) FROM index_eod").fetchone()[0] == 2000
+    assert stored.execute("SELECT close FROM index_eod WHERE index_code='KOSPI' AND session_date='2019-01-02'").fetchone()[0] == 10
+    stored.close()
+    prior_text = prior.read_text(encoding="utf-8")
+    assert prior_text.startswith("symbol,session_date,close")
+
+
+def test_us_merge_keeps_an_existing_close_and_appends_a_new_session():
+    old = pd.DataFrame([{
+        "symbol": "^GSPC",
+        "session_date": "2026-10-22",
+        "close": 111.0,
+        "source": refresh.YFINANCE_SOURCE,
+        "source_url": "https://finance.yahoo.com/quote/%5EGSPC/history/",
+        "fetched_at": "2026-10-24T12:00:00+00:00",
+    }])
+    prior = normalize_us_observations(old)["observations"]
+    assert len(prior) == 1
+    recent = pd.DataFrame([
+        {**old.iloc[0].to_dict(), "close": 999.0},
+        {**old.iloc[0].to_dict(), "session_date": "2026-10-23", "close": 5800.0},
+    ])
+    merged = refresh.merge_us_observations(prior, recent)
+    by_day = dict(zip(merged["session_date"], merged["close"], strict=True))
+    assert by_day["2026-10-22"] == pytest.approx(111.0)
+    assert by_day["2026-10-23"] == pytest.approx(5800.0)
+
+
+def test_existing_us_snapshot_is_not_rewritten_when_it_already_covers_the_merge(tmp_path):
+    old = pd.DataFrame([{
+        "symbol": "^GSPC",
+        "session_date": "2026-10-22",
+        "close": 111.0,
+        "source": refresh.YFINANCE_SOURCE,
+        "source_url": "https://finance.yahoo.com/quote/%5EGSPC/history/",
+        "fetched_at": "2026-10-24T12:00:00+00:00",
+    }])
+    destination = tmp_path / "us_market_observations_v2_20261024.csv"
+    original = old.to_csv(index=False).encode("utf-8")
+    destination.write_bytes(original)
+    changed = old.copy()
+    changed.loc[0, "close"] = 999.0
+    written = refresh.write_merged_us_snapshot(old, changed, destination)
+    assert written.read_bytes() == original
+    added = pd.concat([changed, changed.assign(session_date="2026-10-23", close=5800.0)], ignore_index=True)
+    with pytest.raises(ValueError, match="immutable"):
+        refresh.write_merged_us_snapshot(old, added, destination)
+    assert destination.read_bytes() == original

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import importlib.util
+import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -44,3 +45,28 @@ def test_unavailable_calendar_fails_closed(tmp_path, monkeypatch):
     monkeypatch.setenv("GITHUB_OUTPUT", str(output))
     assert gate.emit_decision(decision) == 1
     assert "run=false" in output.read_text(encoding="utf-8")
+
+
+def test_gate_import_does_not_load_the_model_stack():
+    probe = r"""
+import importlib.util
+import sys
+from pathlib import Path
+root = Path(sys.argv[1])
+spec = importlib.util.spec_from_file_location("gate_check", root / "scripts" / "premarket_trading_day_gate.py")
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+banned = [
+    name for name in sys.modules
+    if name == "sklearn" or name.startswith("sklearn.")
+    or name == "lightgbm" or name.startswith("lightgbm.")
+    or name in {"yfinance", "streamlit", "fastapi", "uvicorn", "torch", "plotly", "feedparser"}
+]
+if banned:
+    raise SystemExit("imported " + ",".join(sorted(banned)))
+"""
+    completed = subprocess.run(
+        [sys.executable, "-c", probe, str(ROOT)],
+        check=False, capture_output=True, text=True,
+    )
+    assert completed.returncode == 0, completed.stderr + completed.stdout

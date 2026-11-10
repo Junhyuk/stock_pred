@@ -17,27 +17,83 @@ jobs:
   forecast:
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    env:
+      PIP_DISABLE_PIP_VERSION_CHECK: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: true
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
 
-      - name: Install project
-        run: python -m pip install -e ".[global,dev]"
+      - name: Install trading-day calendar
+        run: |
+          set -eu
+          python -m pip install "exchange-calendars>=4.5" "pandas>=2.2" "numpy>=1.26"
 
       - name: Trading-day gate
         id: gate
         run: python scripts/premarket_trading_day_gate.py
 
+      - name: Restore forecast history
+        if: steps.gate.outputs.run == 'true'
+        uses: actions/cache@v4
+        with:
+          path: data/processed/forecast-history
+          key: premarket-forecast-history-${{ steps.gate.outputs.kst_date }}
+          restore-keys: |
+            premarket-forecast-history-
+
+      - name: Install forecast stack
+        if: steps.gate.outputs.run == 'true'
+        run: |
+          set -eu
+          python - <<'PY'
+          import subprocess
+          import sys
+          import tomllib
+          from pathlib import Path
+          deps = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))["project"]["optional-dependencies"]["forecast"]
+          subprocess.check_call([sys.executable, "-m", "pip", "install", *deps])
+          PY
+
+      - name: Place cached history
+        if: steps.gate.outputs.run == 'true'
+        run: |
+          set -eu
+          python - <<'PY'
+          import shutil
+          from pathlib import Path
+          cache = Path("data/processed/forecast-history")
+          target = Path("data/processed")
+          target.mkdir(parents=True, exist_ok=True)
+          if not cache.is_dir():
+              raise SystemExit(0)
+          sqlite = cache / "index_forecast.sqlite"
+          if sqlite.is_file():
+              shutil.copy2(sqlite, target / "index_forecast.sqlite")
+          csvs = sorted(
+              path for path in cache.glob("us_market_observations_v2_*.csv")
+              if len(path.stem.removeprefix("us_market_observations_v2_")) == 8
+              and path.stem.removeprefix("us_market_observations_v2_").isdigit()
+          )
+          if csvs:
+              shutil.copy2(csvs[-1], target / csvs[-1].name)
+          PY
+
       - name: Refresh prices
         id: prices
         if: steps.gate.outputs.run == 'true'
         run: |
-          set -eu
+          set -euo pipefail
           python scripts/refresh_premarket_prices.py | tee "$RUNNER_TEMP/prices.json"
           python - <<'PY'
           import json
@@ -50,14 +106,10 @@ jobs:
               stream.write(f"us_csv={data['us_csv']}\n")
           PY
 
-      - name: Collect MarketNewsFeed metadata
-        if: steps.gate.outputs.run == 'true'
-        continue-on-error: true
-        run: python scripts/collect_marketnewsfeed_site.py
-
       - name: Korea research forecast
         if: steps.gate.outputs.run == 'true'
         run: |
+          set -eu
           python scripts/run_reliable_index_forecast.py \
             --sqlite "${{ steps.prices.outputs.sqlite }}" \
             --us-observations "${{ steps.prices.outputs.us_csv }}" \
@@ -66,20 +118,63 @@ jobs:
       - name: US research forecast
         if: steps.gate.outputs.run == 'true'
         run: |
+          set -eu
           python scripts/run_us_index_forecast.py \
             --us-observations "${{ steps.prices.outputs.us_csv }}" \
             --news-context docs/data/event_context/houthi_aramco_20261108.json
+
+      - name: Compress OOF archives
+        if: steps.gate.outputs.run == 'true' && !cancelled()
+        run: |
+          set -eu
+          python - <<'PY'
+          import zipfile
+          from pathlib import Path
+          roots = [Path("docs/data/archive"), Path("docs/data/us/archive")]
+          files = [path for root in roots if root.is_dir() for path in root.rglob("*") if path.is_file()]
+          if not files:
+              print("no OOF archive files")
+              raise SystemExit(0)
+          destination = Path("reliable-forecast-archives.zip")
+          with zipfile.ZipFile(destination, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
+              for path in files:
+                  archive.write(path, path.as_posix())
+          print(f"zip_bytes={destination.stat().st_size} files={len(files)}")
+          PY
 
       - name: Upload full OOF archives
         if: steps.gate.outputs.run == 'true' && !cancelled()
         uses: actions/upload-artifact@v4
         with:
           name: reliable-forecast-archives
-          path: |
-            docs/data/archive/
-            docs/data/us/archive/
+          path: reliable-forecast-archives.zip
           retention-days: 14
           if-no-files-found: warn
+
+      - name: Update forecast history cache
+        if: steps.gate.outputs.run == 'true' && success()
+        run: |
+          set -eu
+          python - <<'PY'
+          import shutil
+          from pathlib import Path
+          source = Path("data/processed")
+          cache = source / "forecast-history"
+          cache.mkdir(parents=True, exist_ok=True)
+          for stale in cache.glob("*"):
+              if stale.is_file():
+                  stale.unlink()
+          sqlite = source / "index_forecast.sqlite"
+          if sqlite.is_file():
+              shutil.copy2(sqlite, cache / sqlite.name)
+          csvs = sorted(
+              path for path in source.glob("us_market_observations_v2_*.csv")
+              if len(path.stem.removeprefix("us_market_observations_v2_")) == 8
+              and path.stem.removeprefix("us_market_observations_v2_").isdigit()
+          )
+          if csvs:
+              shutil.copy2(csvs[-1], cache / csvs[-1].name)
+          PY
 
       - name: Commit compact Pages payloads
         if: steps.gate.outputs.run == 'true' && success()
@@ -114,7 +209,7 @@ jobs:
               name = path.replace("\\", "/")
               if name.startswith(("data/processed/", "data/raw/")) or "/data/processed/" in name or "/data/raw/" in name:
                   return True
-              if "docs/data/archive/" in name or "docs/data/us/archive/" in name:
+              if "docs/data/archive/" in name or "docs/data/us/archive/" in name or name.endswith(".zip"):
                   return True
               base = name.rsplit("/", 1)[-1]
               if base == ".env" or base.startswith(".env") or name.endswith(".sqlite") or ".sqlite" in name or name.endswith(".duckdb") or ".duckdb" in name:

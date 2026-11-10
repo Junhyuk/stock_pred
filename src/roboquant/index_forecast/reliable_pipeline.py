@@ -103,27 +103,16 @@ def _frame_hash(frame: pd.DataFrame) -> str:
     return hashlib.sha256(frame.to_json(orient="split", date_format="iso", double_precision=15).encode()).hexdigest()
 
 
-def _atomic_json(path: Path, value: dict, *, immutable: bool = False) -> None:
+def _atomic_json(path: Path, value: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = _json_text(value) + "\n"
-    if immutable and path.exists():
-        if path.read_text(encoding="utf-8") != payload:
-            raise ValueError("immutable archive content conflict")
-        return
     descriptor, temporary = tempfile.mkstemp(prefix=path.name, dir=path.parent)
     try:
         with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
             stream.write(payload)
             stream.flush()
             os.fsync(stream.fileno())
-        if immutable:
-            try:
-                os.link(temporary, path)
-            except FileExistsError:
-                if path.read_text(encoding="utf-8") != payload:
-                    raise ValueError("immutable archive content conflict") from None
-        else:
-            os.replace(temporary, path)
+        os.replace(temporary, path)
     finally:
         if os.path.exists(temporary):
             os.unlink(temporary)

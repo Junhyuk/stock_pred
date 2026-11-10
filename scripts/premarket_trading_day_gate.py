@@ -6,18 +6,36 @@ uses this same session-date gate. A calendar that cannot answer fails closed.
 """
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
-import sys
 from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
 
-from roboquant.index_forecast.reliable_inputs import KST, session_schedule, utc_timestamp
+
+def _load_reliable_inputs():
+    """Load the calendar helper without importing the forecast package.
+
+    ``import roboquant.index_forecast`` runs the package init, which imports the
+    model stack. The trading-day gate has to run before that stack is installed.
+    """
+    path = ROOT / "src" / "roboquant" / "index_forecast" / "reliable_inputs.py"
+    spec = importlib.util.spec_from_file_location("_premarket_reliable_inputs", path)
+    if spec is None or spec.loader is None:
+        raise ImportError("reliable_inputs")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+_INPUTS = _load_reliable_inputs()
+KST = _INPUTS.KST
+session_schedule = _INPUTS.session_schedule
+utc_timestamp = _INPUTS.utc_timestamp
 
 
 def trading_day_decision(now: datetime | None = None, sessions=None) -> dict:

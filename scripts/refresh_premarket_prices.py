@@ -5,6 +5,10 @@ yfinance may refresh KOSPI (^KS11) and KOSDAQ (^KQ11) only. KOSPI100 stays on
 official code 1034 and is not fetched here. KOSDAQ100 stays not_ready. Missing
 investor flow is left missing. An existing index date is not replaced, and a
 changed US snapshot is not overwritten.
+
+When the SQLite file or an existing dated US CSV already holds the 2019 backfill,
+only a short overlap is downloaded and new sessions are appended. Missing history
+still requests bars from 2019-01-01.
 """
 from __future__ import annotations
 
@@ -27,6 +31,9 @@ from roboquant.index_forecast.us_market_inputs import US_SYMBOLS, normalize_us_o
 KR_SYMBOLS = {"KOSPI": "^KS11", "KOSDAQ": "^KQ11"}
 US_PRICE_SYMBOLS = US_SYMBOLS
 HISTORY_START = "2019-01-01"
+BACKFILL_GRACE_DAYS = 30
+MIN_BACKFILL_ROWS = 1000
+INCREMENTAL_OVERLAP_DAYS = 21
 YFINANCE_SOURCE = "yfinance; original publication time is unknown"
 
 _INSERT_INDEX = """
@@ -181,6 +188,140 @@ def write_us_observations(raw: pd.DataFrame, output: str | Path) -> Path:
     return destination
 
 
+def history_covers_backfill(earliest: str | None, count: int, *, requested_start: str) -> bool:
+    """True when one series still reaches the requested history start."""
+    if not earliest or count < MIN_BACKFILL_ROWS:
+        return False
+    limit = datetime.fromisoformat(requested_start).date() + timedelta(days=BACKFILL_GRACE_DAYS)
+    return str(earliest)[:10] <= limit.isoformat()
+
+
+def kr_history_summary(conn) -> dict[str, tuple[str, str, int]]:
+    rows = conn.execute(
+        """
+        SELECT index_code, MIN(session_date), MAX(session_date), COUNT(*)
+        FROM index_eod
+        WHERE index_code IN ('KOSPI', 'KOSDAQ')
+        GROUP BY index_code
+        """
+    ).fetchall()
+    return {str(row[0]): (str(row[1]), str(row[2]), int(row[3])) for row in rows}
+
+
+def us_history_summary(frame: pd.DataFrame) -> dict[str, tuple[str, str, int]]:
+    if frame.empty or not {"symbol", "session_date"}.issubset(frame.columns):
+        return {}
+    summary = {}
+    for symbol in US_PRICE_SYMBOLS:
+        subset = frame.loc[frame["symbol"].astype(str) == symbol, "session_date"].astype(str).str.slice(0, 10)
+        subset = subset[subset.ne("") & subset.ne("NaT") & subset.ne("nan")]
+        if subset.empty:
+            return {}
+        summary[symbol] = (str(subset.min()), str(subset.max()), int(subset.nunique()))
+    return summary
+
+
+def series_history_covered(summary: dict[str, tuple[str, str, int]], expected: set[str] | frozenset[str],
+                           *, requested_start: str) -> bool:
+    if set(summary) != set(expected):
+        return False
+    return all(history_covers_backfill(earliest, count, requested_start=requested_start)
+               for earliest, _latest, count in summary.values())
+
+
+def lagging_latest(summary: dict[str, tuple[str, str, int]]) -> str | None:
+    if not summary:
+        return None
+    return min(str(latest)[:10] for _earliest, latest, _count in summary.values())
+
+
+def incremental_start(latest: str | None, *, requested_start: str, covered: bool) -> str:
+    """Reuse a covered cache. Anything short of that backfill starts at the request."""
+    if not covered or not latest:
+        return requested_start
+    overlap_start = datetime.fromisoformat(str(latest)[:10]).date() - timedelta(days=INCREMENTAL_OVERLAP_DAYS)
+    floor = datetime.fromisoformat(requested_start).date()
+    return max(overlap_start, floor).isoformat()
+
+
+def dated_us_snapshots(directory: str | Path) -> list[Path]:
+    paths = []
+    for path in Path(directory).glob("us_market_observations_v2_*.csv"):
+        stamp = path.stem.removeprefix("us_market_observations_v2_")
+        if len(stamp) == 8 and stamp.isdigit():
+            paths.append(path)
+    return sorted(paths)
+
+
+def prior_us_snapshot(directory: str | Path, destination: str | Path) -> Path | None:
+    target = Path(destination).resolve()
+    others = [path for path in dated_us_snapshots(directory) if path.resolve() != target]
+    if others:
+        return others[-1]
+    if Path(destination).is_file():
+        return Path(destination)
+    return None
+
+
+def _read_us_snapshot(path: Path | None) -> pd.DataFrame:
+    if path is None or not path.is_file():
+        return pd.DataFrame()
+    try:
+        return pd.read_csv(path)
+    except (OSError, UnicodeError, ValueError, pd.errors.ParserError):
+        return pd.DataFrame()
+
+
+def _session_keys(frame: pd.DataFrame) -> set[tuple[str, str]]:
+    if frame.empty or not {"symbol", "session_date"}.issubset(frame.columns):
+        return set()
+    return set(zip(frame["symbol"].astype(str), frame["session_date"].astype(str).str.slice(0, 10), strict=True))
+
+
+def merge_us_observations(prior: pd.DataFrame, recent_raw: pd.DataFrame) -> pd.DataFrame:
+    """Keep stored symbol-dates and append newly completed sessions."""
+    recent = normalize_us_observations(recent_raw)["observations"]
+    if prior is None or prior.empty:
+        return recent
+    if recent.empty:
+        return prior.copy()
+    existing = _session_keys(prior)
+    additions = [
+        index for index, (symbol, day) in enumerate(zip(recent["symbol"], recent["session_date"], strict=True))
+        if (str(symbol), str(day)[:10]) not in existing
+    ]
+    if not additions:
+        return prior.copy()
+    return pd.concat([prior, recent.iloc[additions]], ignore_index=True).sort_values(
+        ["symbol", "session_date"], kind="stable").reset_index(drop=True)
+
+
+def write_merged_us_snapshot(prior: pd.DataFrame, recent_raw: pd.DataFrame, output: str | Path) -> Path:
+    """Write a new dated snapshot. An existing file is left untouched."""
+    merged = merge_us_observations(prior, recent_raw)
+    if merged.empty:
+        raise ValueError("no completed US bars to write")
+    destination = Path(output)
+    encoded = merged.to_csv(index=False).encode("utf-8")
+    if destination.exists():
+        if destination.read_bytes() == encoded:
+            return destination
+        existing = _read_us_snapshot(destination)
+        if _session_keys(merged) <= _session_keys(existing):
+            return destination
+        raise ValueError("US snapshot is immutable; choose a new output path for a changed dataset")
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_bytes(encoded)
+    return destination
+
+
+def _remove_sqlite_sidecars(path: str | Path) -> None:
+    for suffix in ("-wal", "-shm"):
+        sidecar = Path(f"{path}{suffix}")
+        if sidecar.is_file():
+            sidecar.unlink()
+
+
 def _load_yfinance():
     try:
         import yfinance as yf
@@ -206,23 +347,43 @@ def refresh_premarket_prices(*, sqlite_path: str | Path, output_dir: str | Path,
     end = (fetched.tz_convert(KST).date() + timedelta(days=1)).isoformat()
     yf = yf_module or _load_yfinance()
     conn = connect_index_forecast(sqlite_path)
+    checkpointed = False
     try:
+        summary = kr_history_summary(conn)
+        kr_start = incremental_start(
+            lagging_latest(summary),
+            requested_start=start,
+            covered=series_history_covered(summary, set(KR_SYMBOLS), requested_start=start),
+        )
         inserted = 0
         for index_code, symbol in KR_SYMBOLS.items():
-            bars = bars_from_download(_download_daily(symbol, start, end, yf))
+            bars = bars_from_download(_download_daily(symbol, kr_start, end, yf))
             inserted += append_kr_rows(conn, completed_kr_rows(bars, index_code=index_code, fetched_at=fetched))
         stored = conn.execute(
             "SELECT COUNT(*) FROM index_eod WHERE index_code IN ('KOSPI', 'KOSDAQ')"
         ).fetchone()[0]
+        conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        checkpointed = True
     finally:
         conn.close()
+    if checkpointed:
+        _remove_sqlite_sidecars(sqlite_path)
     if stored <= 0:
         raise RuntimeError("no completed KOSPI/KOSDAQ sessions to store")
+    destination = dated_us_csv(output_dir, fetched)
+    prior_path = prior_us_snapshot(output_dir, destination)
+    prior = _read_us_snapshot(prior_path)
+    us_summary = us_history_summary(prior)
+    us_covered = series_history_covered(us_summary, set(US_PRICE_SYMBOLS), requested_start=start)
+    us_start = incremental_start(lagging_latest(us_summary), requested_start=start, covered=us_covered)
     raw = us_raw_frame(
-        {symbol: bars_from_download(_download_daily(symbol, start, end, yf)) for symbol in US_PRICE_SYMBOLS},
+        {symbol: bars_from_download(_download_daily(symbol, us_start, end, yf)) for symbol in US_PRICE_SYMBOLS},
         fetched_at=fetched,
     )
-    us_csv = write_us_observations(raw, dated_us_csv(output_dir, fetched))
+    if us_covered:
+        us_csv = write_merged_us_snapshot(prior, raw, destination)
+    else:
+        us_csv = write_us_observations(raw, destination)
     return {"sqlite": str(sqlite_path), "us_csv": str(us_csv), "kr_rows_inserted": inserted}
 
 
