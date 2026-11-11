@@ -2,7 +2,8 @@ name: Premarket research forecast
 
 on:
   schedule:
-    # 22:50 UTC Sunday–Thursday is 07:50 Asia/Seoul Monday–Friday.
+    # Once each weekday: 22:50 UTC is 07:50 Asia/Seoul, Monday–Friday.
+    # That push of docs/ is what refreshes the live card page.
     - cron: "50 22 * * 0-4"
   workflow_dispatch:
 

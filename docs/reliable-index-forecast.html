@@ -259,12 +259,21 @@ async function loadPublishedRun(base = 'data') {
   return run;
 }
 
+function cardsFromRun(run) {
+  const markets = run.markets ?? [];
+  if (markets.length) return markets.map(item => ({ item, runStatus: run.status }));
+  return Object.entries(run.contexts ?? {}).map(([market, context]) => ({
+    item: { market, context, forecast: { status: run.status } },
+    runStatus: run.status,
+  }));
+}
+
 Promise.all([
   loadPublishedRun(),
   loadPublishedRun('data/us').catch(() => null),
 ]).then(results => {
   const runs = results.filter(Boolean);
-  const markets = runs.flatMap(r => (r.markets ?? []).map(m => ({ item: m, runStatus: r.status })));
+  const markets = runs.flatMap(cardsFromRun);
 
   document.getElementById('status').textContent = '';
 
