@@ -75,7 +75,10 @@ def bars_from_download(frame: pd.DataFrame | None) -> pd.DataFrame:
     data = data.rename(columns=str).reset_index()
     date_column = "Date" if "Date" in data.columns else data.columns[0]
     stamps = pd.to_datetime(data[date_column], errors="coerce")
-    # A naive daily label is the session date. Do not shift it across midnight.
+    # Yahoo often stamps the Seoul session at 15:00 UTC the previous calendar day.
+    # A naive label is already the session date and must not be shifted.
+    if getattr(stamps.dt, "tz", None) is not None:
+        stamps = stamps.dt.tz_convert(KST)
     session_date = stamps.dt.strftime("%Y-%m-%d")
     bars = pd.DataFrame({
         "session_date": session_date,

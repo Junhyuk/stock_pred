@@ -6,84 +6,288 @@
   <title>한국·미국 다음 거래일 확률·예측구간 연구</title>
   <link rel="stylesheet" href="assets/site.css" />
   <style>
-    .notice { padding:16px; border:1px solid var(--line); border-radius:8px; margin:16px 0; }
-    .facts { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; }
-    .scroll { overflow-x:auto; } table { border-collapse:collapse; width:100%; }
-    th,td { padding:10px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
-    code { overflow-wrap:anywhere; } .muted { color:var(--muted); } article { margin:20px 0; }
+    .notice {
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      margin: 16px 0;
+      line-height: 1.55;
+      font-size: 14px;
+      color: var(--ink);
+    }
+    #status {
+      color: var(--muted);
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    .forecast-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+    @media (max-width: 800px) {
+      .forecast-grid { grid-template-columns: 1fr; }
+    }
+    .forecast-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .forecast-card h2 {
+      font-size: 22px;
+      margin: 0;
+      color: var(--ink);
+      letter-spacing: -0.02em;
+    }
+    .card-dates {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    .card-dates strong { color: var(--ink); font-weight: 700; }
+    .hero-metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .hero-metric {
+      padding: 12px;
+      border-radius: 8px;
+      background: var(--bg);
+      border: 1px solid var(--line);
+    }
+    .hero-metric span {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .hero-metric strong {
+      display: block;
+      font-size: 26px;
+      line-height: 1.15;
+      color: var(--teal);
+      font-weight: 800;
+    }
+    .prob-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .prob-box {
+      text-align: center;
+      padding: 14px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+    }
+    .prob-box.up { background: var(--green-bg); }
+    .prob-box.down { background: #fff0ed; }
+    .prob-box span {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .prob-box strong {
+      font-size: 28px;
+      font-weight: 800;
+      line-height: 1.1;
+    }
+    .prob-box.up strong { color: var(--teal); }
+    .prob-box.down strong { color: var(--red); }
+  .detail-line {
+      font-size: 15px;
+      line-height: 1.5;
+      padding: 10px 0;
+      border-top: 1px solid var(--line);
+    }
+    .detail-line span { color: var(--muted); font-weight: 700; }
+    .detail-line strong { color: var(--ink); font-weight: 800; }
+    .card-status {
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1.45;
+      padding: 10px 12px;
+      border-radius: 8px;
+      margin-top: auto;
+    }
+    .card-status.ok { background: var(--green-bg); color: var(--teal); }
+    .card-status.warn { background: var(--amber-bg); color: var(--amber); }
+    .card-status.blocked { background: #f0f2f5; color: var(--muted); }
+    .empty-state {
+      padding: 24px;
+      text-align: center;
+      color: var(--muted);
+      font-weight: 700;
+    }
   </style>
 </head>
-<body><main>
-  <header class="topbar"><div><p class="eyebrow">1D · 연구 전용 · production_weight=0</p>
-    <h1>한국·미국 다음 거래일 확률·예측구간</h1></div><a href="index-forecast.html">1D/2D 리포트</a></header>
+<body>
+<main>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">1D · 연구 전용 · production_weight=0</p>
+      <h1>한국·미국 다음 거래일 확률·예측구간</h1>
+    </div>
+    <a href="index-forecast.html">1D/2D 리포트</a>
+  </header>
   <p class="notice">상승 확률은 P(다음 거래일 수익률 &gt; 0)입니다. 하락 확률은 1−상승 확률이며 보합은 별도 추정하지 않습니다.
-    80% 구간은 과거 시점 외 표본 오차로 보정한 목표 구간입니다. 시간 의존성으로 실제 포함률을 보장하지 않습니다.
-    rejected·not_ready 결과는 검증을 통과한 매매 신호가 아닙니다.</p>
-  <div id="status" role="status">로컬 연구 결과를 읽는 중입니다.</div><div id="content"></div>
-</main><script>
-const escapeHtml = value => String(value ?? '확인 불가').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
-const pct = value => value == null ? '확인 불가' : (value * 100).toFixed(2) + '%';
-const level = value => value == null ? '확인 불가' : Number(value).toLocaleString('ko-KR',{maximumFractionDigits:2});
-const cell = (label,value) => `<div><strong>${escapeHtml(label)}</strong><br>${escapeHtml(value)}</div>`;
-const table = (headers, rows) => `<div class="scroll"><table><thead><tr>${headers.map(h=>`<th>${escapeHtml(h)}</th>`).join('')}</tr></thead><tbody>${rows.map(row=>`<tr>${row.map(v=>`<td>${escapeHtml(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
-async function loadPublishedRun(base='data'){
-  const response=await fetch(`${base}/reliable_index_forecast.json`,{cache:'no-store'});
-  if(!response.ok)throw Error('연구 결과 파일 없음');
-  const raw=await response.text(),run=JSON.parse(raw);
-  if(String(run.status).startsWith('blocked_'))return run;
-  const publication=await fetch(`${base}/reliable_publication.json`,{cache:'no-store'});
-  if(!publication.ok)return {...run,status:'unpublished',issued_at:null,markets:[]};
-  const manifest=await publication.json();
-  const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(raw)))).map(v=>v.toString(16).padStart(2,'0')).join('');
-  if(manifest.schema_version!=='reliable_publication_v1'||manifest.run_id!==run.run_id||manifest.payload_checksums?.['reliable_index_forecast.json']!==digest||!manifest.publication_checked_at)
-    return {...run,status:'unpublished',issued_at:null,markets:[]};
-  run.status='research_only';run.issued_at=manifest.publication_checked_at;run.publication=manifest;
-  run.markets.forEach(item=>{item.context.issued_at=run.issued_at;item.forecast.issued_at=run.issued_at;});
+    80% 구간은 과거 시점 외 표본 오차로 보정한 목표 구간이며, 시간 의존성으로 실제 포함률을 보장하지 않습니다.
+    검증을 통과하지 못한 결과는 매매 신호가 아닙니다.</p>
+  <div id="status" role="status">로컬 연구 결과를 읽는 중입니다.</div>
+  <div id="content"></div>
+</main>
+<script>
+const MARKET_LABELS = {
+  KOSPI: 'KOSPI',
+  KOSDAQ: 'KOSDAQ',
+  US_SPX: 'S&P 500',
+  US_NASDAQ: 'Nasdaq',
+};
+
+const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+
+const pct = value => {
+  if (value == null || value === '') return '—';
+  const n = Number(value);
+  if (Number.isNaN(n)) return '—';
+  return (n * 100).toFixed(2) + '%';
+};
+
+const probLabel = value => {
+  if (value == null || value === '') return '확률 없음';
+  const n = Number(value);
+  if (Number.isNaN(n)) return '확률 없음';
+  return (n * 100).toFixed(2) + '%';
+};
+
+const level = value => {
+  if (value == null || value === '') return '—';
+  const n = Number(value);
+  if (Number.isNaN(n)) return '—';
+  return n.toLocaleString('ko-KR', { maximumFractionDigits: 2 });
+};
+
+function forecastStatusMessage(status) {
+  const s = String(status ?? '');
+  if (s.startsWith('blocked_')) {
+    return { text: '종가가 최신 거래일까지 아니라 오늘 예측을 내지 않음', kind: 'blocked' };
+  }
+  if (s === 'accepted_shadow' || s === 'accepted' || s === 'research_only') {
+    return { text: '연구 결과', kind: 'ok' };
+  }
+  if (s === 'rejected' || s === 'not_ready') {
+    return { text: '검증 미통과 · 매매 신호 아님', kind: 'warn' };
+  }
+  return { text: '검증 미통과 · 매매 신호 아님', kind: 'warn' };
+}
+
+function renderCard(item, runStatus) {
+  const f = item.forecast ?? {};
+  const c = item.context ?? {};
+  const marketName = MARKET_LABELS[item.market] ?? item.market;
+  const fs = String(f.status ?? '');
+  const rs = String(runStatus ?? '');
+  const statusForMessage = fs.startsWith('blocked_') ? fs : (rs.startsWith('blocked_') ? rs : fs);
+  const statusInfo = forecastStatusMessage(statusForMessage);
+  const blocked = String(runStatus).startsWith('blocked_') || String(f.status ?? '').startsWith('blocked_');
+  const showNumbers = runStatus !== 'unpublished' && !blocked;
+
+  const latestClose = showNumbers ? level(f.latest_close) : '—';
+  const expectedIndex = showNumbers ? level(f.expected_index) : '—';
+  const pUp = showNumbers ? probLabel(f.p_up) : '확률 없음';
+  const pDown = showNumbers ? probLabel(f.p_down) : '확률 없음';
+  const expRet = showNumbers ? pct(f.expected_return) : '—';
+  const idxLo = showNumbers ? level(f.index_range_low) : '—';
+  const idxHi = showNumbers ? level(f.index_range_high) : '—';
+  const rangeText = (idxLo === '—' && idxHi === '—') ? '—' : `${idxLo} ~ ${idxHi}`;
+
+  return `<article class="forecast-card">
+    <h2>${escapeHtml(marketName)}</h2>
+    <div class="card-dates">
+      <div><strong>기준 종가일</strong> ${escapeHtml(c.asof_date ?? '—')}</div>
+      <div><strong>다음 거래일</strong> ${escapeHtml(c.target_date ?? '—')}</div>
+    </div>
+    <div class="hero-metrics">
+      <div class="hero-metric"><span>최근 종가</span><strong>${escapeHtml(latestClose)}</strong></div>
+      <div class="hero-metric"><span>예상 지수</span><strong>${escapeHtml(expectedIndex)}</strong></div>
+    </div>
+    <div class="prob-row">
+      <div class="prob-box up"><span>상승 확률</span><strong>${escapeHtml(pUp)}</strong></div>
+      <div class="prob-box down"><span>하락 확률</span><strong>${escapeHtml(pDown)}</strong></div>
+    </div>
+    <div class="detail-line"><span>예상 수익률 </span><strong>${escapeHtml(expRet)}</strong></div>
+    <div class="detail-line"><span>80% 지수 구간 </span><strong>${escapeHtml(rangeText)}</strong></div>
+    <p class="card-status ${escapeHtml(statusInfo.kind)}">${escapeHtml(statusInfo.text)}</p>
+  </article>`;
+}
+
+async function loadPublishedRun(base = 'data') {
+  const response = await fetch(`${base}/reliable_index_forecast.json`, { cache: 'no-store' });
+  if (!response.ok) throw Error('연구 결과 파일 없음');
+  const raw = await response.text();
+  const run = JSON.parse(raw);
+  if (String(run.status).startsWith('blocked_')) return run;
+  const publication = await fetch(`${base}/reliable_publication.json`, { cache: 'no-store' });
+  if (!publication.ok) {
+    return { ...run, status: 'unpublished', issued_at: null, markets: [] };
+  }
+  const manifest = await publication.json();
+  const digest = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw))))
+    .map(v => v.toString(16).padStart(2, '0')).join('');
+  if (
+    manifest.schema_version !== 'reliable_publication_v1' ||
+    manifest.run_id !== run.run_id ||
+    manifest.payload_checksums?.['reliable_index_forecast.json'] !== digest ||
+    !manifest.publication_checked_at
+  ) {
+    return { ...run, status: 'unpublished', issued_at: null, markets: [] };
+  }
+  run.status = 'research_only';
+  run.issued_at = manifest.publication_checked_at;
+  run.publication = manifest;
+  (run.markets ?? []).forEach(item => {
+    if (item.context) item.context.issued_at = run.issued_at;
+    if (item.forecast) item.forecast.issued_at = run.issued_at;
+  });
   return run;
 }
-Promise.all([loadPublishedRun(),loadPublishedRun('data/us').catch(()=>null)]).then(results=>{
-  const runs=results.filter(Boolean);
-  const run={status:runs.map(r=>r.status).join(' / '),issued_at:runs.map(r=>r.issued_at ?? '미공개').join(' / '),run_id:runs.map(r=>r.run_id ?? '없음').join(' / '),markets:runs.flatMap(r=>r.markets ?? [])};
-  document.getElementById('status').textContent = `${run.status} · 실제 생성 ${run.issued_at} · run ${run.run_id ?? '차단되어 저장 없음'}`;
-  if(!run.markets.length){document.getElementById('content').textContent = (run.reasons ?? []).join(' · ');return;}
-  document.getElementById('content').innerHTML = run.markets.map(item=>{
-    const f=item.forecast,c=item.context,e=item.evaluation,p=item.participant_pressure,impact=item.participant_impact;
-    const candidates=(e.candidate_reports ?? []).map(r=>[`${r.family} / ${r.group}`,r.development_metrics.n,
-      r.development_metrics.brier?.toFixed(4),r.development_metrics.mae == null ? null : pct(r.development_metrics.mae),r.gate_reasons.join(', ')]);
-    return `<article class="panel"><h2>${escapeHtml(({US_SPX:'S&P 500',US_NASDAQ:'Nasdaq Composite'})[item.market] ?? item.market)} · ${escapeHtml(f.status)}</h2><div class="facts">${[
-      cell('지수 기준일 / 다음 거래일',c.asof_date+' / '+c.target_date),cell('정보 마감 / 단계',c.prediction_cutoff+' / '+c.stage),
-      cell('목표 종가 UTC / 한국 시각',c.target_close_at+' / '+(c.target_close_at ? new Intl.DateTimeFormat('ko-KR',{timeZone:'Asia/Seoul',dateStyle:'short',timeStyle:'short'}).format(new Date(c.target_close_at)) : '확인 불가')),
-      cell('실제 공개 / 실행 시작',c.issued_at+' / '+(c.run_started_at ?? run.run_started_at ?? c.issued_at)),cell('선택 모델 / 입력',`${f.family ?? '없음'} / ${f.group ?? '없음'}`),
-      cell('상승 / 하락 확률',pct(f.p_up)+' / '+pct(f.p_down)),cell('예상 수익률',pct(f.expected_return)),
-      cell('80% 수익률 구간',pct(f.range_low)+' ~ '+pct(f.range_high)),cell('최근 종가 / 예상 지수',level(f.latest_close)+' / '+level(f.expected_index)),
-      cell('80% 지수 구간',level(f.index_range_low)+' ~ '+level(f.index_range_high)),cell('이전 OOF 보정 표본',f.calibration_n),
-      cell('이용 불가 입력 그룹',item.missing_feature_groups.join(', ')||'없음'),cell('가격 출처 / 수집 시각',item.data_provenance.sources.join(', ')+' / '+item.data_provenance.retrieved_at)
-    ].join('')}</div><p><strong>검증 상태:</strong> ${escapeHtml(e.status)} · ${escapeHtml(f.gate_reasons.join(', '))}</p>
-    <p class="muted">과거 결과는 종가 시계열 재구성입니다. 원래 공개·수정 시각은 검증되지 않았습니다. 현재 구성종목을 과거에 소급하지 않습니다.</p>
-    <h3>미국 완료 세션 입력</h3><p>${escapeHtml(item.us_market?.trial_status ?? '미국 지수 자체의 가격 이력 모델')} · 요청 입력 사용: ${escapeHtml(item.us_market?.group_used ?? '자체 지수 가격')}</p>
-    ${table(['미국 지수','예상 완료 / 선택 세션','종가 시각 UTC','가용 시각 / 실제 수집','누락·진행 중 사유'],Object.entries(item.us_market?.latest_snapshot ?? {}).map(([symbol,r])=>[symbol,`${r.expected_session} / ${r.selected_session}`,r.session_close_at,`${r.available_at} / ${r.first_seen_at}`,[...(r.reasons ?? []),...(r.current_session_in_progress ? ['현재 미국 세션 진행 중'] : [])].join(', ')]))}
-    ${item.us_research_challenger?.p_up == null ? '' : `<h3>사전 고정한 price+US 연구 후보 · ${escapeHtml(item.us_research_challenger.status)}</h3>${table(['상승 확률','예상 수익률','80% 수익률 구간','자체 OOF 보정 표본','최종 Brier / 포함률'],[[pct(item.us_research_challenger.p_up),pct(item.us_research_challenger.expected_return),`${pct(item.us_research_challenger.range_low)} ~ ${pct(item.us_research_challenger.range_high)}`,item.us_research_challenger.calibration_n,`${item.us_research_challenger.terminal_metrics?.brier?.toFixed(4)} / ${pct(item.us_research_challenger.terminal_metrics?.coverage80)}`]])}<p class="muted">미국 입력을 실제 사용한 별도 후보입니다. 기존 선택 모델을 자동 교체하지 않으며, 이미 열람된 최종 이력을 이용한 회고 실험입니다.</p>`}
-    <h3>동일 날짜 baseline 대비 개발 구간</h3>${table(['모델 / 그룹','보정된 표본','Brier ↓','MAE ↓','미통과 사유'],candidates)}
-    <h3>고정 모델의 최종 검증 구간</h3>${table(['표본','Brier','Log loss','MAE','80% 포함률','평균 구간폭'],[[e.metrics?.n,e.metrics?.brier?.toFixed(4),e.metrics?.log_loss?.toFixed(4),pct(e.metrics?.mae),pct(e.metrics?.coverage80),pct(e.metrics?.average_width)]])}
-    <h3>감사 참고 기준</h3>${table(['기준','같은 날짜 표본','Brier','MAE','설명용 지수 노출 수익률'],Object.entries(e.metrics?.reference_baselines ?? {}).map(([name,r])=>[name,r.n,r.brier?.toFixed(4),pct(r.mae),pct(r.hypothetical_exposure_return)]))}
-    <p class="muted">이전 방향·단순 추세는 보정하지 않은 참고 예측입니다. buy_hold·cash는 동일 검증 날짜의 설명용 노출 비교이며 매매 체결, 비용, 배당·이자를 반영한 투자 손익이 아닙니다. 승인 기준은 변경하지 않습니다.</p>
-    <h3>주요 참여자의 가격·수급·소유 변화와 지수의 관계</h3>
-    <p>자료 상태: <strong>${escapeHtml(impact?.status)}</strong> · 인과 효과: ${escapeHtml(impact?.causal_effect)} · 예측 개선: ${escapeHtml(impact?.forecast_uplift)}</p>
-    <p class="muted">KOSPI/KOSDAQ가 예측 대상입니다. 종목 수급은 당시 검증된 보통주 100/50개 안에서만 집계하며, 시장 전체 수급은 별도 그룹입니다. 외국인·기관·연기금은 각각 자료가 충분한 경우 후보 입력에 들어갑니다. 순매수로 숨은 포지션을 추정하지 않습니다.</p>
-    ${table(['참여자 입력 그룹','과거 완전 표본','최소 필요 표본','현재 입력','예측 후보 사용'],Object.entries(impact?.forecast_group_eligibility ?? {}).map(([name,r])=>[name,r.eligible_n,r.required_n,r.live_ready,r.eligible]))}
-    <p>관측 자료 수: ${escapeHtml(JSON.stringify(impact?.source_coverage ?? {}))} · 누락 참여자: ${escapeHtml((impact?.missing_participants ?? []).join(', '))}</p>
-    <p>포지션 관측: ${escapeHtml(JSON.stringify(impact?.position_evidence?.observed ?? {}))} · 추론: ${escapeHtml(impact?.position_evidence?.inferred ?? 'inconclusive')}</p>
-    <details><summary>동일 세션·다음 세션 관측 연관성 진단</summary><p class="muted">전체 이력의 설명용 분석이며, 그룹 선택·모델 가중치·예측 개선의 증거로 사용하지 않습니다. 개선 여부는 앞선 개발 OOF와 고정 모델의 최종 검증으로 판단합니다.</p><pre>${escapeHtml(JSON.stringify(impact?.influence ?? {},null,2))}</pre></details>
-    <p class="muted">정규화 자료 출처: ${escapeHtml(item.participant_bridge_manifest?.input_kind)} · 체크섬 <code>${escapeHtml(item.participant_bridge_manifest?.observation_sha256)}</code></p>
-    <h3>국제 뉴스·미국–이란 맥락</h3><p>${escapeHtml(item.event_context?.status)} · ${escapeHtml(item.event_context?.news_ml_status)}. 기사 공개를 확인했다는 뜻과 사건 자체를 독립 검증했다는 뜻은 다릅니다.</p>
-    ${(item.event_context?.observed ?? []).map(event=>`<p><strong>${escapeHtml(event.title)}</strong> · ${escapeHtml(event.source)} · 공개 ${escapeHtml(event.published_at ?? event.published_date)} / 실제 확인 ${escapeHtml(event.first_seen_at)}<br>${escapeHtml(JSON.stringify(event.claims))}<br>${escapeHtml(event.source_url)}</p>`).join('')}
-    <p>조건부 경로: ${escapeHtml((item.event_context?.channels ?? []).join(', '))}</p><ul>${(item.event_context?.conditional_scenarios ?? []).map(text=>`<li>${escapeHtml(text)}</li>`).join('')}</ul>
-    <p class="muted">현재 뉴스는 과거 행에 소급하지 않습니다. 수치 뉴스 결합은 별도 OOF 검증이 충분할 때만 허용하며, 미확인 사건에 임의 확률 보정을 주지 않습니다.</p>
-    ${item.international_news ? `<p>검증된 뉴스 결합 가중치 α: ${escapeHtml(item.international_news.alpha)} · 준비 상태: ${escapeHtml(item.international_news.news_model_ready)} · ${escapeHtml((item.international_news.gate_reasons ?? []).join(', '))}</p><details><summary>현재 출처·신선도 가중치와 관측 특징</summary><pre>${escapeHtml(JSON.stringify(item.international_news.current_features,null,2))}</pre></details>` : ''}
-    <h3>수급·포지션 근거</h3><p><strong>관측:</strong> ${escapeHtml(JSON.stringify(p.observed))}</p>
-    <p><strong>추론:</strong> ${escapeHtml(p.inferred)} · ${escapeHtml(p.confidence)}</p><p><strong>미확인:</strong> ${escapeHtml(p.unverified.join(' · '))}</p>
-    <p><strong>누락:</strong> ${escapeHtml(p.missing.join(', '))}</p><p><strong>독립 포지션 분석:</strong> ${escapeHtml(JSON.stringify(item.position_subproject))}</p>
-    <p class="muted">forecast_id <code>${escapeHtml(item.forecast_id)}</code></p></article>`;
-  }).join('');
-}).catch(error=>{document.getElementById('status').textContent=error.message;});
-</script></body></html>
+
+Promise.all([
+  loadPublishedRun(),
+  loadPublishedRun('data/us').catch(() => null),
+]).then(results => {
+  const runs = results.filter(Boolean);
+  const markets = runs.flatMap(r => (r.markets ?? []).map(m => ({ item: m, runStatus: r.status })));
+
+  document.getElementById('status').textContent = '';
+
+  const content = document.getElementById('content');
+  if (!markets.length) {
+    const reasons = runs.flatMap(r => r.reasons ?? []).filter(Boolean);
+    content.innerHTML = reasons.length
+      ? `<p class="empty-state">${escapeHtml(reasons.join(' · '))}</p>`
+      : '<p class="empty-state">표시할 연구 결과가 없습니다.</p>';
+    return;
+  }
+
+  const order = ['KOSPI', 'KOSDAQ', 'US_SPX', 'US_NASDAQ'];
+  markets.sort((a, b) => {
+    const ia = order.indexOf(a.item.market);
+    const ib = order.indexOf(b.item.market);
+    return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+  });
+
+  content.innerHTML = `<div class="forecast-grid">${markets.map(({ item, runStatus }) => renderCard(item, runStatus)).join('')}</div>`;
+}).catch(error => {
+  document.getElementById('status').textContent = error.message;
+});
+</script>
+</body>
+</html>

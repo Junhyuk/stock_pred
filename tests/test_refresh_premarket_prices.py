@@ -24,6 +24,16 @@ SPEC.loader.exec_module(refresh)
 KST = ZoneInfo("Asia/Seoul")
 
 
+def test_timezone_aware_yahoo_bar_uses_the_seoul_session_date():
+    frame = pd.DataFrame(
+        {"Open": [1.0], "High": [1.0], "Low": [1.0], "Close": [5059.0], "Volume": [1.0]},
+        index=pd.to_datetime(["2026-11-09 15:00:00+00:00"]),
+    )
+    frame.index.name = "Date"
+    bars = refresh.bars_from_download(frame)
+    assert bars["session_date"].tolist() == ["2026-11-10"]
+
+
 def test_symbols_are_kospi_kosdaq_and_the_four_us_indexes():
     assert refresh.KR_SYMBOLS == {"KOSPI": "^KS11", "KOSDAQ": "^KQ11"}
     assert refresh.US_PRICE_SYMBOLS == US_SYMBOLS == ("^GSPC", "^IXIC", "^SOX", "^VIX")
