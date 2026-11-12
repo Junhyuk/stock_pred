@@ -222,6 +222,182 @@ def test_us_merge_keeps_an_existing_close_and_appends_a_new_session():
     assert by_day["2026-10-23"] == pytest.approx(5800.0)
 
 
+KR_SESSIONS = ["2026-11-11", "2026-11-12", "2026-11-13"]
+# 2026-11-12 20:05:40 KST, after the cash close and before the next open.
+NOV12_QUOTE_TIME = 1794481540
+
+
+def _quote_metadata(**overrides):
+    metadata = {
+        "regularMarketPrice": 5342.73,
+        "fulldayPrice": 5342.73,
+        "regularMarketTime": NOV12_QUOTE_TIME,
+        "regularMarketDayHigh": 0.0,
+        "regularMarketDayLow": 0.0,
+        "regularMarketVolume": 0,
+    }
+    metadata.update(overrides)
+    return metadata
+
+
+def _daily_frame(dates, closes):
+    return pd.DataFrame(
+        {
+            "Open": [1.0] * len(dates),
+            "High": [2.0] * len(dates),
+            "Low": [0.5] * len(dates),
+            "Close": closes,
+            "Volume": [10.0] * len(dates),
+        },
+        index=pd.to_datetime(dates),
+    )
+
+
+class _QuoteYahoo:
+    def __init__(self, frame, metadata):
+        self.frame = frame
+        self.metadata = metadata
+        self.quote_calls = []
+
+    def download(self, symbol, start, end, **kwargs):
+        if symbol in refresh.KR_SYMBOLS.values():
+            return self.frame
+        return pd.DataFrame()
+
+    def Ticker(self, symbol):
+        self.quote_calls.append(symbol)
+        metadata = self.metadata[symbol]
+
+        class _Ticker:
+            def get_history_metadata(_self):
+                return metadata
+
+        return _Ticker()
+
+
+def test_quote_close_fills_a_completed_session_the_daily_history_omits():
+    fetched = datetime(2026, 11, 13, 7, 50, tzinfo=KST)
+    closed = refresh.latest_closed_session(fetched, KR_SESSIONS)
+    assert closed["session_date"] == "2026-11-12"
+    bar = refresh.quote_bar_for_session(_quote_metadata(), closed, fetched_at=fetched)
+    assert bar == {
+        "session_date": "2026-11-12",
+        "open": None,
+        "high": None,
+        "low": None,
+        "close": pytest.approx(5342.73),
+        "volume": None,
+    }
+    preopen = int(datetime(2026, 11, 13, 7, 40, tzinfo=KST).timestamp())
+    morning = refresh.quote_bar_for_session(
+        _quote_metadata(regularMarketTime=preopen), closed, fetched_at=fetched)
+    assert morning["session_date"] == "2026-11-12"
+    assert morning["close"] == pytest.approx(5342.73)
+
+
+def test_quote_during_the_session_or_after_the_next_open_is_not_a_close():
+    fetched = datetime(2026, 11, 13, 7, 50, tzinfo=KST)
+    closed = refresh.latest_closed_session(fetched, KR_SESSIONS)
+    during = int(datetime(2026, 11, 12, 14, 0, tzinfo=KST).timestamp())
+    assert refresh.quote_bar_for_session(
+        _quote_metadata(regularMarketTime=during), closed, fetched_at=fetched) is None
+    live_fetch = datetime(2026, 11, 13, 10, 0, tzinfo=KST)
+    live_closed = refresh.latest_closed_session(live_fetch, KR_SESSIONS)
+    assert live_closed["session_date"] == "2026-11-12"
+    live_time = int(live_fetch.timestamp())
+    assert refresh.quote_bar_for_session(
+        _quote_metadata(regularMarketTime=live_time, regularMarketPrice=5400.0, fulldayPrice=5400.0),
+        live_closed, fetched_at=live_fetch) is None
+    assert refresh.quote_bar_for_session(
+        _quote_metadata(fulldayPrice=5300.0), closed, fetched_at=fetched) is None
+    assert refresh.quote_bar_for_session(
+        _quote_metadata(regularMarketPrice=0), closed, fetched_at=fetched) is None
+
+
+def test_refresh_appends_the_quote_close_and_keeps_an_existing_daily_bar(tmp_path, capsys):
+    fetched = datetime(2026, 11, 13, 7, 50, tzinfo=KST)
+    db_path = tmp_path / "index_forecast.sqlite"
+    conn = connect_index_forecast(db_path)
+    conn.execute(
+        "INSERT INTO index_eod (index_code, session_date, close, source, published_at, ingested_at) "
+        "VALUES ('KOSPI', '2026-11-11', 1.5, 'existing-source', '2026-11-11', '2026-11-11T08:00:00+00:00')"
+    )
+    conn.commit()
+    conn.close()
+    yahoo = _QuoteYahoo(
+        _daily_frame(["2026-11-11"], [5375.36]),
+        {
+            "^KS11": _quote_metadata(),
+            "^KQ11": _quote_metadata(regularMarketPrice=696.53, fulldayPrice=696.53),
+        },
+    )
+    with pytest.raises(ValueError, match="no completed US bars"):
+        refresh.refresh_premarket_prices(
+            sqlite_path=db_path, output_dir=tmp_path, yf_module=yahoo, fetched_at=fetched, sessions=KR_SESSIONS)
+    assert yahoo.quote_calls == ["^KS11", "^KQ11"]
+    assert "quote close was not used" not in capsys.readouterr().err
+    stored = connect_index_forecast(db_path)
+    kospi_old = stored.execute(
+        "SELECT close, source FROM index_eod WHERE index_code='KOSPI' AND session_date='2026-11-11'"
+    ).fetchone()
+    assert kospi_old[0] == 1.5
+    assert kospi_old[1] == "existing-source"
+    kospi = stored.execute(
+        "SELECT open, high, low, close, volume, turnover, published_at, source "
+        "FROM index_eod WHERE index_code='KOSPI' AND session_date='2026-11-12'"
+    ).fetchone()
+    assert kospi[:7] == (None, None, None, pytest.approx(5342.73), None, None, None)
+    assert kospi[7] == "yfinance ^KS11; original publication time is unknown"
+    kosdaq = stored.execute(
+        "SELECT close, volume, published_at, source FROM index_eod WHERE index_code='KOSDAQ' AND session_date='2026-11-12'"
+    ).fetchone()
+    assert kosdaq[0] == pytest.approx(696.53)
+    assert kosdaq[1] is None and kosdaq[2] is None
+    assert "yfinance ^KQ11" in kosdaq[3]
+    assert stored.execute("SELECT COUNT(*) FROM investor_flow").fetchone()[0] == 0
+    codes = {row[0] for row in stored.execute("SELECT DISTINCT index_code FROM index_eod")}
+    assert codes == {"KOSPI", "KOSDAQ"}
+    stored.close()
+
+    already = _QuoteYahoo(
+        _daily_frame(["2026-11-11", "2026-11-12"], [5375.36, 111.0]),
+        {"^KS11": _quote_metadata(regularMarketPrice=999.0, fulldayPrice=999.0),
+         "^KQ11": _quote_metadata(regularMarketPrice=999.0, fulldayPrice=999.0)},
+    )
+    fresh = tmp_path / "fresh.sqlite"
+    with pytest.raises(ValueError, match="no completed US bars"):
+        refresh.refresh_premarket_prices(
+            sqlite_path=fresh, output_dir=tmp_path, yf_module=already, fetched_at=fetched, sessions=KR_SESSIONS)
+    assert already.quote_calls == []
+    saved = connect_index_forecast(fresh)
+    closes = {
+        (row[0], row[1]): row[2]
+        for row in saved.execute("SELECT index_code, session_date, close FROM index_eod")
+    }
+    assert closes[("KOSPI", "2026-11-12")] == 111.0
+    assert closes[("KOSDAQ", "2026-11-12")] == 111.0
+    saved.close()
+
+
+def test_unusable_quote_does_not_invent_a_close(tmp_path, capsys):
+    fetched = datetime(2026, 11, 13, 7, 50, tzinfo=KST)
+    yahoo = _QuoteYahoo(
+        _daily_frame(["2026-11-11"], [5375.36]),
+        {"^KS11": _quote_metadata(fulldayPrice=5300.0), "^KQ11": _quote_metadata(regularMarketPrice=0)},
+    )
+    with pytest.raises(ValueError, match="no completed US bars"):
+        refresh.refresh_premarket_prices(
+            sqlite_path=tmp_path / "index_forecast.sqlite", output_dir=tmp_path,
+            yf_module=yahoo, fetched_at=fetched, sessions=KR_SESSIONS)
+    err = capsys.readouterr().err
+    assert "yahoo daily history omits ^KS11 2026-11-12; quote close was not used" in err
+    assert "yahoo daily history omits ^KQ11 2026-11-12; quote close was not used" in err
+    stored = connect_index_forecast(tmp_path / "index_forecast.sqlite")
+    dates = {row[0] for row in stored.execute("SELECT session_date FROM index_eod")}
+    assert "2026-11-12" not in dates
+    stored.close()
+
+
 def test_existing_us_snapshot_is_not_rewritten_when_it_already_covers_the_merge(tmp_path):
     old = pd.DataFrame([{
         "symbol": "^GSPC",

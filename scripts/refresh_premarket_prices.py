@@ -9,6 +9,11 @@ changed US snapshot is not overwritten.
 When the SQLite file or an existing dated US CSV already holds the 2019 backfill,
 only a short overlap is downloaded and new sessions are appended. Missing history
 still requests bars from 2019-01-01.
+
+Yahoo's daily history can omit the latest completed Seoul session. That close is
+taken from the quote only when its clock is at or after the session close and
+before the next open. Open, high, low, and volume stay missing. An existing
+session date is still not replaced.
 """
 from __future__ import annotations
 
@@ -89,6 +94,137 @@ def bars_from_download(frame: pd.DataFrame | None) -> pd.DataFrame:
         "volume": pd.to_numeric(data["Volume"], errors="coerce") if "Volume" in data else pd.NA,
     })
     return bars.dropna(subset=["session_date"]).drop_duplicates("session_date", keep="last")
+
+
+def latest_closed_session(fetched_at, sessions=None) -> dict | None:
+    """Latest XKRX session whose close is at or before the fetch, plus the next open."""
+    fetched = utc_timestamp(fetched_at)
+    if pd.isna(fetched):
+        raise ValueError("fetch time is required")
+    local_day = fetched.tz_convert(KST).normalize().tz_localize(None)
+    schedule, _source = session_schedule(local_day - timedelta(days=14), local_day + timedelta(days=14), sessions)
+    schedule = schedule.dropna(subset=["close_at"]).sort_values("date")
+    closed = schedule.loc[schedule["close_at"] <= fetched]
+    if closed.empty:
+        return None
+    current = closed.iloc[-1]
+    upcoming = schedule.loc[schedule["date"] > current["date"]]
+    next_open = upcoming.iloc[0]["open_at"] if not upcoming.empty else pd.NaT
+    return {
+        "session_date": str(current["date"])[:10],
+        "close_at": current["close_at"],
+        "next_open_at": next_open,
+    }
+
+
+def _quote_clock(value: object) -> pd.Timestamp:
+    if isinstance(value, pd.Timestamp):
+        stamp = value
+    else:
+        number = pd.to_numeric(value, errors="coerce")
+        if pd.notna(number):
+            number = float(number)
+            if number > 10**12:
+                number = number / 1000.0
+            stamp = pd.Timestamp(number, unit="s", tz="UTC")
+        else:
+            try:
+                stamp = pd.Timestamp(value)
+            except (TypeError, ValueError, OverflowError):
+                return pd.NaT
+    if pd.isna(stamp):
+        return pd.NaT
+    if stamp.tzinfo is None:
+        stamp = stamp.tz_localize("UTC")
+    return stamp.tz_convert("UTC")
+
+
+def _quote_prices_agree(primary: float, other: float | None) -> bool:
+    if other is None or other <= 0:
+        return True
+    scale = max(abs(primary), abs(other), 1.0)
+    return abs(primary - other) <= 1e-6 * scale
+
+
+def quote_bar_for_session(metadata, closed: dict | None, *, fetched_at) -> dict | None:
+    """Close-only bar when the quote clock sits between that session close and the next open.
+
+    A daily history lag is filled from regularMarketPrice. A timestamp during the
+    session, or at/after the next open, is not treated as a completed close.
+    """
+    if not metadata or not closed:
+        return None
+    fetched = utc_timestamp(fetched_at)
+    close_at = utc_timestamp(closed.get("close_at"))
+    next_open = utc_timestamp(closed.get("next_open_at"))
+    price = _optional_float(metadata.get("regularMarketPrice"))
+    if price is None or price <= 0 or pd.isna(fetched) or pd.isna(close_at) or pd.isna(next_open):
+        return None
+    if not _quote_prices_agree(price, _optional_float(metadata.get("fulldayPrice"))):
+        return None
+    stamp = _quote_clock(metadata.get("regularMarketTime"))
+    if pd.isna(stamp) or stamp < close_at or stamp > fetched or stamp >= next_open:
+        return None
+    session_date = str(closed.get("session_date") or "")[:10]
+    if len(session_date) != 10:
+        return None
+    return {
+        "session_date": session_date,
+        "open": None,
+        "high": None,
+        "low": None,
+        "close": price,
+        "volume": None,
+    }
+
+
+def _session_dates(bars: pd.DataFrame | None) -> set[str]:
+    if bars is None or bars.empty or "session_date" not in bars.columns:
+        return set()
+    return set(bars["session_date"].astype(str).str.slice(0, 10))
+
+
+def _yahoo_quote_metadata(symbol: str, yf_module) -> dict | None:
+    ticker_type = getattr(yf_module, "Ticker", None)
+    if ticker_type is None:
+        return None
+    try:
+        metadata = ticker_type(symbol).get_history_metadata()
+    except (AttributeError, OSError, RuntimeError, TypeError, ValueError, KeyError):
+        return None
+    if metadata is None:
+        return None
+    getter = getattr(metadata, "get", None)
+    if getter is None:
+        return None
+    return metadata
+
+
+def supplement_kr_bars(bars: pd.DataFrame | None, symbol: str, yf_module, *,
+                       fetched_at, sessions=None) -> pd.DataFrame:
+    """Append the quote close when daily bars omit the latest completed session."""
+    frame = bars if bars is not None else pd.DataFrame()
+    if getattr(yf_module, "Ticker", None) is None:
+        return frame
+    try:
+        closed = latest_closed_session(fetched_at, sessions)
+    except (ImportError, ValueError, TypeError, KeyError, OverflowError):
+        return frame
+    if closed is None or closed["session_date"] in _session_dates(frame):
+        return frame
+    row = quote_bar_for_session(
+        _yahoo_quote_metadata(symbol, yf_module), closed, fetched_at=fetched_at)
+    if row is None:
+        print(
+            f"yahoo daily history omits {symbol} {closed['session_date']}; quote close was not used",
+            file=sys.stderr,
+        )
+        return frame
+    if frame.empty:
+        return pd.DataFrame([row])
+    out = frame.reset_index(drop=True)
+    out.loc[len(out)] = {column: row.get(column) for column in out.columns}
+    return out
 
 
 def completed_kr_rows(bars: pd.DataFrame, *, index_code: str, fetched_at, sessions=None) -> list[dict]:
@@ -342,7 +478,7 @@ def _download_daily(symbol: str, start: str, end: str, yf_module) -> pd.DataFram
 
 def refresh_premarket_prices(*, sqlite_path: str | Path, output_dir: str | Path,
                              start: str = HISTORY_START, fetched_at: datetime | None = None,
-                             yf_module=None) -> dict:
+                             yf_module=None, sessions=None) -> dict:
     fetched_at = fetched_at if fetched_at is not None else datetime.now(KST)
     fetched = utc_timestamp(fetched_at)
     if pd.isna(fetched):
@@ -361,7 +497,9 @@ def refresh_premarket_prices(*, sqlite_path: str | Path, output_dir: str | Path,
         inserted = 0
         for index_code, symbol in KR_SYMBOLS.items():
             bars = bars_from_download(_download_daily(symbol, kr_start, end, yf))
-            inserted += append_kr_rows(conn, completed_kr_rows(bars, index_code=index_code, fetched_at=fetched))
+            bars = supplement_kr_bars(bars, symbol, yf, fetched_at=fetched, sessions=sessions)
+            inserted += append_kr_rows(
+                conn, completed_kr_rows(bars, index_code=index_code, fetched_at=fetched, sessions=sessions))
         stored = conn.execute(
             "SELECT COUNT(*) FROM index_eod WHERE index_code IN ('KOSPI', 'KOSDAQ')"
         ).fetchone()[0]
