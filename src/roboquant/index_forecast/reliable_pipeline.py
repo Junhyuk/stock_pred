@@ -360,7 +360,11 @@ def run_reliable_pipeline(sqlite_path: str | Path, output_dir: str | Path, *, co
                 original = current.get(field)
                 if original is not None and not pd.isna(original):
                     stamp = utc_timestamp(original)
-                    if pd.isna(stamp) or stamp > utc_timestamp(context["prediction_cutoff"]):
+                    # The 08:00 cutoff stays the research snapshot. A close copied
+                    # after 08:00 is still usable when this run already holds it
+                    # and the session itself closed before that snapshot.
+                    limit = context["issued_at"] if field == "ingested_at" else context["prediction_cutoff"]
+                    if pd.isna(stamp) or stamp > utc_timestamp(limit):
                         context.update(status="blocked_unavailable_input", reasons=[f"latest_index_{field}_unavailable_at_cutoff"])
                         break
             if context["status"] != "ready":
