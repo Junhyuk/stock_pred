@@ -1,0 +1,46 @@
+name: Premarket smoke
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 07:40 Asia/Seoul on weekdays, before the 07:50 forecast job.
+    - cron: "40 22 * * 0-4"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: premarket-smoke
+  cancel-in-progress: false
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install smoke dependencies
+        run: |
+          set -eu
+          python -m pip install "exchange-calendars>=4.5" "pandas>=2.2" "numpy>=1.26" "pytest>=8.0"
+
+      - name: Trading-day gate
+        id: gate
+        run: python scripts/premarket_trading_day_gate.py
+
+      - name: Gate and price-refresh tests
+        run: |
+          set -eu
+          python -m pytest -q \
+            tests/test_premarket_trading_day_gate.py \
+            tests/test_refresh_premarket_prices.py \
+            tests/test_premarket_workflow_smoke.py
