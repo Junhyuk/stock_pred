@@ -154,7 +154,7 @@ def run_us_reliable_pipeline(observations: pd.DataFrame | str | Path, output_dir
         _atomic_json(output / "reliable_index_forecast.json", blocked)
         return blocked
     code_hash = _hash({name: hashlib.sha256(Path(__file__).with_name(name).read_bytes()).hexdigest()
-                      for name in ("us_market_pipeline.py", "us_market_inputs.py", "reliable.py", "fit_protocol.py", "market_calendar.py", "reliable_pipeline.py", "event_context.py", "international_news.py")})
+                      for name in ("us_market_pipeline.py", "us_market_inputs.py", "reliable.py", "reliable_intervals.py", "fit_protocol.py", "market_calendar.py", "reliable_pipeline.py", "event_context.py", "international_news.py")})
     run = {"schema_version": "reliable_index_forecast_v1", "status": "unpublished", "issued_at": None,
            "artifact_written_at": None, "run_started_at": issued.isoformat(), "prepared_at": None,
            "publication_manifest": "reliable_publication.json", "replay": now is not None,

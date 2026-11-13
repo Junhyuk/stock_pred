@@ -240,3 +240,16 @@ def test_corrupt_or_incompatible_live_artifact_never_recaptures(tmp_path, failur
     assert result['status'] == 'not_ready'
     assert result['reason']
     assert path.read_text() == raw
+def test_interval_preserves_positive_current_volatility_below_denominator_floor():
+    from roboquant.index_forecast.reliable_intervals import normalized_interval_shadows
+
+    rows = [{'label_available_at': '2019-01-03T22:00:00+00:00',
+             'target_close_at': '2019-01-03T21:00:00+00:00',
+             'actual_return': (i + 1) / 1000, 'expected_return': 0.,
+             'scale_at_prediction': .01,
+             'baselines': {'mean': {'expected_return': .001}}} for i in range(10)]
+    shadow = normalized_interval_shadows(rows, cutoff='2019-01-04T22:00:00Z',
+        predicted=0., scale=1e-8, mean_prediction=.001, window=252, min_rows=10)['volatility_normalized']
+    assert shadow['status'] == 'ready'
+    assert shadow['range_high'] == pytest.approx(.9e-8)
+    assert shadow['range_low'] == pytest.approx(-.9e-8)

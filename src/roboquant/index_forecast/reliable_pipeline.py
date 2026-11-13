@@ -418,7 +418,7 @@ def run_reliable_pipeline(sqlite_path: str | Path, output_dir: str | Path, *, co
         _atomic_json(output / "reliable_index_forecast.json", result)
         return result
     code_hash = _hash({name: hashlib.sha256(Path(__file__).with_name(name).read_bytes()).hexdigest()
-                       for name in ("reliable.py", "fit_protocol.py", "market_calendar.py", "reliable_inputs.py", "reliable_pipeline.py", "participant_impact.py", "us_market_inputs.py", "event_context.py", "international_news.py")})
+                       for name in ("reliable.py", "reliable_intervals.py", "fit_protocol.py", "market_calendar.py", "reliable_inputs.py", "reliable_pipeline.py", "participant_impact.py", "us_market_inputs.py", "event_context.py", "international_news.py")})
     input_hashes = {"index": _frame_hash(prices), "membership": _frame_hash(membership),
                     "stock_prices": _frame_hash(stock_prices), "participant_flows": _frame_hash(flows),
                     "us_observations": _frame_hash(us_data), "current_event_context": _hash(event_payload),

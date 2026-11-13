@@ -37,7 +37,7 @@ def runtime_fingerprint() -> dict:
         except PackageNotFoundError:
             packages[name] = None
     sources = {name: hashlib.sha256(Path(__file__).with_name(name).read_bytes()).hexdigest()
-               for name in ('fit_protocol.py', 'reliable.py', 'market_calendar.py',
+               for name in ('fit_protocol.py', 'reliable.py', 'reliable_intervals.py', 'market_calendar.py',
                             'reliable_inputs.py', 'reliable_pipeline.py',
                             'us_market_inputs.py', 'us_market_pipeline.py')}
     return {'packages': packages, 'source_hash': content_hash(sources)}

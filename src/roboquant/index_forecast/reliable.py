@@ -28,6 +28,10 @@ from roboquant.index_forecast.fit_protocol import (
     session_anchor,
     validate_model_artifact,
 )
+from roboquant.index_forecast.reliable_intervals import (
+    interval_score80,
+    normalized_interval_shadows,
+)
 
 
 @dataclass(frozen=True)
@@ -329,6 +333,10 @@ def _walk(data: pd.DataFrame, groups: dict[str, list[str]], config: ReliableSett
                     "raw_p_up": float(raw), "p_up": p_up, "p_down": 1 - p_up, "p_flat": 0.0,
                     "calibration_n": len(previous), "calibration_ready": calibrated and radius is not None,
                     "probability_method": "sigmoid_oof" if calibrated else "raw_uncalibrated",
+                    "scale_at_prediction": float(vol.iloc[position]) if np.isfinite(vol.iloc[position]) else None,
+                    "interval_shadows": normalized_interval_shadows(previous, cutoff=cutoff,
+                        predicted=float(expected), scale=vol.iloc[position], mean_prediction=mean,
+                        window=config.calibration_window, min_rows=config.min_calibration_rows),
                     **_range(float(expected), radius)})
         legacy_records.append(record_base)
     return histories
@@ -339,7 +347,7 @@ def _simple_metrics(actual: np.ndarray, predicted: np.ndarray | None, probabilit
     binary = (actual > 0).astype(float)
     p = np.clip(probability, 1e-12, 1 - 1e-12)
     result = {"n": len(actual), "brier": float(np.mean((probability - binary) ** 2)),
-              "probability_direction_hit": float(np.mean((probability > .5) == (actual > 0))),
+              "probability_direction_hit": float(np.mean((probability >= .5) == (actual > 0))),
               "log_loss": float(np.mean(-binary * np.log(p) - (1 - binary) * np.log(1 - p)))}
     if predicted is not None:
         result.update(mae=float(np.mean(abs(actual - predicted))),
@@ -348,6 +356,8 @@ def _simple_metrics(actual: np.ndarray, predicted: np.ndarray | None, probabilit
     if low is not None and high is not None:
         result.update(coverage80=float(np.mean((actual >= low) & (actual <= high))),
                       average_width=float(np.mean(high - low)),
+                      interval_score80=float(np.mean(interval_score80(actual, low, high))),
+                      upper_breach=float(np.mean(actual > high)),
                       lower_breach=float(np.mean(actual < low)))
     return result
 
@@ -433,6 +443,7 @@ def _score(records: list[dict], config: ReliableSettings, *, bootstrap: bool = T
                            "role": "descriptive_zero_exposure_not_execution_pnl",
                            "assumptions": "zero index exposure; interest and costs not modeled"}
     metrics["reference_baselines"] = references
+    metrics["interval_shadows"] = _score_interval_shadows(usable, config, bootstrap=False)
     metrics["brier_difference_ci95"] = {}
     if bootstrap:
         loss = (p - (y > 0)) ** 2
@@ -440,6 +451,32 @@ def _score(records: list[dict], config: ReliableSettings, *, bootstrap: bool = T
             baseline_loss = (np.asarray([r["baselines"][name]["p_up"] for r in usable]) - (y > 0)) ** 2
             metrics["brier_difference_ci95"][name] = _bootstrap(loss - baseline_loss, config)
     return metrics
+
+
+def _score_interval_shadows(records: list[dict], config: ReliableSettings, *, bootstrap: bool) -> dict:
+    reports = {}
+    for name in ("volatility_normalized", "mean_volatility_normalized"):
+        rows = [row for row in records if row.get("interval_shadows", {}).get(name, {}).get("status") == "ready"
+                and row.get("range_low") is not None]
+        report = {"n": len(rows), "eligible_forecasts": len(records),
+                  "availability_rate": len(rows) / len(records) if records else 0.,
+                  "evidence_status": "retrospective_diagnostic_not_promotion", "production_weight": 0.}
+        if rows:
+            y = np.asarray([row["actual_return"] for row in rows])
+            low = np.asarray([row["interval_shadows"][name]["range_low"] for row in rows])
+            high = np.asarray([row["interval_shadows"][name]["range_high"] for row in rows])
+            score = interval_score80(y, low, high)
+            incumbent = interval_score80(y, np.asarray([row["range_low"] for row in rows]),
+                                        np.asarray([row["range_high"] for row in rows]))
+            report.update(coverage80=float(np.mean((y >= low) & (y <= high))),
+                average_width=float(np.mean(high - low)), lower_breach=float(np.mean(y < low)),
+                upper_breach=float(np.mean(y > high)), interval_score80=float(np.mean(score)),
+                incumbent_interval_score80=float(np.mean(incumbent)),
+                interval_score_difference=float(np.mean(score - incumbent)))
+            if bootstrap:
+                report["interval_score_difference_ci95"] = _bootstrap(score - incumbent, config)
+        reports[name] = report
+    return reports
 
 
 def _gate(metrics: dict, config: ReliableSettings) -> list[str]:
@@ -561,6 +598,7 @@ def evaluate_reliable_forecasts(frame: pd.DataFrame, *, feature_groups: dict[str
     records = histories[f"{selected['family']}:{selected['group']}"]
     terminal = [r for r in _mature(records, reporting_cutoff, len(records)) if r["asof_date"] >= terminal_start]
     metrics = _score(terminal, config)
+    metrics["interval_shadows"] = _score_interval_shadows(terminal, config, bootstrap=True)
     reasons = _gate(metrics, config)
     if not eligible:
         reasons = ["development_gate_failed", *chosen["gate_reasons"], *reasons]
@@ -579,6 +617,8 @@ def evaluate_reliable_forecasts(frame: pd.DataFrame, *, feature_groups: dict[str
               "model_card": {"target": "P(next_session_return > 0)", "horizon": "1D",
                              "calibration": "sigmoid on prior mature OOF logits",
                              "range": "prior mature OOF absolute residual order statistic",
+                             "interval_shadow": "prior mature vol20-normalized OOF order statistic; point/probability unchanged",
+                             "direction_definitions": {"probability": "p_up >= 0.5", "return": "expected_return > 0", "actual": "actual_return > 0"},
                              "selection": "development only; terminal confirmation", "production_weight": 0.0},
               "ablation_comparison": [{"family": r["family"], "group": r["group"],
                   "development_metrics": r["development_metrics"], "gate_reasons": r["gate_reasons"]} for r in reports]}
@@ -629,6 +669,13 @@ def forecast_reliable_latest(history: pd.DataFrame, latest: pd.DataFrame, evalua
     previous = _mature(records, cutoff, config.calibration_window)
     p_up, ready = _calibrate(previous, raw, config)
     radius = _radius(previous, config)
+    known = _prepare(history)
+    known = known.loc[(known["_asof_label"] < asof_label) & (known["_available"] <= cutoff)
+                      & (known["_target"] <= cutoff)]
+    mean = float(known["label_return"].mean()) if not known.empty else None
+    scale = current["volatility_20d"].iloc[0]
+    shadows = normalized_interval_shadows(previous, cutoff=cutoff, predicted=expected, scale=scale,
+        mean_prediction=mean, window=config.calibration_window, min_rows=config.min_calibration_rows)
     reasons = list(evaluation.get("gate_reasons", []))
     if not ready or radius is None:
         status = "not_ready"
@@ -647,6 +694,7 @@ def forecast_reliable_latest(history: pd.DataFrame, latest: pd.DataFrame, evalua
                   fit_asof=snapshot["anchor_asof"], fit_cutoff=snapshot["fit_cutoff"],
                   fit_snapshot_hash=snapshot["snapshot_hash"], fit_artifact_hash=artifact["artifact_hash"],
                   fit_provenance=snapshot["provenance"], next_refit_asof=anchor["next_refit_asof"])
+    result.update(scale_at_prediction=float(scale) if np.isfinite(scale) else None, interval_shadows=shadows)
     return result
 
 
