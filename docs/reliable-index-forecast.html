@@ -140,6 +140,7 @@
   <p class="notice">상승 확률은 P(다음 거래일 수익률 &gt; 0)입니다. 하락 확률은 1−상승 확률이며 보합은 별도 추정하지 않습니다.
     80% 구간은 과거 시점 외 표본 오차로 보정한 목표 구간이며, 시간 의존성으로 실제 포함률을 보장하지 않습니다.
     검증을 통과하지 못한 결과는 매매 신호가 아닙니다.</p>
+  <div id="automation-status" class="notice">자동 갱신 상태를 확인하는 중입니다.</div>
   <div id="status" role="status">로컬 연구 결과를 읽는 중입니다.</div>
   <div id="content"></div>
 </main>
@@ -267,6 +268,24 @@ function cardsFromRun(run) {
     runStatus: run.status,
   }));
 }
+
+function renderAutomationStatus(data) {
+  const checked = data.checked_at ? new Date(data.checked_at).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }) : '확인 불가';
+  const decision = data.reason === 'not_xkrx_session'
+    ? '한국 휴장일: 예측을 새로 생성하지 않았습니다.'
+    : '한국 거래일: 예측 실행을 완료했습니다. 개별 결과의 검증 상태를 확인하세요.';
+  const summary = (label, run) => {
+    if (!run) return `${label}: 검증된 직전 공개 시각 확인 불가`;
+    const dates = Object.entries(run.asof_dates ?? {}).map(([market, date]) => `${market} ${date ?? '확인 불가'}`).join(', ') || '확인 불가';
+    return `${label}: 공개 ${run.publication_checked_at}, 기준 종가일 ${dates}`;
+  };
+  return `자동 확인 ${checked} (한국 시각) · ${decision} ${summary('한국', data.korea)} · ${summary('미국', data.us)}. 미국 입력은 해당 시점에 완료된 정규장 종가 기준이며 한국 휴장일에는 미국 예측도 갱신하지 않습니다. 스케줄과 외부 데이터에 따라 갱신이 지연되거나 실패할 수 있습니다. 자동 실행은 뉴스 사건을 수집하지 않습니다.`;
+}
+
+fetch('data/automation_status.json', { cache: 'no-store' })
+  .then(response => { if (!response.ok) throw Error(); return response.json(); })
+  .then(data => { document.getElementById('automation-status').textContent = renderAutomationStatus(data); })
+  .catch(() => { document.getElementById('automation-status').textContent = '자동 갱신 상태를 확인할 수 없습니다. 각 카드의 기준 종가일을 확인하세요.'; });
 
 Promise.all([
   loadPublishedRun(),

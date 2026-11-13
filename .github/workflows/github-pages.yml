@@ -15,7 +15,8 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  # Serialize with the forecast deployment; never cancel an active publish.
+  cancel-in-progress: false
 
 jobs:
   deploy:

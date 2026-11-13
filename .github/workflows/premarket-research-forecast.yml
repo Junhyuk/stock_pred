@@ -2,13 +2,12 @@ name: Premarket research forecast
 
 on:
   schedule:
-    # Once each weekday: 22:50 UTC is 07:50 Asia/Seoul, Monday–Friday.
-    # That push of docs/ is what refreshes the live card page.
-    - cron: "50 22 * * 0-4"
+    # Every day at 07:50 Asia/Seoul; the XKRX gate controls forecast execution.
+    - cron: "50 22 * * *"
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: premarket-research-forecast
@@ -16,6 +15,12 @@ concurrency:
 
 jobs:
   forecast:
+    # This repository's default branch is master. Update if the default branch changes.
+    if: github.ref == 'refs/heads/master'
+    permissions:
+      contents: write
+    outputs:
+      published: ${{ steps.publish.outputs.published }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
@@ -49,7 +54,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: data/processed/forecast-history
-          key: premarket-forecast-history-${{ steps.gate.outputs.kst_date }}
+          key: premarket-forecast-history-${{ steps.gate.outputs.kst_date }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
             premarket-forecast-history-
 
@@ -113,16 +118,14 @@ jobs:
           set -eu
           python scripts/run_reliable_index_forecast.py \
             --sqlite "${{ steps.prices.outputs.sqlite }}" \
-            --us-observations "${{ steps.prices.outputs.us_csv }}" \
-            --news-context docs/data/event_context/houthi_aramco_20261108.json
+            --us-observations "${{ steps.prices.outputs.us_csv }}"
 
       - name: US research forecast
         if: steps.gate.outputs.run == 'true'
         run: |
           set -eu
           python scripts/run_us_index_forecast.py \
-            --us-observations "${{ steps.prices.outputs.us_csv }}" \
-            --news-context docs/data/event_context/houthi_aramco_20261108.json
+            --us-observations "${{ steps.prices.outputs.us_csv }}"
 
       - name: Compress OOF archives
         if: steps.gate.outputs.run == 'true' && !cancelled()
@@ -177,11 +180,20 @@ jobs:
               shutil.copy2(csvs[-1], cache / csvs[-1].name)
           PY
 
+      - name: Record daily automation status
+        env:
+          KST_DATE: ${{ steps.gate.outputs.kst_date }}
+          GATE_REASON: ${{ steps.gate.outputs.reason }}
+        run: python scripts/write_automation_status.py --date "$KST_DATE" --reason "$GATE_REASON"
+
       - name: Commit compact Pages payloads
-        if: steps.gate.outputs.run == 'true' && success()
+        id: publish
+        env:
+          DEFAULT_BRANCH: master
         run: |
           set -eu
           files=(
+            docs/data/automation_status.json
             docs/data/reliable_index_forecast.json
             docs/data/reliable_validation_report.json
             docs/data/reliable_model_card.json
@@ -230,4 +242,34 @@ jobs:
 
           EOF
           )"
-          git push
+          git push origin "HEAD:$DEFAULT_BRANCH"
+          echo "published=true" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    needs: forecast
+    if: needs.forecast.outputs.published == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout published default branch
+        uses: actions/checkout@v4
+        with:
+          ref: master
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+      - name: Deploy Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

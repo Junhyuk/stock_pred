@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Exit 0 without a run when today's Asia/Seoul date is not an XKRX session.
 
-The scheduled clock is 07:50 KST (22:50 UTC, Sunday–Thursday). workflow_dispatch
-uses this same session-date gate. A calendar that cannot answer fails closed.
+The scheduled clock is daily at 07:50 KST (22:50 UTC). workflow_dispatch uses
+this same session-date gate. A calendar that cannot answer fails closed.
 """
 from __future__ import annotations
 
@@ -59,6 +59,7 @@ def emit_decision(decision: dict) -> int:
     if output:
         with open(output, "a", encoding="utf-8") as stream:
             stream.write(f"run={'true' if decision['run'] else 'false'}\n")
+            stream.write(f"reason={decision['reason']}\n")
             if decision.get("kst_date"):
                 stream.write(f"kst_date={decision['kst_date']}\n")
     return 1 if decision["reason"] == "calendar_unavailable" else 0
