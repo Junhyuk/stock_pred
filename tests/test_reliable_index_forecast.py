@@ -52,7 +52,7 @@ def test_empty_first_feature_group_does_not_crash_usable_group():
 
 @pytest.mark.parametrize('purge_days', [0, 2])
 @pytest.mark.parametrize('delay_recent_label', [False, True])
-def test_live_refit_uses_the_same_purge_as_last_walk_step(monkeypatch, purge_days, delay_recent_label):
+def test_live_snapshot_reuses_the_same_purge_as_last_walk_step(monkeypatch, purge_days, delay_recent_label):
     mod = engine()
     original = mod._fit_base
     fitted_dates = []
@@ -71,7 +71,7 @@ def test_live_refit_uses_the_same_purge_as_last_walk_step(monkeypatch, purge_day
     last_walk_training = fitted_dates[-1]
     fitted_dates.clear()
     forecast = mod.forecast_reliable_latest(frame, frame.iloc[[-1]], evaluation, settings=config)
-    assert fitted_dates[-1] == last_walk_training
+    assert not fitted_dates, 'latest must reuse the frozen fitted artifact without another fit'
     assert forecast['train_n'] == len(last_walk_training)
 
 
@@ -198,8 +198,9 @@ def test_walk_converts_each_feature_row_once(monkeypatch):
     data.loc[55, 'extra'] = np.nan
     histories = mod._walk(mod._prepare(data), {
         'price': PRICE_FEATURES, 'extended': [*PRICE_FEATURES, 'extra']}, settings())
-    assert len(histories['linear:price']) == 34
-    assert len(histories['linear:extended']) == 33
+    assert histories['linear:price']
+    assert len(histories['linear:extended']) == len(histories['linear:price']) - 1
+    assert len(conversions) == 2 * len(histories['linear:price'])
     assert conversions and max(conversions.values()) == 1
 
 
@@ -219,9 +220,9 @@ def test_walk_reuses_legacy_prediction_only_for_same_fitted_model(monkeypatch, s
     if separate_group:
         groups['independent'] = list(PRICE_FEATURES)
     histories = mod._walk(mod._prepare(fixture(70)), groups, settings())
-    assert len(histories['linear:price']) == 34
+    assert histories['linear:price']
     assert predictions and max(predictions.values()) == 1
-    assert len(predictions) == 34 * (2 if separate_group else 1)
+    assert len(predictions) == len(histories['linear:price']) * (2 if separate_group else 1)
 
 
 def test_explicit_midnight_cutoff_does_not_mature_afternoon_labels():

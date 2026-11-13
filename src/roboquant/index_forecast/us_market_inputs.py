@@ -61,14 +61,9 @@ def us_close_schedule(start: str, end: str) -> pd.DataFrame:
     # warning; other deprecations remain errors in the strict test suite.
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", message="The 'generic' unit for NumPy timedelta is deprecated.*", category=DeprecationWarning)
-        import exchange_calendars as xcals
+        from roboquant.index_forecast.market_calendar import exchange_schedule
 
-        calendar = xcals.get_calendar("XNYS")
-        start_day = max(pd.Timestamp(start).date(), calendar.first_session.date())
-        end_day = min(pd.Timestamp(end).date(), calendar.last_session.date())
-        if start_day > end_day:
-            raise ValueError("no exchange sessions in requested window")
-        labels = calendar.sessions_in_range(start_day, end_day)
+        calendar, labels = exchange_schedule("XNYS", start, end)
     rows = []
     for label in labels:
         day = label.date().isoformat()

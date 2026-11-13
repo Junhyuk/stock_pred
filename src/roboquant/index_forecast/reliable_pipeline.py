@@ -29,6 +29,7 @@ from roboquant.index_forecast.reliable import (
     evaluate_reliable_forecasts,
     forecast_reliable_challenger,
     forecast_reliable_latest,
+    resolve_live_fit,
 )
 from roboquant.index_forecast.reliable_inputs import (
     BREADTH_FEATURES,
@@ -210,7 +211,7 @@ def _resolved_run(payload: dict, manifest: dict) -> dict:
     return result
 
 
-_PAGES_ROW_KEYS = frozenset({"candidate_observations", "observations", "calibration_observations"})
+_PAGES_ROW_KEYS = frozenset({"candidate_observations", "observations", "calibration_observations", "fit_artifacts"})
 PAGES_OMITTED_NOTE = (
     "candidate_observations, observations, and calibration_observations are omitted from this Pages file; "
     "the returned report and archive JSON keep the full rows"
@@ -417,7 +418,7 @@ def run_reliable_pipeline(sqlite_path: str | Path, output_dir: str | Path, *, co
         _atomic_json(output / "reliable_index_forecast.json", result)
         return result
     code_hash = _hash({name: hashlib.sha256(Path(__file__).with_name(name).read_bytes()).hexdigest()
-                       for name in ("reliable.py", "reliable_inputs.py", "reliable_pipeline.py", "participant_impact.py", "us_market_inputs.py", "event_context.py", "international_news.py")})
+                       for name in ("reliable.py", "fit_protocol.py", "market_calendar.py", "reliable_inputs.py", "reliable_pipeline.py", "participant_impact.py", "us_market_inputs.py", "event_context.py", "international_news.py")})
     input_hashes = {"index": _frame_hash(prices), "membership": _frame_hash(membership),
                     "stock_prices": _frame_hash(stock_prices), "participant_flows": _frame_hash(flows),
                     "us_observations": _frame_hash(us_data), "current_event_context": _hash(event_payload),
@@ -503,7 +504,7 @@ def run_reliable_pipeline(sqlite_path: str | Path, output_dir: str | Path, *, co
                                                "date_start": history.asof_date.min() if not history.empty else None,
                                                "date_end": history.asof_date.max() if not history.empty else None})
         evaluation = evaluate_reliable_forecasts(history, feature_groups=groups, settings=settings,
-                                                  reporting_cutoff=context["prediction_cutoff"])
+                                                  reporting_cutoff=context["prediction_cutoff"], prediction_grid=frame)
         impact["report"]["forecast_group_eligibility"] = actor_eligibility
         impact["report"]["forecast_ablation_evidence"] = {
             "split": "development_oof_selection_exposed; terminal confirms frozen selection only",
@@ -514,7 +515,18 @@ def run_reliable_pipeline(sqlite_path: str | Path, output_dir: str | Path, *, co
             "uplift_claim": "not_established_by_descriptive_association"}
         latest = frame.loc[frame["asof_date"] == context["asof_date"]].copy()
         latest["prediction_cutoff"] = context["prediction_cutoff"]
-        forecast = forecast_reliable_latest(history, latest, evaluation, settings=settings)
+        incumbent = forecast_reliable_latest(history, latest, evaluation, settings=settings)
+        fit_state = {"status": "retrospective_replay", "reason": "explicit_replay_not_live_capture"}
+        if now is None:
+            fit_state = resolve_live_fit(history, latest, evaluation.get("selected"), settings=settings,
+                state_dir=config.get("fit_state_dir", output / "fit_models"), market=market,
+                allow_capture=context["stage"] == "premarket_final")
+            forecast = forecast_reliable_latest(history, latest, evaluation, settings=settings,
+                fit_artifact=fit_state.get("artifact"), require_live_snapshot=True)
+            if fit_state.get("reason"):
+                forecast["gate_reasons"] = list(dict.fromkeys([*forecast["gate_reasons"], fit_state["reason"]]))
+        else:
+            forecast = incumbent
         us_challenger = forecast_reliable_challenger(history, latest, evaluation, family="linear", group="price_us", settings=settings)
         close = float(latest["close"].iloc[0])
         if us_challenger.get("expected_return") is not None:
@@ -540,6 +552,8 @@ def run_reliable_pipeline(sqlite_path: str | Path, output_dir: str | Path, *, co
                       "membership_status": "unavailable_for_training" if "breadth" in missing else "dated_available_snapshots",
                       "participant_status": "unavailable_for_training" if "participants" in missing else "final_available_observations"}
         record = {"market": market, "context": context, "forecast": forecast, "evaluation": evaluation,
+                  "incumbent_reference": {**incumbent, "role": "retrospective_reference_not_live_model"},
+                  "fit_state": {key: value for key, value in fit_state.items() if key != "artifact"},
                   "missing_feature_groups": missing, "active_feature_groups": groups,
                   "participant_pressure": summarize_participant_pressure(flows, market=market, cutoff=context["prediction_cutoff"]),
                   "position_subproject": position_evidence or {"status": "unavailable", "inferred": "inconclusive", "observed": {}, "unverified": ["no evidence artifact supplied"]},
@@ -551,7 +565,8 @@ def run_reliable_pipeline(sqlite_path: str | Path, output_dir: str | Path, *, co
                                                                       *([us_evidence_card(us_result["report"])] if us_requested else [])],
                   "feature_hash": _frame_hash(latest[["asof_date", *groups[forecast.get("group") or "price"]]]),
                   "model_hash": _hash({"selected": evaluation.get("selected"), "model_params": evaluation.get("model_params"),
-                                       "settings": asdict(settings), "training_data_hash": _frame_hash(history), "code_hash": code_hash})}
+                                       "settings": asdict(settings), "training_data_hash": _frame_hash(history), "code_hash": code_hash,
+                                       "fit_artifact_hash": forecast.get("fit_artifact_hash")})}
         run["markets"].append(record)
     run["data_hash"] = _hash({**input_hashes, "participant_bridge_manifests": {
         record["market"]: record["participant_bridge_manifest"] for record in run["markets"]}})

@@ -33,14 +33,9 @@ def utc_timestamp(value: Any) -> pd.Timestamp:
 def session_schedule(start: Any, end: Any, sessions: Any = None) -> tuple[pd.DataFrame, str]:
     """Return verified exchange session closes; fixtures may supply explicit sessions."""
     if sessions is None:
-        import exchange_calendars as xcals
+        from roboquant.index_forecast.market_calendar import exchange_schedule
 
-        calendar = xcals.get_calendar("XKRX")
-        start_day = max(pd.Timestamp(start).date(), calendar.first_session.date())
-        end_day = min(pd.Timestamp(end).date(), calendar.last_session.date())
-        if start_day > end_day:
-            raise ValueError("no exchange sessions in requested window")
-        labels = calendar.sessions_in_range(start_day, end_day)
+        calendar, labels = exchange_schedule("XKRX", start, end)
         closes = [calendar.session_close(label) for label in labels]
         opens = [calendar.session_open(label) for label in labels]
         return pd.DataFrame({"date": [label.date().isoformat() for label in labels],

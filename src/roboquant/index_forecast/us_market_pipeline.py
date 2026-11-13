@@ -16,6 +16,7 @@ from roboquant.index_forecast.reliable import (
     ReliableSettings,
     evaluate_reliable_forecasts,
     forecast_reliable_latest,
+    resolve_live_fit,
 )
 from roboquant.index_forecast.reliable_pipeline import (
     _apply_international_news,
@@ -116,6 +117,7 @@ def run_us_reliable_pipeline(observations: pd.DataFrame | str | Path, output_dir
     issued = _utc(now if now is not None else datetime.now(UTC))
     data = observations.copy() if isinstance(observations, pd.DataFrame) else pd.read_csv(observations)
     raw_settings = dict(config.get("settings", {}))
+    raw_settings["calendar_name"] = "XNYS"
     if "model_families" in raw_settings:
         raw_settings["model_families"] = tuple(raw_settings["model_families"])
     settings = ReliableSettings(**raw_settings)
@@ -152,7 +154,7 @@ def run_us_reliable_pipeline(observations: pd.DataFrame | str | Path, output_dir
         _atomic_json(output / "reliable_index_forecast.json", blocked)
         return blocked
     code_hash = _hash({name: hashlib.sha256(Path(__file__).with_name(name).read_bytes()).hexdigest()
-                      for name in ("us_market_pipeline.py", "us_market_inputs.py", "reliable.py", "reliable_pipeline.py", "event_context.py", "international_news.py")})
+                      for name in ("us_market_pipeline.py", "us_market_inputs.py", "reliable.py", "fit_protocol.py", "market_calendar.py", "reliable_pipeline.py", "event_context.py", "international_news.py")})
     run = {"schema_version": "reliable_index_forecast_v1", "status": "unpublished", "issued_at": None,
            "artifact_written_at": None, "run_started_at": issued.isoformat(), "prepared_at": None,
            "publication_manifest": "reliable_publication.json", "replay": now is not None,
@@ -163,10 +165,21 @@ def run_us_reliable_pipeline(observations: pd.DataFrame | str | Path, output_dir
     for market, context in contexts.items():
         frame = prepared[market]
         history = frame.dropna(subset=[*PRICE_FEATURES, "label_return", "target_date"])
-        evaluation = evaluate_reliable_forecasts(history, settings=settings, reporting_cutoff=issued)
+        evaluation = evaluate_reliable_forecasts(history, settings=settings, reporting_cutoff=issued,
+                                                  prediction_grid=frame)
         latest = frame.loc[frame.asof_date == context["asof_date"]].copy()
         latest["prediction_cutoff"] = issued.isoformat()
-        forecast = forecast_reliable_latest(history, latest, evaluation, settings=settings)
+        incumbent = forecast_reliable_latest(history, latest, evaluation, settings=settings)
+        fit_state = {"status": "retrospective_replay", "reason": "explicit_replay_not_live_capture"}
+        if now is None:
+            fit_state = resolve_live_fit(history, latest, evaluation.get("selected"), settings=settings,
+                state_dir=config.get("fit_state_dir", output / "fit_models"), market=market)
+            forecast = forecast_reliable_latest(history, latest, evaluation, settings=settings,
+                fit_artifact=fit_state.get("artifact"), require_live_snapshot=True)
+            if fit_state.get("reason"):
+                forecast["gate_reasons"] = list(dict.fromkeys([*forecast["gate_reasons"], fit_state["reason"]]))
+        else:
+            forecast = incumbent
         close = float(latest.close.iloc[-1])
         forecast.update(target_date=context["target_date"], target_close_at=context["target_close_at"], latest_close=close,
                         stage=context["stage"], issued_at=None, run_started_at=issued.isoformat(), artifact_written_at=None,
@@ -178,11 +191,14 @@ def run_us_reliable_pipeline(observations: pd.DataFrame | str | Path, output_dir
         forecast = news_report["blended_forecast"]
         feature_hash = _frame_hash(latest[["asof_date", *PRICE_FEATURES]])
         model_hash = _hash({"selected": evaluation.get("selected"), "model_params": evaluation.get("model_params"),
-                            "settings": asdict(settings), "training_data_hash": _frame_hash(history), "code_hash": code_hash})
+                            "settings": asdict(settings), "training_data_hash": _frame_hash(history), "code_hash": code_hash,
+                            "fit_artifact_hash": forecast.get("fit_artifact_hash")})
         forecast_id = _hash({"market": market, "context": context, "data_hash": run["data_hash"], "code_hash": code_hash,
                              "config_hash": run["config_hash"], "feature_hash": feature_hash, "model_hash": model_hash})
         forecast["forecast_id"] = forecast_id
         run["markets"].append({"market": market, "forecast_id": forecast_id, "context": context, "forecast": forecast,
+            "incumbent_reference": {**incumbent, "role": "retrospective_reference_not_live_model"},
+            "fit_state": {key: value for key, value in fit_state.items() if key != "artifact"},
             "feature_hash": feature_hash, "model_hash": model_hash,
             "evaluation": evaluation, "active_feature_groups": {"price": PRICE_FEATURES}, "missing_feature_groups": [],
             "event_context": build_event_risk_context(events, cutoff=issued),

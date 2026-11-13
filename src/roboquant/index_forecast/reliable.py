@@ -5,6 +5,7 @@ one choice frozen using the preceding development block; it never chooses a mode
 """
 from __future__ import annotations
 
+import json
 import math
 from dataclasses import asdict, dataclass
 from typing import Any
@@ -17,6 +18,16 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
 from roboquant.index_forecast.dataset import PRICE_FEATURES
+from roboquant.index_forecast.fit_protocol import (
+    artifact_path,
+    make_fit_snapshot,
+    make_model_artifact,
+    predict_model_artifact,
+    restore_fit_snapshot,
+    save_model_artifact,
+    session_anchor,
+    validate_model_artifact,
+)
 
 
 @dataclass(frozen=True)
@@ -33,10 +44,12 @@ class ReliableSettings:
     random_state: int = 42
     min_oos_rows: int = 252
     model_families: tuple[str, ...] = ("linear", "lightgbm", "ensemble")
+    calendar_name: str = "XKRX"
+    refit_origin: str = "2019-01-02"
 
     def __post_init__(self) -> None:
         for name, value in asdict(self).items():
-            if name not in {"model_families", "random_state", "purge_days"} and value < 1:
+            if name not in {"model_families", "random_state", "purge_days", "calendar_name", "refit_origin"} and value < 1:
                 raise ValueError(f"{name} must be positive")
         if self.purge_days < 0:
             raise ValueError("purge_days must be nonnegative")
@@ -60,7 +73,7 @@ def _timestamp(value: Any, *, session_close: bool = True) -> pd.Timestamp:
     return stamp.tz_convert("UTC")
 
 
-def _prepare(frame: pd.DataFrame) -> pd.DataFrame:
+def _prepare(frame: pd.DataFrame, *, keep_unlabeled: bool = False) -> pd.DataFrame:
     data = frame.copy(deep=True)
     for column in ("asof_date", "target_date", "label_return"):
         if column not in data:
@@ -77,13 +90,26 @@ def _prepare(frame: pd.DataFrame) -> pd.DataFrame:
                         if "target_close_at" in data else data["target_date"].map(_timestamp))
     data["label_return"] = pd.to_numeric(data["label_return"], errors="coerce")
     data = data.replace({"label_return": {np.inf: np.nan, -np.inf: np.nan}})
-    return data.dropna(subset=["_asof", "_cutoff", "_target", "label_return"]).sort_values(
-        "_asof", kind="stable").drop_duplicates("_asof").reset_index(drop=True)
+    required = ["_asof", "_cutoff", "_target"] + ([] if keep_unlabeled else ["label_return"])
+    if keep_unlabeled:
+        # Conflicting clocks cannot define a historical scheduled-fit cutoff.
+        counts = data.groupby("_asof_label")["_cutoff"].transform("nunique")
+        data = data.loc[counts <= 1]
+    return data.dropna(subset=required).sort_values(
+        "_asof", kind="stable").drop_duplicates("_asof_label" if keep_unlabeled else "_asof").reset_index(drop=True)
 
 
 def _matrix(data: pd.DataFrame, features: list[str]) -> np.ndarray:
     return data[features].apply(pd.to_numeric, errors="coerce").replace(
         [np.inf, -np.inf], np.nan).to_numpy(dtype=float)
+
+
+def _current_features_available(row: pd.DataFrame, cutoff: pd.Timestamp) -> bool:
+    if "feature_available_at" not in row:
+        # Historical close reconstruction remains explicitly unverified.
+        return True
+    receipt = _timestamp(row["feature_available_at"].iloc[0], session_close=False)
+    return bool(pd.notna(receipt) and receipt <= cutoff)
 
 
 def _model_parameters(family: str, config: ReliableSettings) -> dict:
@@ -179,36 +205,61 @@ def _mature(records: list[dict], cutoff: pd.Timestamp, window: int) -> list[dict
             and r["target_close_at"] <= cutoff_text][-window:]
 
 
-def _walk(data: pd.DataFrame, groups: dict[str, list[str]], config: ReliableSettings) -> dict:
+def _walk(data: pd.DataFrame, groups: dict[str, list[str]], config: ReliableSettings,
+          artifact_sink: dict | None = None, prediction_grid: pd.DataFrame | None = None) -> dict:
     histories = {f"{family}:{group}": [] for group in groups for family in config.model_families}
     fitted: dict = {}
-    last_fit = -config.retrain_step_days
+    last_anchor = None
+    fit_artifacts = {}
+    fit_snapshots = {}
+    grid = prediction_grid if prediction_grid is not None else data
+    grid_cutoffs = dict(zip(grid["_asof_label"], grid["_cutoff"], strict=True))
     legacy_records: list[dict] = []
     vol = pd.to_numeric(data.get("volatility_20d", pd.Series(index=data.index, dtype=float)), errors="coerce")
     thresholds = vol.expanding(min_periods=20).median().shift(1)
     for position in range(config.initial_train_days + config.purge_days, len(data)):
         row = data.iloc[[position]]
         cutoff = row["_cutoff"].iloc[0]
-        prefix = data.iloc[:position - config.purge_days] if config.purge_days else data.iloc[:position]
-        train = prefix[(prefix["_asof"] < row["_asof"].iloc[0]) &
-                       (prefix["_available"] <= cutoff) & (prefix["_target"] <= cutoff)]
-        if len(train) < config.initial_train_days:
+        anchor = session_anchor(row["_asof_label"].iloc[0], config.calendar_name,
+                                config.refit_origin, config.retrain_step_days)
+        if anchor is None:
             continue
-        if not fitted or position - last_fit >= config.retrain_step_days:
+        if anchor["anchor_asof"] in grid_cutoffs:
+            anchor = {**anchor, "prediction_cutoff": grid_cutoffs[anchor["anchor_asof"]].isoformat()}
+        elif prediction_grid is not None:
+            anchor = {**anchor, "grid_cutoff_missing": True}
+        if anchor["anchor_asof"] != last_anchor:
             fitted = {}
+            fit_artifacts = {}
+            fit_snapshots = {}
             for group, features in groups.items():
                 bases = {"linear"}
                 if any(f in config.model_families for f in ("lightgbm", "ensemble")):
                     bases.add("lightgbm")
-                complete = train.loc[np.isfinite(_matrix(train, features)).all(axis=1)]
-                fitted[group] = ({family: _fit_base(complete, features, family, config)
-                                  for family in sorted(bases)}
-                                 if len(complete) >= config.initial_train_days else {})
+                snapshot = make_fit_snapshot(data, features, anchor, asdict(config))
+                fit_snapshots[group] = snapshot
+                fitted[group] = ({family: _fit_base(restore_fit_snapshot(snapshot, features, asdict(config)),
+                                                   features, family, config) for family in sorted(bases)}
+                                 if snapshot["status"] == "ready" else {})
+                if fitted[group]:
+                    fit_artifacts[group] = make_model_artifact(snapshot, fitted[group])
             if "price" in groups and groups["price"] == PRICE_FEATURES and fitted["price"]:
                 fitted["_legacy"] = fitted["price"]["linear"]
+                fit_snapshots["_legacy"] = fit_snapshots["price"]
             else:
-                fitted["_legacy"] = _fit_base(train, PRICE_FEATURES, "linear", config)
-            last_fit = position
+                snapshot = make_fit_snapshot(data, PRICE_FEATURES, anchor, asdict(config))
+                fit_snapshots["_legacy"] = snapshot
+                fitted["_legacy"] = (_fit_base(restore_fit_snapshot(snapshot, PRICE_FEATURES, asdict(config)),
+                                              PRICE_FEATURES, "linear", config)
+                                     if snapshot["status"] == "ready" else None)
+            last_anchor = anchor["anchor_asof"]
+            if artifact_sink is not None:
+                artifact_sink.clear()
+                artifact_sink.update(fit_artifacts)
+        if fitted.get("_legacy") is None:
+            continue
+        if not _current_features_available(row, cutoff):
+            continue
         # Reuse only this observation's converted inputs. Each group's feature
         # order is part of the key; training and maturity rules stay unchanged.
         price_key = tuple(PRICE_FEATURES)
@@ -246,7 +297,8 @@ def _walk(data: pd.DataFrame, groups: dict[str, list[str]], config: ReliableSett
             "volatility_regime": ("unknown" if pd.isna(thresholds.iloc[position]) else
                                   "high" if vol.iloc[position] > thresholds.iloc[position] else "low"),
             "trend_regime": "positive" if float(row["return_20d"].iloc[0]) > 0 else "nonpositive",
-            "train_n": len(train), "fit_cutoff": data["_cutoff"].iloc[last_fit].isoformat(),
+            "train_n": fit_snapshots["_legacy"]["train_n"],
+            "fit_cutoff": fit_snapshots["_legacy"]["fit_cutoff"],
         }
         for group, features in groups.items():
             if not fitted[group]:
@@ -268,7 +320,12 @@ def _walk(data: pd.DataFrame, groups: dict[str, list[str]], config: ReliableSett
                 previous = _mature(histories[key], cutoff, config.calibration_window)
                 p_up, calibrated = _calibrate(previous, float(raw), config)
                 radius = _radius(previous, config)
-                histories[key].append({**record_base, "expected_return": float(expected),
+                histories[key].append({**record_base,
+                    "fit_asof": fit_snapshots[group]["anchor_asof"],
+                    "fit_snapshot_hash": fit_snapshots[group]["snapshot_hash"],
+                    "fit_cutoff": fit_snapshots[group]["fit_cutoff"],
+                    "train_n": fit_snapshots[group]["train_n"],
+                    "expected_return": float(expected),
                     "raw_p_up": float(raw), "p_up": p_up, "p_down": 1 - p_up, "p_flat": 0.0,
                     "calibration_n": len(previous), "calibration_ready": calibrated and radius is not None,
                     "probability_method": "sigmoid_oof" if calibrated else "raw_uncalibrated",
@@ -282,9 +339,11 @@ def _simple_metrics(actual: np.ndarray, predicted: np.ndarray | None, probabilit
     binary = (actual > 0).astype(float)
     p = np.clip(probability, 1e-12, 1 - 1e-12)
     result = {"n": len(actual), "brier": float(np.mean((probability - binary) ** 2)),
+              "probability_direction_hit": float(np.mean((probability > .5) == (actual > 0))),
               "log_loss": float(np.mean(-binary * np.log(p) - (1 - binary) * np.log(1 - p)))}
     if predicted is not None:
         result.update(mae=float(np.mean(abs(actual - predicted))),
+                      return_direction_hit=float(np.mean((predicted > 0) == (actual > 0))),
                       direction_hit=float(np.mean((predicted > 0) == (actual > 0))))
     if low is not None and high is not None:
         result.update(coverage80=float(np.mean((actual >= low) & (actual <= high))),
@@ -316,7 +375,8 @@ def forecast_reliable_challenger(history: pd.DataFrame, latest: pd.DataFrame, ev
     reasons = list(dict.fromkeys([*candidate["gate_reasons"], *_gate(metrics, config),
                                   *([] if promoted else ["predeclared_challenger_not_promoted"])]))
     own_evaluation = {"selected": selected, "status": "accepted_shadow" if promoted else "rejected",
-                      "gate_reasons": reasons, "calibration_observations": mature[-config.calibration_window:]}
+                      "gate_reasons": reasons, "calibration_observations": mature[-config.calibration_window:],
+                      "fit_artifacts": evaluation.get("fit_artifacts", {})}
     forecast = forecast_reliable_latest(history, latest, own_evaluation, settings=config)
     return {**forecast, "role": "predeclared_research_challenger_not_terminal_selected",
             "development_metrics": candidate["development_metrics"], "terminal_metrics": metrics,
@@ -434,10 +494,12 @@ def _empty(reason: str, config: ReliableSettings) -> dict:
 
 def evaluate_reliable_forecasts(frame: pd.DataFrame, *, feature_groups: dict[str, list[str]] | None = None,
                                 settings: ReliableSettings | None = None,
-                                reporting_cutoff: Any = None) -> dict:
+                                reporting_cutoff: Any = None,
+                                prediction_grid: pd.DataFrame | None = None) -> dict:
     """Evaluate only labeled history, preserving the caller's frame and frozen test choice."""
     config = settings or ReliableSettings()
     data = _prepare(frame)
+    grid = _prepare(frame if prediction_grid is None else prediction_grid, keep_unlabeled=True)
     if reporting_cutoff is not None:
         reporting_cutoff = _timestamp(reporting_cutoff, session_close=False)
         if pd.isna(reporting_cutoff):
@@ -445,6 +507,7 @@ def evaluate_reliable_forecasts(frame: pd.DataFrame, *, feature_groups: dict[str
         # The reporting date bounds prediction chronology as well as labels.
         # Otherwise unseen future feature rows could move the terminal split.
         data = data.loc[data["_cutoff"] <= reporting_cutoff].reset_index(drop=True) if not data.empty else data
+        grid = grid.loc[grid["_cutoff"] <= reporting_cutoff].reset_index(drop=True) if not grid.empty else grid
     if data.empty or len(data) <= config.initial_train_days + config.purge_days:
         return _empty("insufficient_history", config)
     if any(column not in data for column in PRICE_FEATURES):
@@ -456,7 +519,8 @@ def evaluate_reliable_forecasts(frame: pd.DataFrame, *, feature_groups: dict[str
     invalid = [name for name, columns in groups.items() if not columns or any(c not in data for c in columns)]
     if invalid:
         return _empty("missing_candidate_features:" + ",".join(invalid), config)
-    histories = _walk(data, groups, config)
+    fit_artifacts = {}
+    histories = _walk(data, groups, config, fit_artifacts, grid)
     if not histories or not any(histories.values()):
         return _empty("insufficient_mature_training_labels", config)
     # Boundaries depend only on chronology, never outcome values or candidate success.
@@ -506,6 +570,8 @@ def evaluate_reliable_forecasts(frame: pd.DataFrame, *, feature_groups: dict[str
               "metrics": metrics, "gate_reasons": reasons, "observations": terminal,
               "calibration_observations": _mature(records, reporting_cutoff, config.calibration_window),
               "candidate_observations": histories, "production_weight": 0.0,
+              "fit_artifacts": fit_artifacts,
+              "evaluation_protocol": "retrospective_exchange_anchor_v1; previously_viewed_terminal_exploratory",
               "selection_frozen_before": terminal_start, "settings": asdict(config),
               "development_start": development_start, "evaluated_through": reporting_cutoff.isoformat(),
               "model_params": _model_parameters(selected["family"], config),
@@ -521,7 +587,9 @@ def evaluate_reliable_forecasts(frame: pd.DataFrame, *, feature_groups: dict[str
 
 
 def forecast_reliable_latest(history: pd.DataFrame, latest: pd.DataFrame, evaluation: dict, *,
-                             settings: ReliableSettings | None = None) -> dict:
+                             settings: ReliableSettings | None = None,
+                             fit_artifact: dict | None = None,
+                             require_live_snapshot: bool = False) -> dict:
     """Refit the frozen selection; use only prior mature OOF records for calibration."""
     config = settings or ReliableSettings()
     selection = evaluation.get("selected")
@@ -538,24 +606,24 @@ def forecast_reliable_latest(history: pd.DataFrame, latest: pd.DataFrame, evalua
     cutoff = _timestamp(current.get("prediction_cutoff", current["asof_date"]).iloc[0],
                         session_close="prediction_cutoff" not in current)
     asof_label = pd.Timestamp(current["asof_date"].iloc[0]).date().isoformat()
-    asof = _timestamp(current.get("asof_close_at", current["asof_date"]).iloc[0],
-                      session_close="asof_close_at" not in current)
-    data = _prepare(history)
-    if data.empty:
-        return {**result, "gate_reasons": ["insufficient_mature_training_labels"]}
-    data = data.loc[data["_asof"] < asof]
-    # Match _walk: positional purge precedes maturity and feature eligibility.
-    if config.purge_days:
-        data = data.iloc[:-config.purge_days]
-    data = data[(data["_available"] <= cutoff) & (data["_target"] <= cutoff)]
-    data = data.loc[np.isfinite(_matrix(data, features)).all(axis=1)]
     if pd.isna(cutoff) or not np.isfinite(_matrix(current, features)).all():
         return {**result, "gate_reasons": ["invalid_cutoff_or_missing_selected_feature_values"]}
-    if len(data) < config.initial_train_days:
-        return {**result, "gate_reasons": ["insufficient_mature_training_labels"]}
-    bases = ("linear", "lightgbm") if family == "ensemble" else (family,)
-    predictions = [_predict(_fit_base(data, features, base, config), _matrix(current, features)) for base in bases]
-    expected, raw = map(float, np.mean(predictions, axis=0))
+    if not _current_features_available(current, cutoff):
+        return {**result, "gate_reasons": ["current_features_unavailable_at_prediction_cutoff"]}
+    anchor = session_anchor(asof_label, config.calendar_name, config.refit_origin, config.retrain_step_days)
+    if anchor is None:
+        return {**result, "gate_reasons": ["before_refit_protocol_origin"]}
+    artifact = fit_artifact or evaluation.get("fit_artifacts", {}).get(selection["group"])
+    if artifact is None:
+        return {**result, "gate_reasons": ["missing_live_anchor_snapshot" if require_live_snapshot
+                                           else "missing_anchor_snapshot"], **anchor}
+    try:
+        validate_model_artifact(artifact, features, asdict(config), anchor["anchor_asof"],
+                                require_live=require_live_snapshot, prediction_cutoff=cutoff)
+    except (ValueError, KeyError, TypeError) as error:
+        return {**result, "gate_reasons": [str(error)], **anchor}
+    snapshot = artifact["snapshot"]
+    expected, raw = predict_model_artifact(artifact, family, _matrix(current, features))
     records = [r for r in evaluation.get("calibration_observations", [])
                if r["asof_date"] < asof_label]
     previous = _mature(records, cutoff, config.calibration_window)
@@ -575,5 +643,54 @@ def forecast_reliable_latest(history: pd.DataFrame, latest: pd.DataFrame, evalua
                   asof_date=asof_label,
                   prediction_cutoff=cutoff.isoformat(), model_params=_model_parameters(family, config),
                   family=family, group=selection["group"], features=features,
-                  train_n=len(data), train_last_asof=data["_asof"].iloc[-1].isoformat())
+                  train_n=snapshot["train_n"], train_last_asof=snapshot["train_last_asof"],
+                  fit_asof=snapshot["anchor_asof"], fit_cutoff=snapshot["fit_cutoff"],
+                  fit_snapshot_hash=snapshot["snapshot_hash"], fit_artifact_hash=artifact["artifact_hash"],
+                  fit_provenance=snapshot["provenance"], next_refit_asof=anchor["next_refit_asof"])
     return result
+
+
+def resolve_live_fit(history: pd.DataFrame, latest: pd.DataFrame, selection: dict, *,
+                     settings: ReliableSettings, state_dir, market: str,
+                     allow_capture: bool = True) -> dict:
+    """Restore the first actual fit; capture only on its scheduled anchor session."""
+    unavailable = {"status": "not_ready", "reason": "missing_live_anchor_snapshot"}
+    if latest.empty or not selection:
+        return unavailable
+    current = latest.iloc[-1]
+    asof = pd.Timestamp(current["asof_date"]).date().isoformat()
+    anchor = session_anchor(asof, settings.calendar_name, settings.refit_origin, settings.retrain_step_days)
+    if anchor is None:
+        return {**unavailable, "reason": "before_refit_protocol_origin"}
+    metadata = {key: anchor[key] for key in ("anchor_asof", "next_refit_asof")}
+    path = artifact_path(state_dir, market, anchor["anchor_asof"])
+    features = list(selection["features"])
+    cutoff = _timestamp(current.get("prediction_cutoff", current["asof_date"]),
+                        session_close="prediction_cutoff" not in current)
+    if pd.isna(cutoff):
+        return {**unavailable, **metadata, "reason": "invalid_live_fit_cutoff"}
+    try:
+        if path.is_file():
+            artifact = json.loads(path.read_text())
+        elif asof != anchor["anchor_asof"] or not allow_capture:
+            return {**unavailable, **metadata}
+        else:
+            # The actual issue context supplies this clock even when its own
+            # target label is pending and _prepare(history) excludes that row.
+            snapshot = make_fit_snapshot(_prepare(history), features,
+                {**anchor, "prediction_cutoff": cutoff.isoformat()}, asdict(settings), provenance="live_captured")
+            if snapshot["status"] != "ready":
+                return {**unavailable, **metadata, "reason": snapshot["reason"]}
+            training = restore_fit_snapshot(snapshot, features, asdict(settings))
+            family = selection["family"]
+            bases = ("linear", "lightgbm") if family == "ensemble" else (family,)
+            models = {base: _fit_base(training, features, base, settings) for base in bases}
+            artifact = save_model_artifact(state_dir, market, make_model_artifact(snapshot, models))
+        validate_model_artifact(artifact, features, asdict(settings), anchor["anchor_asof"],
+                                require_live=True, prediction_cutoff=cutoff)
+        required = {"linear", "lightgbm"} if selection["family"] == "ensemble" else {selection["family"]}
+        if not required.issubset(artifact["models"]):
+            raise ValueError("fit model artifact family mismatch")
+        return {"status": "ready", "artifact": artifact, **metadata}
+    except (ValueError, KeyError, TypeError, OSError) as error:
+        return {**unavailable, **metadata, "reason": str(error)}
