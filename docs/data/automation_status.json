@@ -1,0 +1,21 @@
+{
+  "checked_at": "2026-11-13T13:17:52.148396+00:00",
+  "kst_date": "2026-11-13",
+  "reason": "xkrx_session",
+  "forecast_attempted": true,
+  "korea": {
+    "publication_checked_at": "2026-11-13T13:15:30.245573+00:00",
+    "asof_dates": {
+      "KOSPI": "2026-11-13",
+      "KOSDAQ": "2026-11-13"
+    }
+  },
+  "us": {
+    "publication_checked_at": "2026-11-13T13:17:48.582403+00:00",
+    "asof_dates": {
+      "US_SPX": "2026-11-12",
+      "US_NASDAQ": "2026-11-12"
+    }
+  },
+  "news_context": "not_collected"
+}
