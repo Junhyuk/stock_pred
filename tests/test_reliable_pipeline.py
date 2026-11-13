@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from roboquant.index_forecast.reliable import ReliableSettings
 
@@ -47,6 +48,55 @@ def test_missing_exchange_session_does_not_create_a_two_day_one_day_label():
     assert pd.isna(prior.label_return)
     assert prior.target_date == missing.date().isoformat()
     assert pd.isna(frame.loc[frame.asof_date == dates[41].date().isoformat(), "return_1d"].iloc[0])
+
+
+def test_explicit_future_price_publication_cannot_enter_earlier_rolling_features():
+    mod = pipeline()
+    dates = pd.bdate_range('2026-07-01', periods=60)
+    prices = pd.DataFrame({'session_date': dates, 'close': np.arange(100., 160.), 'published_at': None})
+    prices.loc[30, 'published_at'] = dates[45].date().isoformat() + 'T08:00:00+09:00'
+    frame = mod.build_reliable_price_frame(prices, sessions=dates)
+    affected = frame.loc[frame.asof_date.between(dates[30].date().isoformat(), dates[44].date().isoformat())]
+    assert affected['return_20d'].isna().all()
+    assert pd.notna(frame.loc[frame.asof_date == dates[45].date().isoformat(), 'return_20d'].iloc[0])
+
+
+def test_after_close_publication_is_allowed_at_verified_next_morning_cutoff():
+    mod = pipeline()
+    dates = pd.bdate_range('2026-07-01', periods=61)
+    prices = pd.DataFrame({'session_date': dates[:-1], 'close': np.arange(100., 160.), 'published_at': None})
+    prices.loc[30, 'published_at'] = dates[30].date().isoformat() + 'T18:00:00+09:00'
+    context = {'asof_date': dates[59].date().isoformat(), 'stage': 'premarket_final',
+               'prediction_cutoff': dates[60].date().isoformat() + 'T08:00:00+09:00'}
+    frame = mod.build_reliable_price_frame(prices, sessions=dates, forecast_context=context)
+    row = frame.loc[frame.asof_date == dates[30].date().isoformat()].iloc[0]
+    assert pd.Timestamp(row.prediction_cutoff) == pd.Timestamp(dates[31].date().isoformat() + 'T08:00:00+09:00')
+    assert pd.notna(row.return_20d)
+
+
+@pytest.mark.parametrize('field', ['published_at', 'ingested_at'])
+def test_unavailable_historical_close_blocks_current_feature_window(tmp_path, field):
+    mod = pipeline()
+    path, sessions = database(tmp_path)
+    with sqlite3.connect(path) as conn:
+        conn.execute(f"UPDATE index_eod SET close = 999999, {field} = ? WHERE session_date = ?",
+                     ('2030-01-01T00:00:00+00:00', sessions[-3].date().isoformat()))
+    output = tmp_path / 'future-history'
+    result = mod.run_reliable_pipeline(path, output, config=config(), sessions=sessions,
+                                       now=datetime(2026, 10, 23, 14, tzinfo=UTC))
+    assert result['status'].startswith('blocked_')
+    assert not list((output / 'archive').glob('*.json'))
+
+
+def test_live_receipt_after_0800_snapshot_is_not_backdated(tmp_path):
+    mod = pipeline()
+    path, sessions = database(tmp_path)
+    with sqlite3.connect(path) as conn:
+        conn.execute("UPDATE index_eod SET ingested_at = '2026-10-25T23:30:00+00:00' WHERE session_date = '2026-10-23'")
+    result = mod.run_reliable_pipeline(path, tmp_path / 'late-receipt', config=config(), sessions=sessions,
+                                       now=datetime(2026, 10, 25, 23, 40, tzinfo=UTC))
+    assert result['status'] == 'blocked_unavailable_input'
+    assert 'latest_index_ingested_at_unavailable_at_cutoff' in result['reasons']
 
 
 def test_stale_run_does_not_persist_current_forecast(tmp_path):

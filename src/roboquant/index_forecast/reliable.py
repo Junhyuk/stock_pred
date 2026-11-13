@@ -42,6 +42,8 @@ class ReliableSettings:
             raise ValueError("purge_days must be nonnegative")
         if any(f not in {"linear", "lightgbm", "ensemble"} for f in self.model_families):
             raise ValueError("unsupported model family")
+        if len(set(self.model_families)) != len(self.model_families):
+            raise ValueError("duplicate model families would duplicate OOF observations")
 
 
 def _timestamp(value: Any, *, session_close: bool = True) -> pd.Timestamp:
@@ -207,7 +209,11 @@ def _walk(data: pd.DataFrame, groups: dict[str, list[str]], config: ReliableSett
             else:
                 fitted["_legacy"] = _fit_base(train, PRICE_FEATURES, "linear", config)
             last_fit = position
-        legacy_prediction, legacy_p = _predict(fitted["_legacy"], _matrix(row, PRICE_FEATURES))
+        # Reuse only this observation's converted inputs. Each group's feature
+        # order is part of the key; training and maturity rules stay unchanged.
+        price_key = tuple(PRICE_FEATURES)
+        row_matrices = {price_key: _matrix(row, PRICE_FEATURES)}
+        legacy_prediction, legacy_p = _predict(fitted["_legacy"], row_matrices[price_key])
         prior_legacy = _mature(legacy_records, cutoff, config.calibration_window)
         # Expanding baselines use every label actually available at this prediction,
         # independently of the model's periodic refit cadence.
@@ -243,9 +249,17 @@ def _walk(data: pd.DataFrame, groups: dict[str, list[str]], config: ReliableSett
             "train_n": len(train), "fit_cutoff": data["_cutoff"].iloc[last_fit].isoformat(),
         }
         for group, features in groups.items():
-            if not fitted[group] or not np.isfinite(_matrix(row, features)).all():
+            if not fitted[group]:
                 continue
-            predictions = {base: _predict(model, _matrix(row, features))
+            feature_key = tuple(features)
+            if feature_key not in row_matrices:
+                row_matrices[feature_key] = _matrix(row, features)
+            matrix = row_matrices[feature_key]
+            if not np.isfinite(matrix).all():
+                continue
+            predictions = {base: (legacy_prediction, legacy_p)
+                           if model is fitted["_legacy"] and feature_key == price_key
+                           else _predict(model, matrix)
                            for base, model in fitted[group].items()}
             for family in config.model_families:
                 expected, raw = (tuple(np.mean([predictions["linear"], predictions["lightgbm"]], axis=0))
@@ -446,7 +460,7 @@ def evaluate_reliable_forecasts(frame: pd.DataFrame, *, feature_groups: dict[str
     if not histories or not any(histories.values()):
         return _empty("insufficient_mature_training_labels", config)
     # Boundaries depend only on chronology, never outcome values or candidate success.
-    first_history = histories.get("linear:price") or next(iter(histories.values()))
+    first_history = histories.get("linear:price") or next(rows for rows in histories.values() if rows)
     terminal_start = first_history[max(0, len(first_history) - config.test_days)]["asof_date"]
     selection_cutoff = _timestamp(next(r["prediction_cutoff"] for r in first_history
                                       if r["asof_date"] == terminal_start), session_close=False)
@@ -529,7 +543,11 @@ def forecast_reliable_latest(history: pd.DataFrame, latest: pd.DataFrame, evalua
     data = _prepare(history)
     if data.empty:
         return {**result, "gate_reasons": ["insufficient_mature_training_labels"]}
-    data = data[(data["_asof"] < asof) & (data["_available"] <= cutoff) & (data["_target"] <= cutoff)]
+    data = data.loc[data["_asof"] < asof]
+    # Match _walk: positional purge precedes maturity and feature eligibility.
+    if config.purge_days:
+        data = data.iloc[:-config.purge_days]
+    data = data[(data["_available"] <= cutoff) & (data["_target"] <= cutoff)]
     data = data.loc[np.isfinite(_matrix(data, features)).all(axis=1)]
     if pd.isna(cutoff) or not np.isfinite(_matrix(current, features)).all():
         return {**result, "gate_reasons": ["invalid_cutoff_or_missing_selected_feature_values"]}

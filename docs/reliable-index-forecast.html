@@ -269,15 +269,21 @@ function cardsFromRun(run) {
   }));
 }
 
+function formatAutomationTime(value) {
+  if (!value) return '확인 불가';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '확인 불가' : date.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
+}
+
 function renderAutomationStatus(data) {
-  const checked = data.checked_at ? new Date(data.checked_at).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }) : '확인 불가';
+  const checked = formatAutomationTime(data.checked_at);
   const decision = data.reason === 'not_xkrx_session'
     ? '한국 휴장일: 예측을 새로 생성하지 않았습니다.'
     : '한국 거래일: 예측 실행을 완료했습니다. 개별 결과의 검증 상태를 확인하세요.';
   const summary = (label, run) => {
     if (!run) return `${label}: 검증된 직전 공개 시각 확인 불가`;
     const dates = Object.entries(run.asof_dates ?? {}).map(([market, date]) => `${market} ${date ?? '확인 불가'}`).join(', ') || '확인 불가';
-    return `${label}: 공개 ${run.publication_checked_at}, 기준 종가일 ${dates}`;
+    return `${label}: 공개 ${formatAutomationTime(run.publication_checked_at)} (한국 시각), 기준 종가일 ${dates}`;
   };
   return `자동 확인 ${checked} (한국 시각) · ${decision} ${summary('한국', data.korea)} · ${summary('미국', data.us)}. 미국 입력은 해당 시점에 완료된 정규장 종가 기준이며 한국 휴장일에는 미국 예측도 갱신하지 않습니다. 스케줄과 외부 데이터에 따라 갱신이 지연되거나 실패할 수 있습니다. 자동 실행은 뉴스 사건을 수집하지 않습니다.`;
 }

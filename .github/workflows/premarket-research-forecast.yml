@@ -115,17 +115,21 @@ jobs:
       - name: Korea research forecast
         if: steps.gate.outputs.run == 'true'
         run: |
-          set -eu
+          set -euo pipefail
           python scripts/run_reliable_index_forecast.py \
             --sqlite "${{ steps.prices.outputs.sqlite }}" \
-            --us-observations "${{ steps.prices.outputs.us_csv }}"
+            --us-observations "${{ steps.prices.outputs.us_csv }}" | tee "$RUNNER_TEMP/korea-forecast.json"
+          python scripts/verify_automation_publication.py \
+            --result "$RUNNER_TEMP/korea-forecast.json" --data-dir docs/data
 
       - name: US research forecast
         if: steps.gate.outputs.run == 'true'
         run: |
-          set -eu
+          set -euo pipefail
           python scripts/run_us_index_forecast.py \
-            --us-observations "${{ steps.prices.outputs.us_csv }}"
+            --us-observations "${{ steps.prices.outputs.us_csv }}" | tee "$RUNNER_TEMP/us-forecast.json"
+          python scripts/verify_automation_publication.py \
+            --result "$RUNNER_TEMP/us-forecast.json" --data-dir docs/data/us
 
       - name: Compress OOF archives
         if: steps.gate.outputs.run == 'true' && !cancelled()

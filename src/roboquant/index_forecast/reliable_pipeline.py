@@ -48,8 +48,15 @@ from roboquant.index_forecast.us_market_inputs import (
 )
 
 
-def build_reliable_price_frame(prices: pd.DataFrame, *, sessions: Any = None) -> pd.DataFrame:
-    """Reindex to exchange sessions before shifts so a missing close is not 1D."""
+def build_reliable_price_frame(prices: pd.DataFrame, *, sessions: Any = None,
+                               forecast_context: dict | None = None) -> pd.DataFrame:
+    """Reindex sessions and honor known availability without inventing vintages.
+
+    Unknown original publication clocks retain the declared close reconstruction.
+    Local receipts only bound this run's knowledge; they are never backdated to
+    historical row cutoffs. Explicit publication clocks also bound every rolling
+    feature window at its own stage-matched prediction cutoff.
+    """
     if prices.empty:
         return pd.DataFrame()
     data = prices.copy()
@@ -64,6 +71,13 @@ def build_reliable_price_frame(prices: pd.DataFrame, *, sessions: Any = None) ->
     close_times = dict(zip(schedule["date"], schedule["close_at"], strict=True))
     data = calendar[["date"]].rename(columns={"date": "asof_date"}).merge(data, on="asof_date", how="left")
     close = pd.to_numeric(data["close"], errors="coerce").where(lambda values: values.gt(0))
+    if forecast_context is not None and "ingested_at" in data:
+        limit = utc_timestamp(forecast_context["prediction_cutoff"])
+        received = data["ingested_at"].map(utc_timestamp)
+        # Missing historical receipts remain explicitly retrospective. A known
+        # malformed/future receipt cannot enter this run, even via an old close.
+        allowed = data["ingested_at"].isna() | received.map(lambda stamp: pd.notna(stamp) and stamp <= limit)
+        close = close.where(allowed)
     data["close"] = close
     for width in (1, 5, 20):
         data[f"return_{width}d"] = close.pct_change(width, fill_method=None)
@@ -74,6 +88,17 @@ def build_reliable_price_frame(prices: pd.DataFrame, *, sessions: Any = None) ->
     data["target_date"] = data["asof_date"].map(next_dates)
     data["label_return"] = close.shift(-1) / close - 1
     data["prediction_cutoff"] = data["asof_date"].map(close_times).map(lambda x: x.isoformat())
+    if forecast_context is not None:
+        current_close = utc_timestamp(close_times[forecast_context["asof_date"]])
+        elapsed = utc_timestamp(forecast_context["prediction_cutoff"]) - current_close
+        historical_cutoffs = []
+        for row in data.itertuples():
+            target_snapshot = utc_timestamp(str(row.target_date) + "T08:00:00+09:00")
+            candidate = (target_snapshot if forecast_context["stage"] == "premarket_final"
+                         else min(utc_timestamp(row.prediction_cutoff) + elapsed, target_snapshot))
+            historical_cutoffs.append(candidate.isoformat())
+        data["prediction_cutoff"] = historical_cutoffs
+        data.loc[data["asof_date"] == forecast_context["asof_date"], "prediction_cutoff"] = forecast_context["prediction_cutoff"]
     # These are market close maturity times, never fabricated publication times.
     # The report explicitly labels this as retrospective close reconstruction.
     data["label_available_at"] = data["target_date"].map(close_times).map(
@@ -88,6 +113,17 @@ def build_reliable_price_frame(prices: pd.DataFrame, *, sessions: Any = None) ->
             return None if pd.isna(stamp) else stamp.isoformat()
         data["label_available_at"] = [maturity(day, assumed) for day, assumed in
                                       zip(data["target_date"], data["label_available_at"], strict=True)]
+        cutoffs = data["prediction_cutoff"].map(utc_timestamp).tolist()
+        unavailable = np.zeros(len(data), dtype=bool)
+        for position, original in enumerate(data["published_at"]):
+            if original is None or pd.isna(original):
+                continue
+            stamp = utc_timestamp(original)
+            # return/volatility_20d require the current plus previous 20 closes.
+            for affected in range(position, min(position + 21, len(data))):
+                if pd.isna(stamp) or pd.isna(cutoffs[affected]) or stamp > cutoffs[affected]:
+                    unavailable[affected] = True
+        data.loc[unavailable, PRICE_FEATURES] = np.nan
     return data
 
 
@@ -360,16 +396,15 @@ def run_reliable_pipeline(sqlite_path: str | Path, output_dir: str | Path, *, co
                 original = current.get(field)
                 if original is not None and not pd.isna(original):
                     stamp = utc_timestamp(original)
-                    # The 08:00 cutoff stays the research snapshot. A close copied
-                    # after 08:00 is still usable when this run already holds it
-                    # and the session itself closed before that snapshot.
-                    limit = context["issued_at"] if field == "ingested_at" else context["prediction_cutoff"]
+                    # A later run cannot claim an 08:00 snapshot using a close
+                    # first received after that snapshot, even if already final.
+                    limit = context["prediction_cutoff"]
                     if pd.isna(stamp) or stamp > utc_timestamp(limit):
                         context.update(status="blocked_unavailable_input", reasons=[f"latest_index_{field}_unavailable_at_cutoff"])
                         break
             if context["status"] != "ready":
                 continue
-            prepared[market] = build_reliable_price_frame(subset, sessions=sessions)
+            prepared[market] = build_reliable_price_frame(subset, sessions=sessions, forecast_context=context)
             latest_features = prepared[market].loc[prepared[market]["asof_date"] == context["asof_date"], PRICE_FEATURES]
             if latest_features.empty or not np.isfinite(latest_features.to_numpy(dtype=float)).all():
                 context.update(status="blocked_incomplete_input", reasons=["latest_index_price_features_incomplete"])
@@ -400,19 +435,7 @@ def run_reliable_pipeline(sqlite_path: str | Path, output_dir: str | Path, *, co
         raw = prices.loc[prices["index_code"] == market].copy()
         frame = prepared[market].copy()
         frame = frame.loc[frame["asof_date"] <= context["asof_date"]].copy()
-        # Match historical information snapshots to this run's stage. Preserve
-        # elapsed time since the completed close across midnight/weekends.
-        current_close = utc_timestamp(frame.loc[frame["asof_date"] == context["asof_date"], "prediction_cutoff"].iloc[0])
-        elapsed = utc_timestamp(context["prediction_cutoff"]) - current_close
-        historical_cutoffs = []
-        for row in frame.itertuples():
-            target_snapshot = utc_timestamp(str(row.target_date) + "T08:00:00+09:00")
-            candidate = (target_snapshot if context["stage"] == "premarket_final"
-                         else min(utc_timestamp(row.prediction_cutoff) + elapsed, target_snapshot))
-            historical_cutoffs.append(candidate.isoformat())
-        frame["prediction_cutoff"] = historical_cutoffs
         cutoffs = dict(zip(frame["asof_date"], frame["prediction_cutoff"], strict=True))
-        cutoffs[context["asof_date"]] = context["prediction_cutoff"]
         breadth = build_stock_breadth(stock_prices, membership, market=market, asof_cutoffs=cutoffs,
                                       target_count=int(config.get("universe", {}).get(market, 100 if market == "KOSPI" else 50)))
         participants = build_participant_features(flows, market=market, asof_cutoffs=cutoffs)

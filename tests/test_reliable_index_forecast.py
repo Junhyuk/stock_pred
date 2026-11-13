@@ -35,6 +35,46 @@ def settings(**kwargs):
         model_families=('linear',), **kwargs)
 
 
+def test_duplicate_model_families_cannot_duplicate_oof_evidence():
+    with pytest.raises(ValueError, match='duplicate'):
+        replace(settings(), model_families=('linear', 'linear'))
+
+
+def test_empty_first_feature_group_does_not_crash_usable_group():
+    frame = fixture(100)
+    frame['all_missing'] = np.nan
+    result = engine().evaluate_reliable_forecasts(frame, settings=settings(),
+        feature_groups={'missing': ['all_missing'], 'usable': PRICE_FEATURES})
+    assert result['candidate_observations']['linear:missing'] == []
+    assert result['candidate_observations']['linear:usable']
+    assert result['production_weight'] == 0
+
+
+@pytest.mark.parametrize('purge_days', [0, 2])
+@pytest.mark.parametrize('delay_recent_label', [False, True])
+def test_live_refit_uses_the_same_purge_as_last_walk_step(monkeypatch, purge_days, delay_recent_label):
+    mod = engine()
+    original = mod._fit_base
+    fitted_dates = []
+
+    def capture_training(train, features, family, config):
+        fitted_dates.append(train['_asof_label'].tolist())
+        return original(train, features, family, config)
+
+    monkeypatch.setattr(mod, '_fit_base', capture_training)
+    frame = fixture(70)
+    if delay_recent_label:
+        frame['label_available_at'] = frame['target_date'].astype(str)
+        frame.loc[68, 'label_available_at'] = '2030-01-01T00:00:00+00:00'
+    config = replace(settings(), purge_days=purge_days, retrain_step_days=1)
+    evaluation = mod.evaluate_reliable_forecasts(frame, settings=config)
+    last_walk_training = fitted_dates[-1]
+    fitted_dates.clear()
+    forecast = mod.forecast_reliable_latest(frame, frame.iloc[[-1]], evaluation, settings=config)
+    assert fitted_dates[-1] == last_walk_training
+    assert forecast['train_n'] == len(last_walk_training)
+
+
 def test_chronological_predictions_and_selection_ignore_terminal_outcomes():
     mod = engine()
     frame = fixture()
@@ -139,6 +179,49 @@ def test_tree_ensemble_and_repeatable_bootstrap_paths():
         assert c['expected_return'] == pytest.approx((a['expected_return'] + b['expected_return']) / 2)
         assert c['raw_p_up'] == pytest.approx((a['raw_p_up'] + b['raw_p_up']) / 2)
     assert 'brier_difference_ci95' in first['candidate_reports'][0]['development_metrics']
+
+
+def test_walk_converts_each_feature_row_once(monkeypatch):
+    mod = engine()
+    original = mod._matrix
+    conversions = {}
+
+    def count_conversion(data, features):
+        if len(data) == 1:
+            key = (tuple(data.index), tuple(features))
+            conversions[key] = conversions.get(key, 0) + 1
+        return original(data, features)
+
+    monkeypatch.setattr(mod, '_matrix', count_conversion)
+    data = fixture(70)
+    data['extra'] = data['return_1d'] * 2
+    data.loc[55, 'extra'] = np.nan
+    histories = mod._walk(mod._prepare(data), {
+        'price': PRICE_FEATURES, 'extended': [*PRICE_FEATURES, 'extra']}, settings())
+    assert len(histories['linear:price']) == 34
+    assert len(histories['linear:extended']) == 33
+    assert conversions and max(conversions.values()) == 1
+
+
+@pytest.mark.parametrize('separate_group', [False, True])
+def test_walk_reuses_legacy_prediction_only_for_same_fitted_model(monkeypatch, separate_group):
+    mod = engine()
+    original = mod._predict
+    predictions = {}
+
+    def count_prediction(model, matrix):
+        key = (id(model), matrix.tobytes())
+        predictions[key] = predictions.get(key, 0) + 1
+        return original(model, matrix)
+
+    monkeypatch.setattr(mod, '_predict', count_prediction)
+    groups = {'price': PRICE_FEATURES}
+    if separate_group:
+        groups['independent'] = list(PRICE_FEATURES)
+    histories = mod._walk(mod._prepare(fixture(70)), groups, settings())
+    assert len(histories['linear:price']) == 34
+    assert predictions and max(predictions.values()) == 1
+    assert len(predictions) == 34 * (2 if separate_group else 1)
 
 
 def test_explicit_midnight_cutoff_does_not_mature_afternoon_labels():
