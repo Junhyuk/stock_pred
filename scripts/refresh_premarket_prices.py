@@ -142,6 +142,8 @@ def _quote_clock(value: object) -> pd.Timestamp:
 def _quote_prices_agree(primary: float, other: float | None) -> bool:
     if other is None or other <= 0:
         return True
+    if other >= float("inf"):
+        return False
     scale = max(abs(primary), abs(other), 1.0)
     return abs(primary - other) <= 1e-6 * scale
 
@@ -158,7 +160,7 @@ def quote_bar_for_session(metadata, closed: dict | None, *, fetched_at) -> dict 
     close_at = utc_timestamp(closed.get("close_at"))
     next_open = utc_timestamp(closed.get("next_open_at"))
     price = _optional_float(metadata.get("regularMarketPrice"))
-    if price is None or price <= 0 or pd.isna(fetched) or pd.isna(close_at) or pd.isna(next_open):
+    if price is None or not 0 < price < float("inf") or pd.isna(fetched) or pd.isna(close_at) or pd.isna(next_open):
         return None
     if not _quote_prices_agree(price, _optional_float(metadata.get("fulldayPrice"))):
         return None
@@ -210,8 +212,15 @@ def supplement_kr_bars(bars: pd.DataFrame | None, symbol: str, yf_module, *,
         closed = latest_closed_session(fetched_at, sessions)
     except (ImportError, ValueError, TypeError, KeyError, OverflowError):
         return frame
-    if closed is None or closed["session_date"] in _session_dates(frame):
+    if closed is None:
         return frame
+    if {"session_date", "close"}.issubset(frame.columns):
+        latest = frame["session_date"].astype(str).str.slice(0, 10).eq(closed["session_date"])
+        closes = pd.to_numeric(frame["close"], errors="coerce")
+        # Providers may include a dated placeholder without a usable close.
+        # Only a finite positive close makes the strict quote fallback unnecessary.
+        if (latest & closes.gt(0) & closes.lt(float("inf"))).any():
+            return frame
     row = quote_bar_for_session(
         _yahoo_quote_metadata(symbol, yf_module), closed, fetched_at=fetched_at)
     if row is None:
@@ -247,7 +256,7 @@ def completed_kr_rows(bars: pd.DataFrame, *, index_code: str, fetched_at, sessio
     for record in work.to_dict("records"):
         close_at = closes.get(record["session_date"])
         close = _optional_float(record.get("close"))
-        if close_at is None or pd.isna(close_at) or close_at > fetched or close is None or close <= 0:
+        if close_at is None or pd.isna(close_at) or close_at > fetched or close is None or not 0 < close < float("inf"):
             continue
         rows.append({
             "index_code": index_code,
