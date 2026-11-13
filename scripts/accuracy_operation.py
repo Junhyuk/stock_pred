@@ -27,6 +27,45 @@ def emit(data):
                     stream.write(f'{key}={str(value).lower() if isinstance(value, bool) else value}\n')
 
 
+def kr_input_diagnostics(dates, *, now, mode):
+    """Expose only session metadata while retaining the existing issuance guard."""
+    from roboquant.index_forecast.reliable_inputs import resolve_forecast_context
+
+    contexts = [(market, resolve_forecast_context(day, now=now)) for market, day in dates]
+    eligible = len(contexts) == 2 and all(
+        context['status'] == 'ready'
+        and (mode != 'predict' or context['stage'] == 'premarket_final')
+        for _, context in contexts
+    )
+    fields = ('asof_date', 'status', 'expected_asof_date', 'target_date', 'stage', 'reasons')
+    return {
+        'kr': eligible,
+        'kr_reason': 'eligible_actual_context' if eligible else 'no_valid_next_kr_session',
+        'kr_sessions': [
+            {'index_code': market, **{key: context[key] for key in fields}}
+            for market, context in contexts
+        ],
+        'kr_missing_markets': sorted({'KOSPI', 'KOSDAQ'} - {market for market, _ in contexts}),
+    }
+
+
+def restored_cache_diagnostics(private):
+    """Report restored session dates without exposing prices or database contents."""
+    import sqlite3
+
+    path = Path(private) / 'index_forecast.sqlite'
+    result = {'restored_latest_index_dates': {}, 'restored_index_metadata_status': 'missing'}
+    if path.is_file():
+        try:
+            dates = state.sqlite_metadata(path)['latest_index_dates']
+            result.update(restored_latest_index_dates={
+                market: dates[market] for market in ('KOSPI', 'KOSDAQ') if market in dates
+            }, restored_index_metadata_status='available')
+        except (OSError, ValueError, sqlite3.Error):
+            result['restored_index_metadata_status'] = 'unavailable'
+    return result
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--phase', required=True, choices=['gate', 'freeze', 'inputs', 'cache-open', 'cache-seal', 'status', 'public-paths', 'publish-models'])
@@ -58,7 +97,7 @@ def main():
         if args.phase == 'cache-open':
             try:
                 state.open_private_cache(encrypted, private, key=key)
-                emit({'status': 'restored'})
+                emit({'status': 'restored', **restored_cache_diagnostics(private)})
             except ValueError:
                 emit({'status': 'not_ready', 'reason': 'encrypted_cache_unavailable'})
         else:
@@ -131,15 +170,12 @@ def main():
 
             import pandas as pd
 
-            from roboquant.index_forecast.reliable_inputs import resolve_forecast_context
             from roboquant.index_forecast.us_market_inputs import us_close_schedule
             result.update({key: str(value) for key, value in paths.items()})
             if paths.get('sqlite') and paths['sqlite'].is_file():
                 with sqlite3.connect(f"file:{paths['sqlite'].resolve()}?mode=ro", uri=True) as db:
                     dates = db.execute("SELECT index_code, MAX(session_date) FROM index_eod WHERE index_code IN ('KOSPI','KOSDAQ') GROUP BY index_code").fetchall()
-                contexts = [resolve_forecast_context(day, now=now) for _, day in dates]
-                result['kr'] = len(contexts) == 2 and all(c['status'] == 'ready' and (mode != 'predict' or c['stage'] == 'premarket_final') for c in contexts)
-                result['kr_reason'] = 'eligible_actual_context' if result['kr'] else 'no_valid_next_kr_session'
+                result.update(kr_input_diagnostics(dates, now=now, mode=mode))
             if paths.get('us_csv') and paths['us_csv'].is_file():
                 schedule = us_close_schedule(pd.Timestamp(now) - pd.Timedelta(days=10), pd.Timestamp(now) + pd.Timedelta(days=10))
                 completed = schedule.loc[pd.to_datetime(schedule.session_close_at, utc=True) <= now]
