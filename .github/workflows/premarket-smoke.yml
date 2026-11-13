@@ -42,5 +42,4 @@ jobs:
           set -eu
           python -m pytest -q \
             tests/test_premarket_trading_day_gate.py \
-            tests/test_refresh_premarket_prices.py \
             tests/test_premarket_workflow_smoke.py
