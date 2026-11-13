@@ -32,3 +32,9 @@ settings:
   random_state: 42
   min_oos_rows: 252
   model_families: [linear, lightgbm, ensemble]
+economic_calendar:
+  sqlite_path: data/processed/economic-calendar/economic.sqlite
+  history_path: docs/data/economic_history.json
+  numeric_policy: observed_current_receipt_v1
+  source_registry: configs/economic_calendar.yaml
+private_state_dir: data/processed/accuracy-state

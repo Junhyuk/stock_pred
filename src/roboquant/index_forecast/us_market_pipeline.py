@@ -11,6 +11,13 @@ import numpy as np
 import pandas as pd
 
 from roboquant.index_forecast.dataset import PRICE_FEATURES
+from roboquant.index_forecast.economic_forecast import (
+    begin_forward,
+    calendar_frame,
+    finish_forward,
+    load_calendar,
+    numeric_shadow,
+)
 from roboquant.index_forecast.event_context import build_event_risk_context
 from roboquant.index_forecast.reliable import (
     ReliableSettings,
@@ -148,13 +155,18 @@ def run_us_reliable_pipeline(observations: pd.DataFrame | str | Path, output_dir
             reasons.append(f"{market}:target_session_already_open")
         contexts[market], prepared[market] = context, frame
     output = Path(output_dir)
+    code_hash = _hash({name: hashlib.sha256(Path(__file__).with_name(name).read_bytes()).hexdigest()
+                      for name in ("us_market_pipeline.py", "us_market_inputs.py", "reliable.py", "reliable_intervals.py", "fit_protocol.py", "market_calendar.py", "economic_calendar.py", "economic_forecast.py", "economic_sources.py", "forward_ledger.py", "reliable_pipeline.py", "event_context.py", "international_news.py")})
+    registry = Path(__file__).resolve().parents[3] / 'configs/economic_calendar.yaml'
+    code_hash = _hash({'modules': code_hash, 'economic_registry': hashlib.sha256(registry.read_bytes()).hexdigest() if registry.is_file() else None})
+    calendar_store = load_calendar(config)
+    evidence = begin_forward(output, config=config, settings=settings, started_at=issued, code_hash=code_hash, replay=now is not None)
     if reasons:
         blocked = {"status": "blocked_us_input_or_deadline", "issued_at": None, "run_started_at": issued.isoformat(),
                    "markets": [], "production_weight": 0.0, "reasons": reasons, "contexts": contexts}
         _atomic_json(output / "reliable_index_forecast.json", blocked)
+        finish_forward(output, evidence=evidence, frames=prepared, observed_at=datetime.now(UTC))
         return blocked
-    code_hash = _hash({name: hashlib.sha256(Path(__file__).with_name(name).read_bytes()).hexdigest()
-                      for name in ("us_market_pipeline.py", "us_market_inputs.py", "reliable.py", "reliable_intervals.py", "fit_protocol.py", "market_calendar.py", "reliable_pipeline.py", "event_context.py", "international_news.py")})
     run = {"schema_version": "reliable_index_forecast_v1", "status": "unpublished", "issued_at": None,
            "artifact_written_at": None, "run_started_at": issued.isoformat(), "prepared_at": None,
            "publication_manifest": "reliable_publication.json", "replay": now is not None,
@@ -163,7 +175,7 @@ def run_us_reliable_pipeline(observations: pd.DataFrame | str | Path, output_dir
            "restrictions": ["retrospective end-of-session reconstruction", "no production approval", "news not a trained alpha feature"],
            "interval_note": "80% target coverage, not a guarantee; own-market mature OOF only", "markets": []}
     for market, context in contexts.items():
-        frame = prepared[market]
+        frame, economic_contexts = calendar_frame(prepared[market], calendar_store)
         history = frame.dropna(subset=[*PRICE_FEATURES, "label_return", "target_date"])
         evaluation = evaluate_reliable_forecasts(history, settings=settings, reporting_cutoff=issued,
                                                   prediction_grid=frame)
@@ -196,7 +208,10 @@ def run_us_reliable_pipeline(observations: pd.DataFrame | str | Path, output_dir
         forecast_id = _hash({"market": market, "context": context, "data_hash": run["data_hash"], "code_hash": code_hash,
                              "config_hash": run["config_hash"], "feature_hash": feature_hash, "model_hash": model_hash})
         forecast["forecast_id"] = forecast_id
-        run["markets"].append({"market": market, "forecast_id": forecast_id, "context": context, "forecast": forecast,
+        macro = numeric_shadow(frame, store=calendar_store, settings=settings, market=market,
+            state_dir=config.get("fit_state_dir", output / "fit_models"), live=now is None)
+        run["markets"].append({"economic_calendar": economic_contexts.get(context["asof_date"], {"event_bucket": None, "calendar_complete": False}),
+            "numeric_shadow": macro, "market": market, "forecast_id": forecast_id, "context": context, "forecast": forecast,
             "incumbent_reference": {**incumbent, "role": "retrospective_reference_not_live_model"},
             "fit_state": {key: value for key, value in fit_state.items() if key != "artifact"},
             "feature_hash": feature_hash, "model_hash": model_hash,
@@ -222,4 +237,6 @@ def run_us_reliable_pipeline(observations: pd.DataFrame | str | Path, output_dir
                                              "markets": [{"market": m["market"], "forecast_id": m["forecast_id"], "model_hash": m["model_hash"],
                                                           "feature_hash": m["feature_hash"], "target_close_at": m["context"]["target_close_at"]} for m in run["markets"]],
                                              "historical_mode": HISTORICAL_MODE, "production_weight": 0.0}}
-    return _publish_staged_run(run, output, documents, contexts=contexts, replay=now is not None)
+    published = _publish_staged_run(run, output, documents, contexts=contexts, replay=now is not None)
+    finish_forward(output, evidence=evidence, frames=prepared, observed_at=datetime.now(UTC))
+    return published

@@ -18,3 +18,5 @@ llm_models/
 !data/processed/.gitkeep
 !models/.gitkeep
 !reports/.gitkeep
+.forecast-cache/
+_site/

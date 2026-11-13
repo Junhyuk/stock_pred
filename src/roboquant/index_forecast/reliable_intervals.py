@@ -43,14 +43,24 @@ def _interval(records: list[dict], center: float | None, scale, min_rows: int,
 
 def normalized_interval_shadows(records: list[dict], *, cutoff, predicted: float, scale,
                                  mean_prediction: float | None, window: int = 252,
-                                 min_rows: int = 60) -> dict:
+                                 min_rows: int = 60, event_bucket: bool | None = None) -> dict:
     """Filter maturity before taking the trailing window; never use current error."""
     stamp = pd.Timestamp(cutoff)
     mature = [row for row in records
               if row.get('label_available_at') is not None and row.get('target_close_at') is not None
               and pd.Timestamp(row['label_available_at']) <= stamp
               and pd.Timestamp(row['target_close_at']) <= stamp][-window:]
-    return {'volatility_normalized': _interval(mature, predicted, scale, min_rows),
+    pooled = _interval(mature, predicted, scale, min_rows)
+    bucket = [row for row in mature if event_bucket is not None and row.get('calendar_event_bucket') is event_bucket]
+    conditional = _interval(bucket, predicted, scale, max(60, min_rows))
+    if event_bucket is None or conditional['status'] != 'ready':
+        conditional = {**pooled, 'fallback': 'pooled_volatility_normalized',
+                       'bucket_calibration_n': conditional['calibration_n'],
+                       'fallback_reason': 'calendar_coverage_unknown' if event_bucket is None else 'insufficient_same_bucket_residuals'}
+    else:
+        conditional.update(fallback=None, bucket_calibration_n=conditional['calibration_n'])
+    conditional['event_bucket'] = event_bucket
+    return {'volatility_normalized': pooled, 'event_conditional': conditional,
             'mean_volatility_normalized': _interval(mature, mean_prediction, scale, min_rows, baseline=True)}
 
 

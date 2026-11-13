@@ -33,7 +33,21 @@ def utc_timestamp(value: Any) -> pd.Timestamp:
 def session_schedule(start: Any, end: Any, sessions: Any = None) -> tuple[pd.DataFrame, str]:
     """Return verified exchange session closes; fixtures may supply explicit sessions."""
     if sessions is None:
-        from roboquant.index_forecast.market_calendar import exchange_schedule
+        if __package__:
+            from roboquant.index_forecast.market_calendar import exchange_schedule
+        else:
+            # The pre-install trading-day gate loads this file directly. Keep
+            # that path independent of package __init__ and its model imports.
+            import importlib.util
+            from pathlib import Path
+
+            spec = importlib.util.spec_from_file_location(
+                "_premarket_shared_calendar", Path(__file__).with_name("market_calendar.py"))
+            if spec is None or spec.loader is None:
+                raise ImportError("shared market calendar unavailable")
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            exchange_schedule = module.exchange_schedule
 
         calendar, labels = exchange_schedule("XKRX", start, end)
         closes = [calendar.session_close(label) for label in labels]

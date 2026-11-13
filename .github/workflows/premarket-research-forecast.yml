@@ -2,257 +2,191 @@ name: Premarket research forecast
 
 on:
   schedule:
-    # Every day at 07:50 Asia/Seoul; the XKRX gate controls forecast execution.
-    - cron: "50 22 * * *"
+    # KST Monday–Saturday: prepare07:50, final08:00; KST Sunday excluded.
+    - cron: "50 22 * * 0-5"
+    - cron: "0 23 * * 0-5"
   workflow_dispatch:
+    inputs:
+      mode:
+        description: Actual-clock operation; validate never publishes a forecast
+        type: choice
+        default: validate
+        options: [validate, prepare, predict, latest]
 
 permissions:
   contents: read
-
 concurrency:
   group: premarket-research-forecast
   cancel-in-progress: false
 
 jobs:
   forecast:
-    # This repository's default branch is master. Update if the default branch changes.
-    if: github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/master' || inputs.mode == 'validate'
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ (inputs.mode == 'prepare' || github.event.schedule == '50 22 * * 0-5') && 6 || inputs.mode == 'validate' && 10 || 25 }}
     permissions:
       contents: write
     outputs:
       published: ${{ steps.publish.outputs.published }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
     env:
       PIP_DISABLE_PIP_VERSION_CHECK: "1"
       PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONPATH: src
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
-          persist-credentials: true
-
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
           cache-dependency-path: pyproject.toml
-
-      - name: Install trading-day calendar
-        run: |
-          set -eu
-          python -m pip install "exchange-calendars>=4.5" "pandas>=2.2" "numpy>=1.26"
-
-      - name: Trading-day gate
-        id: gate
-        run: python scripts/premarket_trading_day_gate.py
-
-      - name: Restore forecast history
-        if: steps.gate.outputs.run == 'true'
-        uses: actions/cache@v4
+      - name: Resolve actual-clock operation
+        id: operation
+        run: python scripts/accuracy_operation.py --phase gate --mode "${{ inputs.mode || 'auto' }}" --schedule "${{ github.event.schedule }}"
+      - name: Install forecast and verification stack
+        if: steps.operation.outputs.allowed == 'true'
+        run: python -m pip install -e '.[forecast,dev]'
+      - name: Restore authenticated private cache
+        if: steps.operation.outputs.allowed == 'true' && steps.operation.outputs.mode != 'validate'
+        uses: actions/cache/restore@v4
         with:
-          path: data/processed/forecast-history
-          key: premarket-forecast-history-${{ steps.gate.outputs.kst_date }}-${{ github.run_id }}-${{ github.run_attempt }}
-          restore-keys: |
-            premarket-forecast-history-
-
-      - name: Install forecast stack
-        if: steps.gate.outputs.run == 'true'
-        run: |
-          set -eu
-          python - <<'PY'
-          import subprocess
-          import sys
-          import tomllib
-          from pathlib import Path
-          deps = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))["project"]["optional-dependencies"]["forecast"]
-          subprocess.check_call([sys.executable, "-m", "pip", "install", *deps])
-          PY
-
-      - name: Place cached history
-        if: steps.gate.outputs.run == 'true'
-        run: |
-          set -eu
-          python - <<'PY'
-          import shutil
-          from pathlib import Path
-          cache = Path("data/processed/forecast-history")
-          target = Path("data/processed")
-          target.mkdir(parents=True, exist_ok=True)
-          if not cache.is_dir():
-              raise SystemExit(0)
-          sqlite = cache / "index_forecast.sqlite"
-          if sqlite.is_file():
-              shutil.copy2(sqlite, target / "index_forecast.sqlite")
-          csvs = sorted(
-              path for path in cache.glob("us_market_observations_v2_*.csv")
-              if len(path.stem.removeprefix("us_market_observations_v2_")) == 8
-              and path.stem.removeprefix("us_market_observations_v2_").isdigit()
-          )
-          if csvs:
-              shutil.copy2(csvs[-1], target / csvs[-1].name)
-          PY
-
+          path: .forecast-cache/state.enc
+          key: accuracy-private-v1-${{ steps.operation.outputs.kst_date }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: accuracy-private-v1-
+      - name: Open private cache
+        if: steps.operation.outputs.allowed == 'true' && steps.operation.outputs.mode != 'validate'
+        env:
+          FORECAST_CACHE_KEY: ${{ secrets.FORECAST_CACHE_KEY }}
+        run: python scripts/accuracy_operation.py --phase cache-open --mode "${{ steps.operation.outputs.mode }}"
+      - name: Collect bounded official economic facts
+        if: steps.operation.outputs.collect == 'true'
+        run: python scripts/collect_economic_calendar.py
       - name: Refresh prices
-        id: prices
-        if: steps.gate.outputs.run == 'true'
+        id: refresh
+        if: steps.operation.outputs.collect == 'true'
         run: |
           set -euo pipefail
           python scripts/refresh_premarket_prices.py | tee "$RUNNER_TEMP/prices.json"
           python - <<'PY'
-          import json
-          import os
+          import json, os
           from pathlib import Path
-          lines = Path(os.environ["RUNNER_TEMP"], "prices.json").read_text(encoding="utf-8").splitlines()
-          data = json.loads(lines[-1])
-          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as stream:
-              stream.write(f"sqlite={data['sqlite']}\n")
-              stream.write(f"us_csv={data['us_csv']}\n")
+          data = json.loads(Path(os.environ['RUNNER_TEMP'], 'prices.json').read_text().splitlines()[-1])
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as stream:
+              stream.write(f"sqlite={data['sqlite']}\nus_csv={data['us_csv']}\n")
           PY
-
+      - name: Freeze actual preparation inputs
+        if: steps.operation.outputs.collect == 'true'
+        run: python scripts/accuracy_operation.py --phase freeze --mode "${{ steps.operation.outputs.mode }}" --sqlite "${{ steps.refresh.outputs.sqlite }}" --us-csv "${{ steps.refresh.outputs.us_csv }}"
+      - name: Resolve immutable forecast inputs
+        id: prices
+        if: steps.operation.outputs.forecast_requested == 'true'
+        run: python scripts/accuracy_operation.py --phase inputs --mode "${{ steps.operation.outputs.mode }}" --sqlite "${{ steps.refresh.outputs.sqlite }}" --us-csv "${{ steps.refresh.outputs.us_csv }}"
       - name: Korea research forecast
-        if: steps.gate.outputs.run == 'true'
+        if: steps.prices.outputs.kr == 'true'
         run: |
           set -euo pipefail
           python scripts/run_reliable_index_forecast.py \
             --sqlite "${{ steps.prices.outputs.sqlite }}" \
-            --us-observations "${{ steps.prices.outputs.us_csv }}" | tee "$RUNNER_TEMP/korea-forecast.json"
+            --us-observations "${{ steps.prices.outputs.us_csv }}" \
+            --prepared-manifest "${{ steps.prices.outputs.prepared_manifest }}" \
+            --economic-sqlite "${{ steps.prices.outputs.economic_sqlite }}" \
+            --fit-state-dir "${{ steps.prices.outputs.fit_models_kr }}" | tee "$RUNNER_TEMP/korea-forecast.json"
           python scripts/verify_automation_publication.py \
             --result "$RUNNER_TEMP/korea-forecast.json" --data-dir docs/data
-
       - name: US research forecast
-        if: steps.gate.outputs.run == 'true'
+        if: steps.prices.outputs.us == 'true'
         run: |
           set -euo pipefail
           python scripts/run_us_index_forecast.py \
-            --us-observations "${{ steps.prices.outputs.us_csv }}" | tee "$RUNNER_TEMP/us-forecast.json"
+            --us-observations "${{ steps.prices.outputs.us_csv }}" \
+            --prepared-manifest "${{ steps.prices.outputs.prepared_manifest }}" \
+            --economic-sqlite "${{ steps.prices.outputs.economic_sqlite }}" \
+            --fit-state-dir "${{ steps.prices.outputs.fit_models_us }}" | tee "$RUNNER_TEMP/us-forecast.json"
           python scripts/verify_automation_publication.py \
             --result "$RUNNER_TEMP/us-forecast.json" --data-dir docs/data/us
-
-      - name: Compress OOF archives
-        if: steps.gate.outputs.run == 'true' && !cancelled()
+      - name: Persist derived model state from prepared inputs
+        if: steps.operation.outputs.mode == 'predict' && steps.prices.outputs.status == 'ready' && success()
+        run: python scripts/accuracy_operation.py --phase publish-models --mode predict
+      - name: Seal private cache
+        id: seal
+        if: steps.operation.outputs.collect == 'true' && success()
+        env:
+          FORECAST_CACHE_KEY: ${{ secrets.FORECAST_CACHE_KEY }}
+        run: python scripts/accuracy_operation.py --phase cache-seal --mode "${{ steps.operation.outputs.mode }}"
+      - name: Save encrypted preparation and history
+        if: steps.seal.outputs.status == 'sealed'
+        uses: actions/cache/save@v4
+        with:
+          path: .forecast-cache/state.enc
+          key: accuracy-private-v1-${{ steps.operation.outputs.kst_date }}-${{ github.run_id }}-${{ github.run_attempt }}
+      - name: Validate without publication
+        if: steps.operation.outputs.mode == 'validate'
         run: |
-          set -eu
+          set -euo pipefail
+          python -m pytest -q tests/test_reliable_accuracy_protocol.py tests/test_reliable_intervals.py tests/test_economic_calendar.py tests/test_economic_sources.py tests/test_economic_forecast.py tests/test_forward_ledger.py tests/test_accuracy_automation.py tests/test_accuracy_calendar_audit.py tests/test_automation_publication.py
+          python scripts/collect_economic_calendar.py --output-dir "$RUNNER_TEMP/calendar-validation" --private-dir "$RUNNER_TEMP/calendar-private"
+          cp "$RUNNER_TEMP/calendar-validation/economic_collection_status.json" "$RUNNER_TEMP/accuracy-validation.json"
+      - name: Upload compact validation status
+        if: steps.operation.outputs.mode == 'validate' && !cancelled()
+        uses: actions/upload-artifact@v4
+        with:
+          name: accuracy-validation-status
+          path: ${{ runner.temp }}/accuracy-validation.json
+          retention-days: 14
+          if-no-files-found: warn
+      - name: Compress derived OOF evidence
+        if: (steps.prices.outputs.kr == 'true' || steps.prices.outputs.us == 'true') && !cancelled()
+        run: |
           python - <<'PY'
           import zipfile
           from pathlib import Path
-          roots = [Path("docs/data/archive"), Path("docs/data/us/archive")]
-          files = [path for root in roots if root.is_dir() for path in root.rglob("*") if path.is_file()]
-          if not files:
-              print("no OOF archive files")
-              raise SystemExit(0)
-          destination = Path("reliable-forecast-archives.zip")
-          with zipfile.ZipFile(destination, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
-              for path in files:
-                  archive.write(path, path.as_posix())
-          print(f"zip_bytes={destination.stat().st_size} files={len(files)}")
+          files = [p for base in ('docs/data/archive', 'docs/data/us/archive') for p in Path(base).glob('*.json')]
+          if files:
+              with zipfile.ZipFile('reliable-forecast-archives.zip', 'w', zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
+                  for path in files:
+                      archive.write(path, path.as_posix())
           PY
-
-      - name: Upload full OOF archives
-        if: steps.gate.outputs.run == 'true' && !cancelled()
+      - name: Upload derived OOF evidence
+        if: (steps.prices.outputs.kr == 'true' || steps.prices.outputs.us == 'true') && !cancelled()
         uses: actions/upload-artifact@v4
         with:
           name: reliable-forecast-archives
           path: reliable-forecast-archives.zip
           retention-days: 14
           if-no-files-found: warn
-
-      - name: Update forecast history cache
-        if: steps.gate.outputs.run == 'true' && success()
-        run: |
-          set -eu
-          python - <<'PY'
-          import shutil
-          from pathlib import Path
-          source = Path("data/processed")
-          cache = source / "forecast-history"
-          cache.mkdir(parents=True, exist_ok=True)
-          for stale in cache.glob("*"):
-              if stale.is_file():
-                  stale.unlink()
-          sqlite = source / "index_forecast.sqlite"
-          if sqlite.is_file():
-              shutil.copy2(sqlite, cache / sqlite.name)
-          csvs = sorted(
-              path for path in source.glob("us_market_observations_v2_*.csv")
-              if len(path.stem.removeprefix("us_market_observations_v2_")) == 8
-              and path.stem.removeprefix("us_market_observations_v2_").isdigit()
-          )
-          if csvs:
-              shutil.copy2(csvs[-1], cache / csvs[-1].name)
-          PY
-
-      - name: Record daily automation status
-        env:
-          KST_DATE: ${{ steps.gate.outputs.kst_date }}
-          GATE_REASON: ${{ steps.gate.outputs.reason }}
-        run: python scripts/write_automation_status.py --date "$KST_DATE" --reason "$GATE_REASON"
-
-      - name: Commit compact Pages payloads
+      - name: Record operational state
+        if: steps.operation.outputs.allowed == 'true' && steps.operation.outputs.mode != 'validate' && success()
+        run: python scripts/accuracy_operation.py --phase status --mode "${{ steps.operation.outputs.mode }}" --reason "${{ steps.prices.outputs.reason || 'completed' }}"
+      - name: Commit reviewed public payloads
         id: publish
-        env:
-          DEFAULT_BRANCH: master
+        if: steps.operation.outputs.allowed == 'true' && steps.operation.outputs.mode != 'validate' && success()
         run: |
-          set -eu
-          files=(
-            docs/data/automation_status.json
-            docs/data/reliable_index_forecast.json
-            docs/data/reliable_validation_report.json
-            docs/data/reliable_model_card.json
-            docs/data/reliable_publication.json
-            docs/data/us/reliable_index_forecast.json
-            docs/data/us/reliable_validation_report.json
-            docs/data/us/reliable_model_card.json
-            docs/data/us/reliable_publication.json
-          )
-          present=()
-          for file in "${files[@]}"; do
-            if [ -f "$file" ]; then
-              present+=("$file")
-            fi
-          done
-          if [ "${#present[@]}" -eq 0 ]; then
-            echo "no compact payload files"
-            exit 0
-          fi
-          git add -- "${present[@]}"
+          set -euo pipefail
+          mapfile -t files < <(python scripts/accuracy_operation.py --phase public-paths)
+          if [ "${#files[@]}" -eq 0 ]; then exit 0; fi
+          git add -- "${files[@]}"
           python - <<'PY'
           import subprocess
-          import sys
-          names = subprocess.check_output(["git", "diff", "--cached", "--name-only"], text=True).splitlines()
-          def banned(path: str) -> bool:
-              name = path.replace("\\", "/")
-              if name.startswith(("data/processed/", "data/raw/")) or "/data/processed/" in name or "/data/raw/" in name:
-                  return True
-              if "docs/data/archive/" in name or "docs/data/us/archive/" in name or name.endswith(".zip"):
-                  return True
-              base = name.rsplit("/", 1)[-1]
-              if base == ".env" or base.startswith(".env") or name.endswith(".sqlite") or ".sqlite" in name or name.endswith(".duckdb") or ".duckdb" in name:
-                  return True
-              return False
-          bad = [name for name in names if banned(name)]
-          if bad:
-              print("refusing to stage forbidden paths:", *bad, file=sys.stderr)
-              raise SystemExit(1)
+          from pathlib import Path
+          from roboquant.index_forecast.automation_state import public_payload_paths
+          allowed = {p.as_posix() for p in public_payload_paths(Path('docs/data'))}
+          staged = set(subprocess.check_output(['git', 'diff', '--cached', '--name-only'], text=True).splitlines())
+          if not staged.issubset(allowed):
+              raise SystemExit('staged path outside reviewed public allowlist')
           PY
-          if git diff --cached --quiet; then
-            echo "compact payloads unchanged"
-            exit 0
-          fi
-          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m "$(cat <<'EOF'
-          Publish the compact next-session research forecast so GitHub Pages stays current.
-
-          EOF
-          )"
-          git push origin "HEAD:$DEFAULT_BRANCH"
-          echo "published=true" >> "$GITHUB_OUTPUT"
+          if git diff --cached --quiet; then exit 0; fi
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Publish verified forecast context and economic calendar observations.'
+          git push origin HEAD:master
+          echo 'published=true' >> "$GITHUB_OUTPUT"
 
   deploy:
     needs: forecast
     if: needs.forecast.outputs.published == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       contents: read
       pages: write
@@ -268,12 +202,23 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: master
+      - name: Stage only tracked reviewed Pages files
+        run: |
+          python - <<'PY'
+          import shutil, subprocess
+          from pathlib import Path
+          for name in subprocess.check_output(['git', 'ls-files', 'docs'], text=True).splitlines():
+              source = Path(name)
+              target = Path('_site') / source.relative_to('docs')
+              target.parent.mkdir(parents=True, exist_ok=True)
+              shutil.copy2(source, target)
+          PY
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: docs
+          path: _site
       - name: Deploy Pages
         id: deployment
         uses: actions/deploy-pages@v4

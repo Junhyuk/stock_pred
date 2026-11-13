@@ -56,6 +56,11 @@ root = Path(sys.argv[1])
 spec = importlib.util.spec_from_file_location("gate_check", root / "scripts" / "premarket_trading_day_gate.py")
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
+from datetime import datetime
+from zoneinfo import ZoneInfo
+decision = module.trading_day_decision(datetime(2026, 11, 9, 7, 50, tzinfo=ZoneInfo("Asia/Seoul")))
+if not decision["run"]:
+    raise SystemExit("thin calendar runtime unavailable: " + repr(decision))
 banned = [
     name for name in sys.modules
     if name == "sklearn" or name.startswith("sklearn.")

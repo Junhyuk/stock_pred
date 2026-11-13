@@ -21,6 +21,13 @@ import numpy as np
 import pandas as pd
 
 from roboquant.index_forecast.dataset import PRICE_FEATURES
+from roboquant.index_forecast.economic_forecast import (
+    begin_forward,
+    calendar_frame,
+    finish_forward,
+    load_calendar,
+    numeric_shadow,
+)
 from roboquant.index_forecast.event_context import build_event_risk_context
 from roboquant.index_forecast.international_news import build_international_news_report
 from roboquant.index_forecast.participant_impact import build_participant_impact_inputs
@@ -87,6 +94,8 @@ def build_reliable_price_frame(prices: pd.DataFrame, *, sessions: Any = None,
         data[f"volatility_{width}d"] = log_return.rolling(width, min_periods=width).std()
         data[f"ma_gap_{width}d"] = close / close.rolling(width, min_periods=width).mean() - 1
     data["target_date"] = data["asof_date"].map(next_dates)
+    data["asof_close_at"] = data["asof_date"].map(close_times).map(lambda x: x.isoformat() if pd.notna(x) else None)
+    data["target_close_at"] = data["target_date"].map(close_times).map(lambda x: x.isoformat() if pd.notna(x) else None)
     data["label_return"] = close.shift(-1) / close - 1
     data["prediction_cutoff"] = data["asof_date"].map(close_times).map(lambda x: x.isoformat())
     if forecast_context is not None:
@@ -411,18 +420,23 @@ def run_reliable_pipeline(sqlite_path: str | Path, output_dir: str | Path, *, co
                 context.update(status="blocked_incomplete_input", reasons=["latest_index_price_features_incomplete"])
     blocked = [context for context in contexts.values() if context["status"] != "ready"]
     output = Path(output_dir)
+    code_hash = _hash({name: hashlib.sha256(Path(__file__).with_name(name).read_bytes()).hexdigest()
+                       for name in ("reliable.py", "reliable_intervals.py", "fit_protocol.py", "market_calendar.py", "economic_calendar.py", "economic_forecast.py", "economic_sources.py", "forward_ledger.py", "reliable_inputs.py", "reliable_pipeline.py", "participant_impact.py", "us_market_inputs.py", "event_context.py", "international_news.py")})
+    input_hashes = {"index": _frame_hash(prices), "membership": _frame_hash(membership),
+                    "stock_prices": _frame_hash(stock_prices), "participant_flows": _frame_hash(flows),
+                    "us_observations": _frame_hash(us_data), "current_event_context": _hash(event_payload),
+                    "international_news_snapshot": _hash(news_inputs["snapshot"])}
+    registry = Path(__file__).resolve().parents[3] / 'configs/economic_calendar.yaml'
+    code_hash = _hash({'modules': code_hash, 'economic_registry': hashlib.sha256(registry.read_bytes()).hexdigest() if registry.is_file() else None})
+    calendar_store = load_calendar(config)
+    evidence = begin_forward(output, config=config, settings=settings, started_at=issued, code_hash=code_hash, replay=now is not None)
     if blocked:
         result = {"status": blocked[0]["status"], "issued_at": issued.isoformat(),
                   "production_weight": 0.0, "markets": [], "contexts": contexts,
                   "reasons": [reason for item in blocked for reason in item["reasons"]]}
         _atomic_json(output / "reliable_index_forecast.json", result)
+        finish_forward(output, evidence=evidence, frames=prepared, observed_at=datetime.now(KST))
         return result
-    code_hash = _hash({name: hashlib.sha256(Path(__file__).with_name(name).read_bytes()).hexdigest()
-                       for name in ("reliable.py", "reliable_intervals.py", "fit_protocol.py", "market_calendar.py", "reliable_inputs.py", "reliable_pipeline.py", "participant_impact.py", "us_market_inputs.py", "event_context.py", "international_news.py")})
-    input_hashes = {"index": _frame_hash(prices), "membership": _frame_hash(membership),
-                    "stock_prices": _frame_hash(stock_prices), "participant_flows": _frame_hash(flows),
-                    "us_observations": _frame_hash(us_data), "current_event_context": _hash(event_payload),
-                    "international_news_snapshot": _hash(news_inputs["snapshot"])}
     run = {"schema_version": "reliable_index_forecast_v1", "status": "research_only",
            "issued_at": issued.isoformat(), "production_weight": 0.0, "horizon": "1D",
            "run_started_at": issued.isoformat(),
@@ -436,6 +450,7 @@ def run_reliable_pipeline(sqlite_path: str | Path, output_dir: str | Path, *, co
         raw = prices.loc[prices["index_code"] == market].copy()
         frame = prepared[market].copy()
         frame = frame.loc[frame["asof_date"] <= context["asof_date"]].copy()
+        frame, economic_contexts = calendar_frame(frame, calendar_store)
         cutoffs = dict(zip(frame["asof_date"], frame["prediction_cutoff"], strict=True))
         breadth = build_stock_breadth(stock_prices, membership, market=market, asof_cutoffs=cutoffs,
                                       target_count=int(config.get("universe", {}).get(market, 100 if market == "KOSPI" else 50)))
@@ -551,7 +566,11 @@ def run_reliable_pipeline(sqlite_path: str | Path, output_dir: str | Path, *, co
                       "live_mode": "observed_local_close", "asof_date": context["asof_date"],
                       "membership_status": "unavailable_for_training" if "breadth" in missing else "dated_available_snapshots",
                       "participant_status": "unavailable_for_training" if "participants" in missing else "final_available_observations"}
-        record = {"market": market, "context": context, "forecast": forecast, "evaluation": evaluation,
+        macro = numeric_shadow(frame, store=calendar_store, settings=settings, market=market,
+            state_dir=config.get("fit_state_dir", output / "fit_models"), live=now is None,
+            allow_capture=context["stage"] == "premarket_final")
+        record = {"economic_calendar": economic_contexts.get(context["asof_date"], {"event_bucket": None, "calendar_complete": False}),
+                  "numeric_shadow": macro, "market": market, "context": context, "forecast": forecast, "evaluation": evaluation,
                   "incumbent_reference": {**incumbent, "role": "retrospective_reference_not_live_model"},
                   "fit_state": {key: value for key, value in fit_state.items() if key != "artifact"},
                   "missing_feature_groups": missing, "active_feature_groups": groups,
@@ -570,9 +589,9 @@ def run_reliable_pipeline(sqlite_path: str | Path, output_dir: str | Path, *, co
         run["markets"].append(record)
     run["data_hash"] = _hash({**input_hashes, "participant_bridge_manifests": {
         record["market"]: record["participant_bridge_manifest"] for record in run["markets"]}})
-    prepared = utc_timestamp(datetime.now(KST)) if now is None else None
+    prepared_clock = utc_timestamp(datetime.now(KST)) if now is None else None
     run.update(status="unpublished", issued_at=None, artifact_written_at=None,
-               prepared_at=prepared.isoformat() if prepared is not None else None,
+               prepared_at=prepared_clock.isoformat() if prepared_clock is not None else None,
                publication_manifest="reliable_publication.json")
     for record in run["markets"]:
         record["context"].update(run_started_at=issued.isoformat(), issued_at=None)
@@ -594,4 +613,6 @@ def run_reliable_pipeline(sqlite_path: str | Path, output_dir: str | Path, *, co
         "markets": [{"market": item["market"], "forecast_id": item["forecast_id"],
                      "selected": item["evaluation"].get("selected"), "status": item["forecast"]["status"],
                      "data_provenance": item["data_provenance"]} for item in run["markets"]]}}
-    return _publish_staged_run(run, output, documents, contexts=contexts, replay=now is not None)
+    published = _publish_staged_run(run, output, documents, contexts=contexts, replay=now is not None)
+    finish_forward(output, evidence=evidence, frames=prepared, observed_at=datetime.now(KST))
+    return published

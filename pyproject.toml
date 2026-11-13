@@ -44,6 +44,7 @@ global = [
 ]
 # The daily Action installs this list directly. It does not install the base web/API dependencies.
 forecast = [
+  "cryptography>=42",
   "pandas>=2.2",
   "numpy>=1.26",
   "exchange-calendars>=4.5",

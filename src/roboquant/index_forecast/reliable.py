@@ -20,6 +20,7 @@ from sklearn.preprocessing import StandardScaler
 from roboquant.index_forecast.dataset import PRICE_FEATURES
 from roboquant.index_forecast.fit_protocol import (
     artifact_path,
+    content_hash,
     make_fit_snapshot,
     make_model_artifact,
     predict_model_artifact,
@@ -295,6 +296,8 @@ def _walk(data: pd.DataFrame, groups: dict[str, list[str]], config: ReliableSett
                                    else row["_available"].iloc[0].isoformat()),
             "target_close_at": row["_target"].iloc[0].isoformat(),
             "actual_return": float(row["label_return"].iloc[0]),
+            "calendar_event_bucket": (bool(row["calendar_event_bucket"].iloc[0])
+                if "calendar_event_bucket" in row and pd.notna(row["calendar_event_bucket"].iloc[0]) else None),
             "baselines": baselines,
             "references": {"previous_direction": {"expected_return": previous_return, "p_up": float(previous_return > 0)},
                            "simple_trend": {"expected_return": trend_return, "p_up": float(trend_return > 0)}},
@@ -336,7 +339,8 @@ def _walk(data: pd.DataFrame, groups: dict[str, list[str]], config: ReliableSett
                     "scale_at_prediction": float(vol.iloc[position]) if np.isfinite(vol.iloc[position]) else None,
                     "interval_shadows": normalized_interval_shadows(previous, cutoff=cutoff,
                         predicted=float(expected), scale=vol.iloc[position], mean_prediction=mean,
-                        window=config.calibration_window, min_rows=config.min_calibration_rows),
+                        window=config.calibration_window, min_rows=config.min_calibration_rows,
+                        event_bucket=record_base["calendar_event_bucket"]),
                     **_range(float(expected), radius)})
         legacy_records.append(record_base)
     return histories
@@ -675,7 +679,9 @@ def forecast_reliable_latest(history: pd.DataFrame, latest: pd.DataFrame, evalua
     mean = float(known["label_return"].mean()) if not known.empty else None
     scale = current["volatility_20d"].iloc[0]
     shadows = normalized_interval_shadows(previous, cutoff=cutoff, predicted=expected, scale=scale,
-        mean_prediction=mean, window=config.calibration_window, min_rows=config.min_calibration_rows)
+        mean_prediction=mean, window=config.calibration_window, min_rows=config.min_calibration_rows,
+        event_bucket=(bool(current["calendar_event_bucket"].iloc[0])
+            if "calendar_event_bucket" in current and pd.notna(current["calendar_event_bucket"].iloc[0]) else None))
     reasons = list(evaluation.get("gate_reasons", []))
     if not ready or radius is None:
         status = "not_ready"
@@ -695,6 +701,13 @@ def forecast_reliable_latest(history: pd.DataFrame, latest: pd.DataFrame, evalua
                   fit_snapshot_hash=snapshot["snapshot_hash"], fit_artifact_hash=artifact["artifact_hash"],
                   fit_provenance=snapshot["provenance"], next_refit_asof=anchor["next_refit_asof"])
     result.update(scale_at_prediction=float(scale) if np.isfinite(scale) else None, interval_shadows=shadows)
+    rate = float((known['label_return'] > 0).mean()) if not known.empty else None
+    result['baselines'] = {'up_rate': {'p_up': rate, 'known_label_n': len(known)},
+                          'mean': {'expected_return': mean, 'p_up': rate, 'known_label_n': len(known),
+                                   **_range(mean, _radius(previous, config, 'mean'))}}
+    prior_vol = pd.to_numeric(known['volatility_20d'], errors='coerce').dropna()
+    result['volatility_regime'] = ('unknown' if prior_vol.empty or not np.isfinite(scale)
+                                   else 'high' if scale > prior_vol.median() else 'low')
     return result
 
 
@@ -728,12 +741,22 @@ def resolve_live_fit(history: pd.DataFrame, latest: pd.DataFrame, selection: dic
             snapshot = make_fit_snapshot(_prepare(history), features,
                 {**anchor, "prediction_cutoff": cutoff.isoformat()}, asdict(settings), provenance="live_captured")
             if snapshot["status"] != "ready":
-                return {**unavailable, **metadata, "reason": snapshot["reason"]}
-            training = restore_fit_snapshot(snapshot, features, asdict(settings))
-            family = selection["family"]
-            bases = ("linear", "lightgbm") if family == "ensemble" else (family,)
-            models = {base: _fit_base(training, features, base, settings) for base in bases}
-            artifact = save_model_artifact(state_dir, market, make_model_artifact(snapshot, models))
+                failed = {"schema_version": "fit_failure_v1", "snapshot": snapshot}
+                artifact = save_model_artifact(state_dir, market,
+                    {**failed, "artifact_hash": content_hash(failed)})
+            else:
+                training = restore_fit_snapshot(snapshot, features, asdict(settings))
+                family = selection["family"]
+                bases = ("linear", "lightgbm") if family == "ensemble" else (family,)
+                models = {base: _fit_base(training, features, base, settings) for base in bases}
+                artifact = save_model_artifact(state_dir, market, make_model_artifact(snapshot, models))
+        if artifact.get("schema_version") == "fit_failure_v1":
+            if content_hash({k: v for k, v in artifact.items() if k != "artifact_hash"}) != artifact.get("artifact_hash"):
+                raise ValueError("fit failure artifact hash mismatch")
+            if artifact["snapshot"]["anchor_asof"] != anchor["anchor_asof"]:
+                raise ValueError("fit failure anchor mismatch")
+            return {**unavailable, **metadata, "reason": artifact["snapshot"]["reason"],
+                    "failed_at": artifact["snapshot"].get("fit_cutoff")}
         validate_model_artifact(artifact, features, asdict(settings), anchor["anchor_asof"],
                                 require_live=True, prediction_cutoff=cutoff)
         required = {"linear", "lightgbm"} if selection["family"] == "ensemble" else {selection["family"]}

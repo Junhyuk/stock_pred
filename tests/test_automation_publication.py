@@ -106,6 +106,8 @@ def test_workflow_rejects_exit_zero_blocked_cli(tmp_path, step_name, cli_name):
     (bin_dir / 'python').symlink_to(sys.executable)
     command = step['run'].replace('${{ steps.prices.outputs.sqlite }}', 'unused.sqlite').replace(
         '${{ steps.prices.outputs.us_csv }}', 'unused.csv')
+    for field in ('economic_sqlite', 'fit_models_kr', 'fit_models_us', 'prepared_manifest'):
+        command = command.replace('${{ steps.prices.outputs.' + field + ' }}', 'unused-prepared-state')
     command += '\necho unsafe-publication-continued\n'
     result = subprocess.run(['bash', '-c', command], cwd=tmp_path,
                             env={**os.environ, 'RUNNER_TEMP': str(tmp_path),

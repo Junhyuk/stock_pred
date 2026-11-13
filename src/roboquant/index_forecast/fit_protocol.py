@@ -38,8 +38,11 @@ def runtime_fingerprint() -> dict:
             packages[name] = None
     sources = {name: hashlib.sha256(Path(__file__).with_name(name).read_bytes()).hexdigest()
                for name in ('fit_protocol.py', 'reliable.py', 'reliable_intervals.py', 'market_calendar.py',
-                            'reliable_inputs.py', 'reliable_pipeline.py',
+                            'reliable_inputs.py', 'reliable_pipeline.py', 'economic_calendar.py',
+                            'economic_forecast.py', 'economic_sources.py', 'forward_ledger.py',
                             'us_market_inputs.py', 'us_market_pipeline.py')}
+    registry = Path(__file__).resolve().parents[3] / 'configs/economic_calendar.yaml'
+    sources['economic_registry'] = hashlib.sha256(registry.read_bytes()).hexdigest() if registry.is_file() else None
     return {'packages': packages, 'source_hash': content_hash(sources)}
 
 

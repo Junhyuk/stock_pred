@@ -29,8 +29,18 @@ def main() -> None:
     parser.add_argument("--participant-bridge", help="Versioned verified participant observations JSON; takes precedence over SQLite")
     parser.add_argument("--us-observations", help="Canonical completed-session US v2 CSV")
     parser.add_argument("--news-context", help="Current verified-event context JSON; never a historical feature archive")
+    parser.add_argument("--prepared-manifest", help="Verified preparation manifest provenance")
+    parser.add_argument("--economic-sqlite", help="Prepared economic snapshot; disables current Git history import")
+    parser.add_argument("--fit-state-dir", help="Prepared model state and new anchor capture directory")
     args = parser.parse_args()
     config = yaml.safe_load(Path(args.config).read_text(encoding="utf-8")) or {}
+    if args.prepared_manifest:
+        manifest = json.loads(Path(args.prepared_manifest).read_text())
+        config["prepared_inputs"] = {key: manifest[key] for key in ("manifest_hash", "prepared_at", "kst_date", "code_hash")}
+    if args.economic_sqlite:
+        config["economic_calendar"] = {**config.get("economic_calendar", {}), "sqlite_path": args.economic_sqlite, "history_path": None}
+    if args.fit_state_dir:
+        config["fit_state_dir"] = args.fit_state_dir
     now: datetime | None = None
     if args.now:
         parsed = utc_timestamp(args.now)

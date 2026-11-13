@@ -126,6 +126,11 @@
       color: var(--muted);
       font-weight: 700;
     }
+    .economic-table { overflow-x: auto; margin: 12px 0 24px; }
+    #economic-calendar table { width:100%; border-collapse:collapse; min-width:580px; }
+    #economic-calendar th, #economic-calendar td { text-align:left; padding:12px; border-bottom:1px solid var(--line); vertical-align:top; }
+    #economic-calendar small { color:var(--muted); overflow-wrap:anywhere; }
+    .reference { padding:12px; background:var(--bg); border:1px dashed var(--line); border-radius:8px; }
   </style>
 </head>
 <body>
@@ -143,6 +148,11 @@
   <div id="automation-status" class="notice">자동 갱신 상태를 확인하는 중입니다.</div>
   <div id="status" role="status">로컬 연구 결과를 읽는 중입니다.</div>
   <div id="content"></div>
+  <section id="economic-calendar" class="notice" aria-labelledby="economic-calendar-title">
+    <h2 id="economic-calendar-title">경제 발표 캘린더와 실제 수치</h2>
+    <p id="economic-collection-status" role="status">공식 소스 수집 상태 확인 중</p>
+    <div id="economic-calendar-content">경제일정을 불러오는 중입니다.</div>
+  </section>
 </main>
 <script>
 const MARKET_LABELS = {
@@ -198,9 +208,9 @@ function renderCard(item, runStatus) {
   const statusForMessage = fs.startsWith('blocked_') ? fs : (rs.startsWith('blocked_') ? rs : fs);
   const statusInfo = forecastStatusMessage(statusForMessage);
   const blocked = String(runStatus).startsWith('blocked_') || String(f.status ?? '').startsWith('blocked_');
-  const showNumbers = runStatus !== 'unpublished' && !blocked;
+  const showNumbers = runStatus !== 'unpublished' && !blocked && f.status !== 'not_ready';
 
-  const latestClose = showNumbers ? level(f.latest_close) : '—';
+  const latestClose = !blocked && runStatus !== 'unpublished' ? level(f.latest_close) : '—';
   const expectedIndex = showNumbers ? level(f.expected_index) : '—';
   const pUp = showNumbers ? probLabel(f.p_up) : '확률 없음';
   const pDown = showNumbers ? probLabel(f.p_down) : '확률 없음';
@@ -225,7 +235,12 @@ function renderCard(item, runStatus) {
     </div>
     <div class="detail-line"><span>예상 수익률 </span><strong>${escapeHtml(expRet)}</strong></div>
     <div class="detail-line"><span>80% 지수 구간 </span><strong>${escapeHtml(rangeText)}</strong></div>
-    <p class="card-status ${escapeHtml(statusInfo.kind)}">${escapeHtml(statusInfo.text)}</p>
+    <p class="card-status ${escapeHtml(statusInfo.kind)}">${escapeHtml(f.status === 'not_ready' ? '주 모델 준비 미완료 · 검증된 고정 학습 상태 또는 보정 자료가 부족합니다.' : statusInfo.text)}</p>
+    <div class="card-dates">입력 마감 ${escapeHtml(formatAutomationTime(c.prediction_cutoff))} KST<br>실제 공개 ${escapeHtml(formatAutomationTime(c.issued_at || f.issued_at))} KST</div>
+    ${item.fit_state?.next_refit_asof ? `<p class="card-dates">다음 고정 학습 기준 종가일: <strong>${escapeHtml(item.fit_state.next_refit_asof)}</strong><br>한국은 해당 종가 이후 다음 거래일 08:00 단계, 미국은 해당 종가의 실제 수신 이후에만 포착합니다. 이 날짜가 준비 완료를 보장하지는 않습니다.</p>` : ''}
+    ${showNumbers && f.interval_shadows?.volatility_normalized?.status === 'ready' ? `<details><summary>변동성 보정 구간 연구</summary><p>${pct(f.interval_shadows.volatility_normalized.range_low)} ~ ${pct(f.interval_shadows.volatility_normalized.range_high)} · ${escapeHtml(f.interval_shadows.volatility_normalized.calibration_n)}개 과거 성숙 오차</p><p>주 구간을 대체하지 않는 연구 후보입니다.</p></details>` : ''}
+    ${!blocked && runStatus !== 'unpublished' && item.incumbent_reference?.expected_return != null ? `<div class="reference"><strong>기존 가격모형 참고 · 회고 재구성</strong><p>기준 ${escapeHtml(c.asof_date)} → 목표 ${escapeHtml(c.target_date)}<br>예상 수익률 ${pct(item.incumbent_reference.expected_return)} · 상승 ${item.incumbent_reference.calibration_ready ? probLabel(item.incumbent_reference.p_up) : '보정 준비 미완료'}<br>80% 수익률 구간 ${pct(item.incumbent_reference.range_low)} ~ ${pct(item.incumbent_reference.range_high)}</p><small>현재 확인한 입력의 참고 결과입니다. 새로운 고정 학습 주 모델이나 독립 전향 정확도 증거를 뜻하지 않습니다.</small></div>` : ''}
+    <details><summary>이번 예측의 경제자료 상태</summary><p>입력 마감 당시 이벤트: ${item.economic_calendar?.event_bucket == null ? '소스 범위 또는 시각 미확인' : item.economic_calendar.event_bucket ? '예측 구간 내 발표 확인' : '확인 범위 내 발표 없음'}<br>14개 수치 후보: ${escapeHtml(item.numeric_shadow?.status || '자료 없음')} · 주 확률과 분리</p><p>확률 방향: 상승확률 ≥50%, 수익률 방향: 예상수익률 &gt;0. 목표 구간의 포함률은 보장되지 않습니다.</p></details>
   </article>`;
 }
 
@@ -277,15 +292,13 @@ function formatAutomationTime(value) {
 
 function renderAutomationStatus(data) {
   const checked = formatAutomationTime(data.checked_at);
-  const decision = data.reason === 'not_xkrx_session'
-    ? '한국 휴장일: 예측을 새로 생성하지 않았습니다.'
-    : '한국 거래일: 예측 실행을 완료했습니다. 개별 결과의 검증 상태를 확인하세요.';
+  const decision = data.mode === 'prepare' ? '07:50 준비 수집 단계입니다. 새 예측 발행과 구분합니다.' : data.mode === 'latest' ? '실제 시각에 발행 가능한 시장만 갱신했습니다. 개별 상태를 확인하세요.' : data.inputs?.status === 'not_ready' ? '준비 입력을 복원하지 못해 새 예측을 만들지 않았습니다.' : data.reason === 'not_xkrx_session' ? '한국 휴장일: 예측을 새로 생성하지 않았습니다.' : '개별 시장의 공개 시각과 입력 상태를 확인하세요.';
   const summary = (label, run) => {
     if (!run) return `${label}: 검증된 직전 공개 시각 확인 불가`;
     const dates = Object.entries(run.asof_dates ?? {}).map(([market, date]) => `${market} ${date ?? '확인 불가'}`).join(', ') || '확인 불가';
     return `${label}: 공개 ${formatAutomationTime(run.publication_checked_at)} (한국 시각), 기준 종가일 ${dates}`;
   };
-  return `자동 확인 ${checked} (한국 시각) · ${decision} ${summary('한국', data.korea)} · ${summary('미국', data.us)}. 미국 입력은 해당 시점에 완료된 정규장 종가 기준이며 한국 휴장일에는 미국 예측도 갱신하지 않습니다. 스케줄과 외부 데이터에 따라 갱신이 지연되거나 실패할 수 있습니다. 자동 실행은 뉴스 사건을 수집하지 않습니다.`;
+  return `자동 확인 ${checked} (한국 시각) · ${decision} ${summary('한국', data.korea)} · ${summary('미국', data.us)}. 미국 장중에는 새 다음 거래일 예측을 발행하지 않고 직전 확인 결과를 유지합니다. KST 월~토 07:50 준비·08:00 발행이며 일요일은 제외합니다. 외부 데이터 지연·누락 시 준비 미완료로 남습니다.`;
 }
 
 fetch('data/automation_status.json', { cache: 'no-store' })
@@ -323,5 +336,6 @@ Promise.all([
   document.getElementById('status').textContent = error.message;
 });
 </script>
+<script src="assets/economic-calendar.js"></script>
 </body>
 </html>
