@@ -155,3 +155,17 @@ schema 부재 오류 1개, 건너뜀 1개였습니다. 이후 출처별 저장 �
 1,554개 경제 관측에서 실제 수치모형을 계산했으며 수치 경로 39.11초, 최대 RSS
 439,292KiB였습니다. 이는 구현·로컬 자원 검증이며 GitHub runner의 실시간이나 시장
 예측력 증거가 아닙니다. 실제 Actions 실행·암호화 복원·공개 결과·Pages·예산은 별도로 확인합니다.
+
+## 2026-11-14 KST actual-operation snapshot
+
+The fixed Actions window ends at 2026-11-13 17:43:16 UTC. Run [43473230792](https://github.com/Junhyuk/stock_pred/actions/runs/43473230792) succeeded and deployed Pages.
+
+| Measurement | Observed |
+|---|---:|
+| 30-day repository Actions usage | 42 runs, 81 job records, 4,163 seconds / 69.38 runner-minutes; 130 per-job rounded minutes |
+| Scheduled monthly cap | 1,286 minutes; manual retries and other Pages pushes are additional; account-wide usage remains unknown |
+| Cache | 6 entries, 388,544,655 bytes; four encrypted private entries and two setup-python entries; zero owned legacy plaintext entries |
+| Unexpired artifacts | 25 entries, 33,168,655 bytes; 8 OOF archives total 28,754,557 bytes |
+| Latest OOF archive | 5,625,181 bytes; one same-sized archive per day for 14 days projects to 78,752,534 bytes (not a cap or both-market guarantee) |
+
+The run restored encrypted state, collected 89 events and 25 releases with partial-source status, and prepared KOSPI/KOSDAQ from 2026-11-13 for target 2026-11-16. A checksum-verified **research reference** was published at 02:37:30 KST; the main model remains not-ready and there are no forward-scored forecasts yet. The US market was open, so its prior verified 2026-11-12 reference was retained. The live page is [reliable-index-forecast.html](https://junhyuk.github.io/stock_pred/reliable-index-forecast.html). JPEG render checks and sanitized per-job measurements are retained only under ignored `logs/accuracy-calendar-20261113/`.
