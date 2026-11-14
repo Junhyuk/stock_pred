@@ -1,0 +1,12 @@
+name: Wait for Pages artifact visibility
+description: Require the uploaded Pages artifact on the deployment service list before deploying.
+inputs:
+  artifact_id:
+    description: Exact artifact_id output from actions/upload-pages-artifact.
+    required: true
+  artifact_name:
+    description: Exact artifact name shared by the upload and deployment steps.
+    default: github-pages
+runs:
+  using: node24
+  main: index.cjs

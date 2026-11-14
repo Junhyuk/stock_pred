@@ -169,3 +169,15 @@ The fixed Actions window ends at 2026-11-13 17:43:16 UTC. Run [43473230792](http
 | Latest OOF archive | 5,625,181 bytes; one same-sized archive per day for 14 days projects to 78,752,534 bytes (not a cap or both-market guarantee) |
 
 The run restored encrypted state, collected 89 events and 25 releases with partial-source status, and prepared KOSPI/KOSDAQ from 2026-11-13 for target 2026-11-16. A checksum-verified **research reference** was published at 02:37:30 KST; the main model remains not-ready and there are no forward-scored forecasts yet. The US market was open, so its prior verified 2026-11-12 reference was retained. The live page is [reliable-index-forecast.html](https://junhyuk.github.io/stock_pred/reliable-index-forecast.html). JPEG render checks and sanitized per-job measurements are retained only under ignored `logs/accuracy-calendar-20261113/`.
+
+## 2026-11-14 자동화 사고 정정
+
+- Prepare [#15](https://github.com/Junhyuk/stock_pred/actions/runs/43522635869)는 가격 갱신 중 미국 immutable CSV 충돌로 실패했습니다.
+- [#16](https://github.com/Junhyuk/stock_pred/actions/runs/43525093140)은 성공했지만 준비 manifest가 없어 한국·미국 예측을 건너뛰었습니다.
+- 수정 `ce7cc33`은 날짜와 수집 시각별 스냅샷을 사용하며 기존 최초 관측값과 시각을 보존합니다.
+- #18은 가격 갱신 후 스냅샷의 초·소수초 ISO 시각 파싱 오류로 중단되어 발행하지 못했습니다.
+- 수정 `0d574fe`는 시각을 엄격한 ISO8601 UTC로 복원하고 필수 시각 누락을 거부합니다.
+- CLI 모의 검증 24개와 시각 복원 회귀 4개가 통과했습니다. 전체 검증은 592개 통과·기존 하위 프로젝트 schema 누락 1개 실패·1개 건너뜀이었습니다.
+- 실제 branch validate [#19](https://github.com/Junhyuk/stock_pred/actions/runs/43543433301)는 171개 통과(135.21초)했습니다.
+- 실제 latest [#20](https://github.com/Junhyuk/stock_pred/actions/runs/43543940428)의 forecast job은 성공했고 KOSPI·KOSDAQ·US 입력 기준일 2026-11-13과 목표일 2026-11-16의 검증 영수증을 기록했습니다. 산출물은 research-only/not-ready(생산 가중치 0)이며 공개 데이터 commit은 `365464e`입니다.
+- 첫 Pages 배포는 artifact `14093901236` 업로드 뒤 metadata 조회에서 실패했습니다. 두 workflow에 동일 artifact ID/name을 최대 60초 동안 Twirp Results API로 확인하는 attempt별 배포 대기 단계를 추가했으며, Node 13개와 관련 52개 검증을 통과했습니다.
