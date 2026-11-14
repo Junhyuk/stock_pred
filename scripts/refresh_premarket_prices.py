@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -396,16 +397,16 @@ def dated_us_snapshots(directory: str | Path) -> list[Path]:
     paths = []
     for path in Path(directory).glob("us_market_observations_v2_*.csv"):
         stamp = path.stem.removeprefix("us_market_observations_v2_")
-        if len(stamp) == 8 and stamp.isdigit():
+        # Legacy daily names sort before receipt versions from the same KST day.
+        if re.fullmatch(r"\d{8}(?:_\d{12})?", stamp):
             paths.append(path)
     return sorted(paths)
 
 
 def prior_us_snapshot(directory: str | Path, destination: str | Path) -> Path | None:
-    target = Path(destination).resolve()
-    others = [path for path in dated_us_snapshots(directory) if path.resolve() != target]
-    if others:
-        return others[-1]
+    snapshots = dated_us_snapshots(directory)
+    if snapshots:
+        return snapshots[-1]
     if Path(destination).is_file():
         return Path(destination)
     return None
@@ -530,10 +531,20 @@ def refresh_premarket_prices(*, sqlite_path: str | Path, output_dir: str | Path,
         {symbol: bars_from_download(_download_daily(symbol, us_start, end, yf)) for symbol in US_PRICE_SYMBOLS},
         fetched_at=fetched,
     )
-    if us_covered:
-        us_csv = write_merged_us_snapshot(prior, raw, destination)
-    else:
+    if prior.empty:
         us_csv = write_us_observations(raw, destination)
+    else:
+        # The download horizon depends on coverage; first-seen observations do
+        # not. Even a short cache must retain its original values and receipts.
+        merged = merge_us_observations(prior, raw)
+        same_day = prior_path.stem.startswith(destination.stem)
+        if same_day and _session_keys(merged) <= _session_keys(prior):
+            us_csv = prior_path
+        else:
+            if same_day or destination.exists():
+                receipt = fetched.tz_convert(KST).strftime("%H%M%S%f")
+                destination = destination.with_name(f"{destination.stem}_{receipt}.csv")
+            us_csv = write_merged_us_snapshot(prior, raw, destination)
     return {"sqlite": str(sqlite_path), "us_csv": str(us_csv), "kr_rows_inserted": inserted}
 
 

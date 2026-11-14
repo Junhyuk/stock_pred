@@ -126,7 +126,7 @@ jobs:
         if: steps.operation.outputs.mode == 'validate'
         run: |
           set -euo pipefail
-          python -m pytest -q tests/test_reliable_accuracy_protocol.py tests/test_reliable_intervals.py tests/test_economic_calendar.py tests/test_economic_sources.py tests/test_economic_forecast.py tests/test_forward_ledger.py tests/test_accuracy_automation.py tests/test_accuracy_calendar_audit.py tests/test_automation_publication.py
+          python -m pytest -q tests/test_reliable_accuracy_protocol.py tests/test_reliable_intervals.py tests/test_economic_calendar.py tests/test_economic_sources.py tests/test_economic_forecast.py tests/test_forward_ledger.py tests/test_accuracy_automation.py tests/test_accuracy_calendar_audit.py tests/test_automation_publication.py tests/test_automation_cli_integration.py
           python scripts/collect_economic_calendar.py --output-dir "$RUNNER_TEMP/calendar-validation" --private-dir "$RUNNER_TEMP/calendar-private"
           cp "$RUNNER_TEMP/calendar-validation/economic_collection_status.json" "$RUNNER_TEMP/accuracy-validation.json"
       - name: Upload compact validation status
