@@ -66,6 +66,25 @@ def test_snapshot_freezes_values_and_rejects_tampering_or_settings_change():
         api.restore_fit_snapshot(snapshot, PRICE_FEATURES, asdict(replace(config(), purge_days=2)))
 
 
+@pytest.mark.parametrize('column', ['_asof', '_cutoff', '_available', '_target'])
+def test_snapshot_restores_mixed_iso_precision_without_changing_instants(column):
+    api = protocol()
+    data = reliable._prepare(sample_frame())
+    data.loc[2, column] += pd.Timedelta(microseconds=385886)
+    anchor = api.session_anchor('2019-04-10', 'XNYS', '2019-01-02', 21)
+    snapshot = api.make_fit_snapshot(data, PRICE_FEATURES, anchor, asdict(config()))
+    restored = api.restore_fit_snapshot(snapshot, PRICE_FEATURES, asdict(config()))
+    assert restored[column].iloc[0] == data[column].iloc[0]
+    assert restored[column].iloc[2] == data[column].iloc[2]
+    assert restored[column].iloc[2].microsecond == 385886
+    # Even a correctly hashed malformed snapshot must fail, never drop a row.
+    for invalid in ('not-an-ISO-clock', None, 'NaT'):
+        snapshot['rows'][2][column] = invalid
+        snapshot['snapshot_hash'] = api.content_hash({k: v for k, v in snapshot.items() if k != 'snapshot_hash'})
+        with pytest.raises(ValueError):
+            api.restore_fit_snapshot(snapshot, PRICE_FEATURES, asdict(config()))
+
+
 def test_known_feature_revision_after_its_row_cutoff_is_not_historical_pit_training():
     api = protocol()
     data = reliable._prepare(sample_frame())

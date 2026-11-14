@@ -101,6 +101,41 @@ def test_actual_gate_cli_runs_before_third_party_dependencies_are_installed(chec
     assert decision['collect'] is False
 
 
+def test_actual_latest_cli_fits_with_fractional_clock_and_weekend_cutoff_caps(checkout):
+    """Unlike short-history smoke, execute walk-forward snapshot restoration."""
+    import yaml
+
+    from roboquant.index_forecast.reliable_inputs import session_schedule
+
+    now = '2026-11-14T01:42:47.385886+00:00'
+    days = session_schedule('2026-04-01', '2026-11-13')[0]['date'].tolist()
+    fixture = json.loads((checkout.root / 'provider.json').read_text())
+    fixture.update({symbol: [[day, 1000. + i * 2 + (i % 5)] for i, day in enumerate(days)]
+                    for symbol in ('^KS11', '^KQ11')})
+    (checkout.root / 'provider.json').write_text(json.dumps(fixture))
+    # Smaller test-only training/bootstrap budgets exercise actual fitting with
+    # deterministic fixtures. Production settings and acceptance stay unchanged.
+    config_path = checkout.root / 'configs/reliable_index_forecast.yaml'
+    config = yaml.safe_load(config_path.read_text())
+    config['us_market']['enabled'] = False
+    config['settings'].update(initial_train_days=25, calibration_window=30,
+        min_calibration_rows=10, development_days=25, test_days=25,
+        bootstrap_samples=20, bootstrap_block_days=5, min_oos_rows=15, model_families=['linear'])
+    config_path.write_text(yaml.safe_dump(config))
+    prices = checkout.refresh(now=now)
+    completed = checkout.run('run_reliable_index_forecast.py', '--sqlite', prices['sqlite'], now=now)
+    result = json.loads(completed.stdout.splitlines()[-1])
+    assert result['status'] == 'research_only' and result['issued_at'] == now
+    archive = json.loads((checkout.root / 'docs/data/archive' / f"{result['run_id']}.json").read_text())
+    assert archive['production_weight'] == 0 and archive['replay'] is False
+    for market in archive['markets']:
+        observations = market['evaluation']['candidate_observations']['linear:price']
+        assert observations and all(row['fit_snapshot_hash'] for row in observations)
+    log = checkout.root / 'fractional-clock-result.json'
+    log.write_text(completed.stdout)
+    checkout.run('verify_automation_publication.py', '--result', log, '--data-dir', 'docs/data', now=now)
+
+
 @pytest.mark.parametrize('covered', [True, False], ids=['incremental', 'short-history-backfill'])
 def test_same_kst_day_refresh_after_us_close_keeps_prior_snapshot_and_receipts(checkout, covered):
     """A date-only destination crashed prepare after a pre-US-close latest run."""

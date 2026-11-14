@@ -140,7 +140,10 @@ def restore_fit_snapshot(snapshot: dict, features: list[str], settings: dict) ->
         raise ValueError('fit snapshot feature/status mismatch')
     frame = pd.DataFrame(snapshot['rows'])
     for column in ('_asof', '_cutoff', '_available', '_target'):
-        frame[column] = pd.to_datetime(frame[column], utc=True)
+        # isoformat() omits fractional seconds for exact-second cutoffs.
+        frame[column] = pd.to_datetime(frame[column], utc=True, format='ISO8601')
+        if frame[column].isna().any():
+            raise ValueError('fit snapshot required timestamp missing')
     return frame
 
 
