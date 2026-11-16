@@ -23,10 +23,31 @@
     .forecast-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 16px;
+      gap: 0;
+      align-items: start;
+    }
+    .market-region { min-width: 0; display: grid; gap: 16px; padding: 0 16px; }
+    .market-region:first-child { padding-left: 0; }
+    .market-region + .market-region { border-left: 1px solid var(--line); }
+    .market-region h2 { margin: 0; font-size: 20px; }
+    @media (min-width: 801px) {
+      .forecast-grid {
+        gap: 16px 32px;
+        align-items: stretch;
+        background: linear-gradient(to right, transparent calc(50% - .5px), var(--line) calc(50% - .5px), var(--line) calc(50% + .5px), transparent calc(50% + .5px));
+      }
+      .market-region { display: contents; }
+      .market-region:first-child > * { grid-column: 1; }
+      .market-region:last-child > * { grid-column: 2; }
+      .market-region > h2 { grid-row: 1; }
+      .market-region > .forecast-card:nth-of-type(1), .market-region > p { grid-row: 2; }
+      .market-region > .forecast-card:nth-of-type(2) { grid-row: 3; }
+      .forecast-card > .card-dates.session-dates { min-height: 105px; }
     }
     @media (max-width: 800px) {
-      .forecast-grid { grid-template-columns: 1fr; }
+      .forecast-grid { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+      .market-region, .market-region:first-child { padding: 0; }
+      .market-region + .market-region { border-left: 0; border-top: 1px solid var(--line); padding-top: 24px; }
     }
     .forecast-card {
       min-width: 0;
@@ -38,7 +59,7 @@
       flex-direction: column;
       gap: 16px;
     }
-    .forecast-card h2 {
+    .forecast-card h3 {
       font-size: 22px;
       margin: 0;
       color: var(--ink);
@@ -89,8 +110,8 @@
       border-radius: 8px;
       border: 1px solid var(--line);
     }
-    .prob-box.up { background: var(--green-bg); }
-    .prob-box.down { background: #fff0ed; }
+    .prob-box.up { background: #fff0ed; border-color: #efc3bc; }
+    .prob-box.down { background: #eef4ff; border-color: #c2d4f5; }
     .prob-box span {
       display: block;
       font-size: 12px;
@@ -105,8 +126,8 @@
       font-weight: 800;
       line-height: 1.1;
     }
-    .prob-box.up strong { color: var(--teal); }
-    .prob-box.down strong { color: var(--red); }
+    .prob-box.up span, .prob-box.up strong { color: #a3201b; }
+    .prob-box.down span, .prob-box.down strong { color: #174b9a; }
   .detail-line {
       font-size: 15px;
       line-height: 1.5;
@@ -121,7 +142,6 @@
       line-height: 1.45;
       padding: 10px 12px;
       border-radius: 8px;
-      margin-top: auto;
     }
     .card-status.ok { background: var(--green-bg); color: var(--teal); }
     .card-status.warn { background: var(--amber-bg); color: var(--amber); }
@@ -145,6 +165,7 @@
     <div>
       <p class="eyebrow">1D · 연구 전용 · production_weight=0</p>
       <h1>한국·미국 다음 거래일 확률·예측구간</h1>
+      <p id="kst-clock">현재 한국 시각 확인 중</p>
     </div>
     <a href="index-forecast.html">1D/2D 리포트</a>
   </header>
@@ -217,10 +238,39 @@ function direction(up, down) {
   return u > d ? '상승' : u < d ? '하락' : '중립';
 }
 
+function kstParts(value) {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return null;
+  const parts = new Intl.DateTimeFormat('en-GB', {timeZone:'Asia/Seoul', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hourCycle:'h23'}).formatToParts(date);
+  return Object.fromEntries(parts.map(({type, value}) => [type, value]));
+}
+
+function formatKstClock(value = Date.now()) {
+  const p = kstParts(value);
+  return p ? `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}` : '확인 불가';
+}
+
+function formatOptionalKstTime(value) {
+  return value == null || value === '' ? '확인 불가' : formatKstClock(value);
+}
+
+function relativeKstDate(date, now = Date.now()) {
+  if (!date) return '';
+  const today = formatKstClock(now).slice(0, 10);
+  const tomorrow = formatKstClock(now + 86400000).slice(0, 10);
+  return date === today ? '오늘' : date === tomorrow ? '내일' : '';
+}
+
+function relativeDateMarkup(date, now, kind) {
+  const relative = relativeKstDate(date, now);
+  const label = kind === 'asof' && relative !== '오늘' ? '' : relative;
+  return `<span data-kst-date="${escapeHtml(date ?? '')}" data-kst-kind="${kind}">${label ? ` (${label})` : ''}</span>`;
+}
+
 function targetEnded(context, now = Date.now()) {
   const close = context.target_close_at ? new Date(context.target_close_at) : null;
   if (close && Number.isFinite(close.getTime())) return close.getTime() <= now;
-  const todayKst = new Intl.DateTimeFormat('en-CA', {timeZone:'Asia/Seoul', year:'numeric', month:'2-digit', day:'2-digit'}).format(new Date(now));
+  const todayKst = formatKstClock(now).slice(0, 10);
   return Boolean(context.target_date && context.target_date < todayKst);
 }
 
@@ -243,10 +293,11 @@ async function loadMarketCloses() {
   return data;
 }
 
-function renderCard(item, runStatus) {
+function renderCard(item, runStatus, now = Date.now()) {
   const f = item.forecast ?? {};
   const c = item.context ?? {};
   const marketName = MARKET_LABELS[item.market] ?? item.market;
+  const isUS = String(item.market).startsWith('US_');
   const fs = String(f.status ?? '');
   const rs = String(runStatus ?? '');
   const statusForMessage = fs.startsWith('blocked_') ? fs : (rs.startsWith('blocked_') ? rs : fs);
@@ -269,26 +320,29 @@ function renderCard(item, runStatus) {
   const rangeText = (idxLo === '—' && idxHi === '—') ? '—' : `${idxLo} ~ ${idxHi}`;
 
   return `<article class="forecast-card">
-    <h2>${escapeHtml(marketName)}</h2>
+    <h3>${escapeHtml(marketName)}</h3>
+    ${item.carried_forward ? '<div class="card-dates">이전 공개 결과 유지</div>' : ''}
     ${showReference ? '<div class="card-status warn">연구용 참고 전망 · 회고 학습 · 검증 미통과 · production_weight=0</div>' : ''}
-    <div class="card-dates">
-      <div><strong>기준 종가일</strong> ${escapeHtml(c.asof_date ?? '—')}</div>
-      <div><strong>다음 거래일</strong> ${escapeHtml(c.target_date ?? '—')}</div>
-      ${targetEnded(c) ? '<div><strong>목표 거래일 이미 종료 · 과거 예측</strong></div>' : ''}
+    <div class="card-dates session-dates">
+      <div><strong>${isUS ? '기준 종가일 (미국 거래일)' : '기준 종가일'}</strong> ${escapeHtml(c.asof_date ?? '—')}${isUS ? '' : relativeDateMarkup(c.asof_date, now, 'asof')}</div>
+      <div><strong>${isUS ? '목표 미국 거래일' : '다음 거래일'}</strong> ${escapeHtml(c.target_date ?? '—')}${isUS ? '' : relativeDateMarkup(c.target_date, now, 'target')}</div>
+      ${isUS ? `<div>한국 시각 · 개장 ${escapeHtml(formatOptionalKstTime(c.issuance_deadline))} · 종료 ${escapeHtml(formatOptionalKstTime(c.target_close_at))}</div>` : ''}
+      <div data-target-date="${escapeHtml(c.target_date ?? '')}" data-target-close="${escapeHtml(c.target_close_at ?? '')}" ${targetEnded(c, now) ? '' : 'hidden'}><strong>목표 거래일 이미 종료 · 과거 예측</strong></div>
     </div>
     <div class="hero-metrics">
       <div class="hero-metric"><span>예측 기준 종가 (${escapeHtml(c.asof_date ?? '날짜 미확인')})</span><strong>${escapeHtml(latestClose)}</strong></div>
       <div class="hero-metric"><span>예상 지수</span><strong>${escapeHtml(expectedIndex)}</strong></div>
     </div>
     <div class="prob-row">
-      <div class="prob-box up"><span>${showReference ? '연구용 ' : ''}상승 확률</span><strong>${escapeHtml(pUp)}</strong></div>
-      <div class="prob-box down"><span>${showReference ? '연구용 ' : ''}하락 확률</span><strong>${escapeHtml(pDown)}</strong></div>
+      <div class="prob-box up"><span>(연구용)</span><span>상승 확률</span><strong>${escapeHtml(pUp)}</strong></div>
+      <div class="prob-box down"><span>(연구용)</span><span>하락 확률</span><strong>${escapeHtml(pDown)}</strong></div>
     </div>
     <div class="detail-line"><span>예상 수익률 </span><strong>${escapeHtml(expRet)}</strong></div>
     <div class="detail-line"><span>80% 지수 구간 </span><strong>${escapeHtml(rangeText)}</strong></div>
-    <p class="card-status ${escapeHtml(statusInfo.kind)}">${escapeHtml(f.status === 'not_ready' ? `주 모델 준비 미완료 · ${(f.gate_reasons ?? []).join(', ') || '검증된 고정 학습 상태 또는 보정 자료 부족'}` : statusInfo.text)}</p>
+    <p class="card-status ${escapeHtml(statusInfo.kind)}">${escapeHtml(f.status === 'not_ready' ? `주 모델 준비 미완료 · ${(f.gate_reasons ?? []).includes('missing_live_anchor_snapshot') ? '정해진 학습 기준일에 저장한 실시간 모델이 아직 없습니다. 가격 데이터 부족과는 다른 상태입니다.' : '검증된 고정 학습 상태 또는 보정 자료 부족'}` : statusInfo.text)}</p>
+    ${f.gate_reasons?.length ? `<details><summary>주 모델 준비 상태 상세</summary><p>${escapeHtml(f.gate_reasons.join(', '))}</p></details>` : ''}
     <div class="card-dates">입력 마감 ${escapeHtml(formatAutomationTime(c.prediction_cutoff))} KST<br>실제 공개 ${escapeHtml(formatAutomationTime(c.issued_at || f.issued_at))} KST</div>
-    ${item.fit_state?.next_refit_asof ? `<p class="card-dates">다음 고정 학습 기준 종가일: <strong>${escapeHtml(item.fit_state.next_refit_asof)}</strong><br>실제 시점의 입력 확보 여부에 따라 포착하며 준비 완료를 보장하지 않습니다.</p>` : ''}
+    ${item.fit_state?.next_refit_asof ? `<p class="card-dates">다음 고정 학습 기준 종가일${isUS ? ' (미국 거래일)' : ''}: <strong>${escapeHtml(item.fit_state.next_refit_asof)}</strong><br>실시간 모델 저장 후 검증이 필요하며 준비 완료를 보장하지 않습니다.</p>` : ''}
     ${showNumbers && f.interval_shadows?.volatility_normalized?.status === 'ready' ? `<details><summary>변동성 보정 구간 연구</summary><p>${pct(f.interval_shadows.volatility_normalized.range_low)} ~ ${pct(f.interval_shadows.volatility_normalized.range_high)} · ${escapeHtml(f.interval_shadows.volatility_normalized.calibration_n)}개 과거 성숙 오차</p><p>주 구간을 대체하지 않는 연구 후보입니다.</p></details>` : ''}
     ${!blocked && runStatus !== 'unpublished' && ref?.expected_return != null ? `<div class="reference"><strong>보정 연구 참고 · 회고 재구성 · 검증 미통과 · production_weight=0</strong><p>기준 ${escapeHtml(ref.asof_date ?? c.asof_date ?? '—')} → 목표 ${escapeHtml(ref.target_date ?? c.target_date ?? '—')}<br>예상 지수 ${escapeHtml(level(ref.expected_index))} · 예상 수익률 ${pct(ref.expected_return)}<br>상승 ${refReady ? probLabel(ref.p_up) : '보정 준비 미완료'} · 하락 ${refReady ? probLabel(ref.p_down) : '보정 준비 미완료'} · 방향 ${refReady ? direction(ref.p_up, ref.p_down) : '확인 불가'}<br>80% 수익률 구간 ${pct(ref.range_low)} ~ ${pct(ref.range_high)}</p><small>품질 기준 미통과 사유: ${escapeHtml((ref.gate_reasons ?? []).join(', ') || '검증 미통과')} · 실전 운용 승인되지 않았습니다. 전향 정확도 증거가 아닙니다.</small></div>` : ''}
     <details><summary>이번 예측의 경제자료 상태</summary><p>입력 마감 당시 이벤트: ${item.economic_calendar?.event_bucket == null ? '소스 범위 또는 시각 미확인' : item.economic_calendar.event_bucket ? '예측 구간 내 발표 확인' : '확인 범위 내 발표 없음'}<br>14개 수치 후보: ${escapeHtml(item.numeric_shadow?.status || '자료 없음')} · 주 확률과 분리</p><p>확률 방향은 상승과 하락 확률의 대소를 비교하며 같으면 중립입니다. 목표 구간의 포함률은 보장되지 않습니다.</p></details>
@@ -354,6 +408,30 @@ function renderAutomationStatus(data) {
   return `자동 확인 ${checked} (한국 시각) · ${decision} ${summary('한국', data.korea)} · ${summary('미국', data.us)}. KST 월~금 18:00 장 마감 후 수집·검증하며 실제 공개 시각은 각 카드에서 확인하세요. 외부 데이터 지연·누락 시 준비 미완료로 남습니다.`;
 }
 
+function renderForecastGrid(markets, now = Date.now()) {
+  const groups = [
+    { label: '한국', order: ['KOSPI', 'KOSDAQ'] },
+    { label: '미국', order: ['US_SPX', 'US_NASDAQ'] },
+  ];
+  return `<div class="forecast-grid">${groups.map(group => {
+    const cards = markets.filter(({item}) => group.order.includes(item.market))
+      .sort((a, b) => group.order.indexOf(a.item.market) - group.order.indexOf(b.item.market));
+    return `<section class="market-region" aria-label="${group.label}"><h2>${group.label}</h2>${cards.length ? cards.map(({item, runStatus}) => renderCard(item, runStatus, now)).join('') : '<p>표시할 연구 결과가 없습니다.</p>'}</section>`;
+  }).join('')}</div>`;
+}
+
+function refreshKstLabels(now = Date.now()) {
+  document.getElementById('kst-clock').textContent = `현재 한국 시각 ${formatKstClock(now)} KST`;
+  document.querySelectorAll('[data-kst-date]').forEach(node => {
+    const relative = relativeKstDate(node.dataset.kstDate, now);
+    const label = node.dataset.kstKind === 'asof' && relative !== '오늘' ? '' : relative;
+    node.textContent = label ? ` (${label})` : '';
+  });
+  document.querySelectorAll('[data-target-date]').forEach(node => {
+    node.hidden = !targetEnded({target_date: node.dataset.targetDate, target_close_at: node.dataset.targetClose}, now);
+  });
+}
+
 fetch('data/automation_status.json', { cache: 'no-store' })
   .then(response => { if (!response.ok) throw Error(); return response.json(); })
   .then(data => { document.getElementById('automation-status').textContent = renderAutomationStatus(data); })
@@ -381,17 +459,17 @@ Promise.all([
     return;
   }
 
-  const order = ['KOSPI', 'KOSDAQ', 'US_SPX', 'US_NASDAQ'];
-  markets.sort((a, b) => {
-    const ia = order.indexOf(a.item.market);
-    const ib = order.indexOf(b.item.market);
-    return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
-  });
-
-  content.innerHTML = `<div class="forecast-grid">${markets.map(({ item, runStatus }) => renderCard(item, runStatus)).join('')}</div>`;
+  content.innerHTML = renderForecastGrid(markets);
+  refreshKstLabels();
 }).catch(error => {
   document.getElementById('status').textContent = error.message;
 });
+</script>
+<script>
+refreshKstLabels();
+setInterval(refreshKstLabels, 60000);
+window.addEventListener('focus', () => refreshKstLabels());
+document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshKstLabels(); });
 </script>
 <script src="assets/economic-calendar.js"></script>
 </body>

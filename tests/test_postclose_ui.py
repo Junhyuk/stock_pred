@@ -85,3 +85,85 @@ loadPublishedRun().then(run => console.log(JSON.stringify(run.markets.map(m=>[m.
 '''
     assert json.loads(run_ui(program)) == [['2026-11-16T09:01:00Z','2026-11-16T09:01:00Z'],
                                             ['2026-11-16T10:00:00Z','2026-11-16T10:00:00Z']]
+
+
+def test_kst_clock_and_relative_dates_ignore_browser_timezone():
+    program = '''
+const now = Date.parse('2026-11-15T15:30:00Z');
+console.log(JSON.stringify([formatKstClock(now), relativeKstDate('2026-11-16', now), relativeKstDate('2026-11-17', now), relativeKstDate('2026-11-18', now)]));
+'''
+    clock, today, tomorrow, later = json.loads(run_ui(program))
+    assert '2026-11-16' in clock and '00:30' in clock
+    assert [today, tomorrow, later] == ['오늘', '내일', '']
+
+
+def test_korean_relative_dates_and_weekend_do_not_mislabel_next_session():
+    item = {'market': 'KOSPI', 'context': {'asof_date': '2026-11-16', 'target_date': '2026-11-17'}, 'forecast': {'status': 'not_ready'}}
+    out = run_ui('console.log(renderCard(' + json.dumps(item) + ", 'research_only', Date.parse('2026-11-16T03:00:00Z')));")
+    assert '오늘' in out and '내일' in out
+    item['context'] = {'asof_date': '2026-11-13', 'target_date': '2026-11-16'}
+    out = run_ui('console.log(renderCard(' + json.dumps(item) + ", 'research_only', Date.parse('2026-11-13T03:00:00Z')));")
+    assert '오늘' in out and '내일' not in out
+
+
+def test_us_card_preserves_exchange_session_dates_and_kst_open_close():
+    item = {'market': 'US_SPX', 'context': {'asof_date': '2026-11-13', 'target_date': '2026-11-16', 'issuance_deadline': '2026-11-16T14:30:00Z', 'target_close_at': '2026-11-16T21:00:00Z'}, 'forecast': {'status': 'not_ready'}}
+    out = run_ui('console.log(renderCard(' + json.dumps(item) + ", 'research_only', Date.parse('2026-11-16T03:00:00Z')));")
+    for text in ('미국 거래일', '2026-11-13', '2026-11-16', '2026-11-17', '23:30', '06:00', '한국 시각'):
+        assert text in out
+    assert '내일' not in out
+
+
+def test_probability_labels_and_region_grouping_follow_requested_order():
+    item = {'market': 'KOSPI', 'context': {}, 'forecast': {'status': 'not_ready'}, 'incumbent_reference': {'calibration_ready': True, 'status': 'rejected', 'p_up': 0.63, 'p_down': 0.37}}
+    out = run_ui('console.log(renderCard(' + json.dumps(item) + ", 'research_only'));")
+    assert '(연구용)</span><span>상승 확률' in out
+    assert '(연구용)</span><span>하락 확률' in out
+    entries = [{'item': {'market': m, 'context': {}, 'forecast': {'status': 'not_ready'}}, 'runStatus': 'research_only'} for m in ['US_NASDAQ', 'KOSDAQ', 'US_SPX', 'KOSPI']]
+    grid = run_ui('console.log(renderForecastGrid(' + json.dumps(entries) + '));')
+    assert grid.index('한국') < grid.index('KOSPI') < grid.index('KOSDAQ') < grid.index('미국') < grid.index('S&amp;P 500') < grid.index('Nasdaq')
+
+
+def test_missing_live_anchor_explains_saved_model_not_missing_prices_and_shows_carry_forward():
+    item = {'market': 'KOSPI', 'carried_forward': True, 'context': {'asof_date': '2026-11-13', 'target_date': '2026-11-16'}, 'forecast': {'status': 'not_ready', 'gate_reasons': ['missing_live_anchor_snapshot']}, 'incumbent_reference': {'calibration_ready': True, 'status': 'rejected', 'p_up': 0.63, 'p_down': 0.37}}
+    out = run_ui('console.log(renderCard(' + json.dumps(item) + ", 'research_only'));")
+    for text in ('저장한 실시간 모델', '가격 데이터 부족과는 다른 상태', '이전 공개 결과', '회고', '검증 미통과', 'missing_live_anchor_snapshot'):
+        assert text in out
+
+
+def test_clock_refresh_updates_relative_dates_and_expiry_without_fetch():
+    program = '''
+const clock = {}, asof = {dataset:{kstDate:'2026-11-16',kstKind:'asof'}}, target = {dataset:{kstDate:'2026-11-17',kstKind:'target'}};
+const expiry = {dataset:{targetDate:'2026-11-17',targetClose:'2026-11-17T06:30:00Z'}};
+globalThis.document = {getElementById:()=>clock, querySelectorAll: selector => selector === '[data-kst-date]' ? [asof,target] : [expiry]};
+globalThis.fetch = () => { throw Error('unexpected data fetch'); };
+refreshKstLabels(Date.parse('2026-11-16T15:30:00Z'));
+console.log(JSON.stringify([clock.textContent,asof.textContent,target.textContent,expiry.hidden]));
+refreshKstLabels(Date.parse('2026-11-17T06:31:00Z'));
+console.log(JSON.stringify([expiry.hidden]));
+'''
+    lines = run_ui(program).splitlines()
+    clock, asof, target, hidden = json.loads(lines[0])
+    assert '2026-11-17 00:30' in clock and asof == '' and target == ' (오늘)' and hidden
+    assert json.loads(lines[1]) == [False]
+
+
+def test_us_next_refit_date_is_identified_as_exchange_date_not_completion_date():
+    item = {'market': 'US_SPX', 'context': {}, 'forecast': {'status': 'not_ready'}, 'fit_state': {'next_refit_asof': '2026-12-09'}}
+    out = run_ui('console.log(renderCard(' + json.dumps(item) + ", 'research_only'));")
+    assert '다음 고정 학습 기준 종가일 (미국 거래일)' in out
+    assert '실시간 모델 저장 후 검증이 필요' in out
+
+
+def test_us_missing_or_invalid_session_times_do_not_become_current_time_or_epoch():
+    program = '''
+const now = Date.parse('2026-11-16T03:00:00Z');
+for (const value of [undefined, null, '', 'invalid']) {
+  const item = {market:'US_SPX', context:{target_date:'2026-11-16', issuance_deadline:value, target_close_at:value}, forecast:{status:'not_ready'}};
+  console.log(renderCard(item, 'research_only', now).match(/한국 시각 · 개장 [^<]+/)[0]);
+}
+console.log(formatKstClock(now));
+'''
+    lines = run_ui(program).splitlines()
+    assert lines[:4] == ['한국 시각 · 개장 확인 불가 · 종료 확인 불가'] * 4
+    assert lines[4] == '2026-11-16 12:00'

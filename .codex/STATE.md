@@ -2,9 +2,23 @@
 
 ## Current Phase
 
-Nasdaq/SOX-to-KRX linkage and close-loop weighting are implemented as a
-strictly separate market-outlook shadow. `market-outlook-v2` Ridge remains the
-only production market forecast.
+2026-11-16 KST: reliable-index-forecast UI uses an Asia/Seoul clock and
+today/tomorrow labels, separate Korea/US columns, and red-rise/blue-fall
+research probability boxes. Algorithms, data, and the weekday 18:00 KST
+schedule are unchanged. This UI phase does not approve a production model.
+
+## Latest UI Verification
+
+- Changed `docs/reliable-index-forecast.html` and `tests/test_postclose_ui.py`.
+- `TZ=UTC` and `TZ=America/Los_Angeles` focused UI pytest: 15 passed each.
+- Independent Sol review approved; real Chrome desktop rows align and
+  375px mobile cards have no horizontal overflow. Missing US session times
+  render as unknown instead of current time or the epoch.
+- Astra's read-only analysis: current fixed-anchor live model files are
+  absent. Reference calibration is separate and remains research-only,
+  retrospective, rejected, and production_weight=0. KR's next capture
+  opportunity is 11/17 18:00 KST; US's is 12/10 18:00 KST, both conditional.
+- Analysis and UI evidence: ignored `logs/ux-kst-20261116/`.
 
 ## Completed
 
@@ -71,16 +85,15 @@ only production market forecast.
 - `HARNESS_AI_ROBO_STOCK_TOKEN_EFFICIENT.md` is absent from the repository root.
 - DuckDB supports one writer: stop writable web/jobs before collector or
   backtest commands.
-- A full premarket forecast must wait for the final U.S. 2026-07-23 session and
-  an 08:00 KST cutoff-safe regime build; the current 2026-07-24 row is not a
-  substitute for that run.
+- Prior full-suite baseline failure: participant-impact read-only adapter
+  test requires an absent, untracked schema in the paused subproject. The
+  focused UI checks do not constitute a full-suite pass.
 
 ## Next Recommended Phase
 
-1. At 07:30-08:00 KST on 2026-07-24, collect the final U.S. close, rebuild the
-   cutoff-safe global regime, then refresh Top50 breadth/KORU and rerun the
-   full next-session forecast plus shadow candidates.
-2. Accumulate at least 60 live final observations. Keep the Nasdaq/SOX overlay
-   shadow-only even if it later becomes `accepted_shadow`.
-3. Improve interval calibration with a separate residual/conformal candidate;
-   compare it to this rejected linkage model without altering production.
+1. Verify the UI commit's ordinary Pages artifact/deployment and public HTML;
+   do not rerun ML or alter the verified forecast JSON for this UI phase.
+2. Observe the next eligible fixed-anchor capture, persistence, and restore;
+   capture alone does not imply calibration or quality-gate approval.
+3. Keep retrospective reference results and all rejected candidates separate
+   from production. Leave the paused participant-flow subproject paused.
