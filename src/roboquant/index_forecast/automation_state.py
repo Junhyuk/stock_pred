@@ -20,7 +20,9 @@ ROOT = Path(__file__).resolve().parents[3]
 PUBLIC_NAMES = frozenset({'automation_status.json', 'reliable_index_forecast.json',
     'reliable_validation_report.json', 'reliable_model_card.json', 'reliable_publication.json',
     'economic_calendar.json', 'economic_history.json', 'economic_collection_status.json',
-    'forward_history.json', 'forward_validation.json', 'actions_budget.json'})
+    'forward_history.json', 'forward_validation.json', 'actions_budget.json',
+    'postclose_forward_history.json', 'postclose_forward_validation.json', 'postclose_completions.json', 'postclose_attempt_status.json', 'market_closes.json', 'market_closes_publication.json'})
+POSTCLOSE_PREPARED_NAMES = frozenset({'sqlite', 'us_csv', 'economic_sqlite', 'fit_models_kr', 'fit_models_us', 'market_closes', 'market_closes_receipt'})
 PREPARED_NAMES = frozenset({'sqlite', 'us_csv', 'economic_sqlite', 'fit_models_kr', 'fit_models_us'})
 
 
@@ -48,6 +50,8 @@ def atomic_json(path, value):
 
 def operation_decision(now, mode):
     local = _utc(now).astimezone(KST)
+    if mode == 'postclose' and local.weekday() < 5 and local.hour < 18:
+        return {'allowed': False, 'kst_date': local.date().isoformat(), 'mode': mode, 'reason': 'before_1800_postclose_window'}
     return {'allowed': local.weekday() < 5 or mode == 'validate', 'kst_date': local.date().isoformat(),
             'mode': mode, 'reason': 'kst_weekend_excluded' if local.weekday() >= 5 and mode != 'validate' else 'allowed'}
 
@@ -113,24 +117,29 @@ def _state_lock(directory, *, exclusive):
             fcntl.flock(stream.fileno(), fcntl.LOCK_UN)
 
 
-def freeze_inputs(files, directory, *, prepared_at=None, code_hash):
+def freeze_inputs(files, directory, *, prepared_at=None, code_hash, issuance_protocol='premarket_v1'):
     with _state_lock(directory, exclusive=True):
-        return _freeze_inputs(files, directory, prepared_at=prepared_at, code_hash=code_hash)
+        return _freeze_inputs(files, directory, prepared_at=prepared_at, code_hash=code_hash, issuance_protocol=issuance_protocol)
 
 
-def _freeze_inputs(files, directory, *, prepared_at, code_hash):
+def _freeze_inputs(files, directory, *, prepared_at, code_hash, issuance_protocol='premarket_v1'):
     clock = _utc(prepared_at or datetime.now(UTC))
     local = clock.astimezone(KST)
-    if local.hour >= 8:
+    postclose = issuance_protocol == 'after_close_daily_v1'
+    if not postclose and local.hour >= 8:
         raise ValueError('prepared inputs must finish before 08:00 KST')
     if not operation_decision(clock, 'prepare')['allowed']:
         raise ValueError('KST weekend excluded')
+    if postclose and 'market_closes' in files:
+        from roboquant.index_forecast.postclose import verify_market_closes
+        verify_market_closes(files['market_closes'], files.get('market_closes_receipt'))
     directory = Path(directory)
     directory.mkdir(parents=True, exist_ok=True)
     manifest = {'schema_version': 'prepared_inputs_v1', 'prepared_at': clock.isoformat(),
-                'kst_date': local.date().isoformat(), 'code_hash': code_hash, 'files': {}}
+                'kst_date': local.date().isoformat(), 'code_hash': code_hash, 'files': {},
+                'issuance_protocol': issuance_protocol}
     for name, original in files.items():
-        if name not in PREPARED_NAMES:
+        if name not in (POSTCLOSE_PREPARED_NAMES if postclose else PREPARED_NAMES):
             raise ValueError('unknown prepared input')
         metadata = None
         if name.endswith('sqlite'):
@@ -164,7 +173,7 @@ def _freeze_inputs(files, directory, *, prepared_at, code_hash):
     # consistent snapshots and hashes, never the collection/backup start time.
     if prepared_at is None:
         finished = datetime.now(UTC).astimezone(KST)
-        if finished.hour >= 8 or finished.date() != local.date():
+        if (not postclose and finished.hour >= 8) or finished.date() != local.date():
             raise ValueError('prepared inputs must finish before 08:00 KST')
         manifest['prepared_at'] = finished.astimezone(UTC).isoformat()
     manifest['manifest_hash'] = _hash(manifest)
@@ -183,7 +192,7 @@ def _freeze_inputs(files, directory, *, prepared_at, code_hash):
         completed = _utc(prepared_at) if prepared_at is not None else datetime.now(UTC)
         if prepared_at is None:
             completed_local = completed.astimezone(KST)
-            if completed_local.hour >= 8 or completed_local.date() != local.date():
+            if (not postclose and completed_local.hour >= 8) or completed_local.date() != local.date():
                 # Readers take the same lock, so they cannot observe a late
                 # first writer between the link and this final completion guard.
                 if created:
@@ -199,12 +208,12 @@ def _freeze_inputs(files, directory, *, prepared_at, code_hash):
     return json.loads((directory / 'manifest.json').read_text())
 
 
-def restore_inputs(directory, *, now, code_hash):
+def restore_inputs(directory, *, now, code_hash, issuance_protocol='premarket_v1'):
     with _state_lock(directory, exclusive=False):
-        return _restore_inputs(directory, now=now, code_hash=code_hash)
+        return _restore_inputs(directory, now=now, code_hash=code_hash, issuance_protocol=issuance_protocol)
 
 
-def _restore_inputs(directory, *, now, code_hash):
+def _restore_inputs(directory, *, now, code_hash, issuance_protocol='premarket_v1'):
     directory = Path(directory)
     try:
         current = _utc(now).astimezone(KST)
@@ -218,16 +227,17 @@ def _restore_inputs(directory, *, now, code_hash):
         if manifest.get('manifest_hash') != _hash({k: v for k, v in manifest.items() if k != 'manifest_hash'}):
             raise ValueError('prepared manifest hash mismatch')
         prepared = _utc(manifest['prepared_at']).astimezone(KST)
+        postclose = issuance_protocol == 'after_close_daily_v1'
         if (manifest['schema_version'] != 'prepared_inputs_v1' or manifest['code_hash'] != code_hash
             or manifest['kst_date'] != current.date().isoformat() or prepared.date() != current.date()
-            or prepared.hour >= 8 or current.hour < 8 or prepared > current
-            or completed.hour >= 8 or completed.date() != prepared.date() or not prepared <= completed <= current
+            or manifest.get('issuance_protocol', 'premarket_v1') != issuance_protocol
+            or (not postclose and (prepared.hour >= 8 or current.hour < 8 or completed.hour >= 8)) or prepared > current or completed.date() != prepared.date() or not prepared <= completed <= current
             or not operation_decision(current, 'predict')['allowed']):
             raise ValueError('prepared clock/date/source protocol mismatch')
         paths = {}
         for name, item in manifest['files'].items():
             path = directory / item['path']
-            if path.parent.resolve() != directory.resolve() or name not in PREPARED_NAMES:
+            if path.parent.resolve() != directory.resolve() or name not in (POSTCLOSE_PREPARED_NAMES if postclose else PREPARED_NAMES):
                 raise ValueError('prepared path outside immutable directory')
             if hashlib.sha256(path.read_bytes()).hexdigest() != item['sha256']:
                 raise ValueError('prepared input hash mismatch')
@@ -280,7 +290,7 @@ def publish_prepared_models(runtime, output):
             if (_contains_rows(artifact) or artifact.get('schema_version') not in {'fit_model_artifact_v1', 'fit_failure_v1'}
                 or artifact.get('artifact_hash') != _hash({k: v for k, v in artifact.items() if k != 'artifact_hash'})):
                 raise ValueError('invalid prepared model artifact')
-            persisted = save_model_artifact(root / 'fit_models', path.parent.name, artifact)
+            persisted = save_model_artifact(root / ('fit_models_postclose' if runtime.get('issuance_protocol') == 'after_close_daily_v1' else 'fit_models'), path.parent.name, artifact)
             if persisted != artifact:
                 raise ValueError('immutable public model conflict with prepared state')
 
@@ -379,8 +389,18 @@ def public_payload_paths(directory):
     directory = Path(directory)
     result = []
     for root in (directory, directory / 'us'):
-        result.extend(path for name in sorted(PUBLIC_NAMES) if (path := root / name).is_file())
-        for path in sorted((root / 'fit_models').glob('*/*.json')):
+        if (root / 'market_closes.json').is_file():
+            from roboquant.index_forecast.postclose import verify_market_closes
+            verify_market_closes(root / 'market_closes.json')
+        from roboquant.index_forecast.postclose import verified_latest
+        compact = {'reliable_index_forecast.json', 'reliable_validation_report.json',
+                   'reliable_model_card.json', 'reliable_publication.json'}
+        # A failed/stale atomic publication cannot ride along with separately
+        # verified quotes or the independently successful other market.
+        verified = bool(verified_latest(root)) if any((root / name).is_file() for name in compact) else False
+        result.extend(path for name in sorted(PUBLIC_NAMES) if (path := root / name).is_file()
+                      and (name not in compact or verified))
+        for path in sorted([*(root / 'fit_models').glob('*/*.json'), *(root / 'fit_models_postclose').glob('*/*.json')]):
             payload = json.loads(path.read_text())
             if (payload.get('schema_version') not in {'fit_model_artifact_v1', 'fit_failure_v1'}
                 or _contains_rows(payload) or path.stat().st_size > 20_000_000

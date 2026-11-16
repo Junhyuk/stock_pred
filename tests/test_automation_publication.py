@@ -106,7 +106,7 @@ def test_workflow_rejects_exit_zero_blocked_cli(tmp_path, step_name, cli_name):
     (bin_dir / 'python').symlink_to(sys.executable)
     command = step['run'].replace('${{ steps.prices.outputs.sqlite }}', 'unused.sqlite').replace(
         '${{ steps.prices.outputs.us_csv }}', 'unused.csv')
-    for field in ('economic_sqlite', 'fit_models_kr', 'fit_models_us', 'prepared_manifest'):
+    for field in ('economic_sqlite', 'fit_models_kr', 'fit_models_us', 'prepared_manifest', 'issuance_protocol', 'markets'):
         command = command.replace('${{ steps.prices.outputs.' + field + ' }}', 'unused-prepared-state')
     command += '\necho unsafe-publication-continued\n'
     result = subprocess.run(['bash', '-c', command], cwd=tmp_path,
@@ -132,10 +132,10 @@ assert.ok(text.includes('2026. 11. 14. 오전 7:55:00 (한국 시각)'), text);
 assert.ok(!text.includes('2026-11-13T22:55:00Z'));
 assert.equal(formatAutomationTime('invalid'), '확인 불가');
 assert.equal(formatAutomationTime(null), '확인 불가');
-const daily = renderAutomationStatus({mode: 'daily', inputs: {status: 'ready'}});
-assert.ok(daily.includes('월~금 07:50 하루 1회'), daily);
-assert.ok(daily.includes('토·일 제외'), daily);
-assert.ok(daily.includes('08:00 입력 마감 후'), daily);
+const daily = renderAutomationStatus({mode: 'postclose', inputs: {status: 'ready'}});
+assert.ok(daily.includes('월~금 18:00'), daily);
+assert.ok(daily.includes('장 마감 후'), daily);
+assert.ok(daily.includes('실제 공개 시각'), daily);
 assert.ok(!daily.includes('08:00 발행'), daily);
 '''
     result = subprocess.run([node, '-e', code], capture_output=True, text=True)

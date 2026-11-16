@@ -86,6 +86,6 @@ def test_cache_open_phase_emits_dates_from_decrypted_snapshot(tmp_path, monkeypa
     monkeypatch.setattr(sys, 'argv', ['accuracy_operation.py', '--phase', 'cache-open', '--mode', 'latest'])
     monkeypatch.setenv('FORECAST_CACHE_KEY', key)
     MODULE.main()
-    assert emitted == [{'status': 'restored', 'restored_latest_index_dates': {'KOSPI': '2026-11-13'},
+    assert emitted == [{'status': 'restored', 'cache_ready': True, 'restored_latest_index_dates': {'KOSPI': '2026-11-13'},
                         'restored_index_metadata_status': 'available'}]
     assert '991234' not in json.dumps(emitted)

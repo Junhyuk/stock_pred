@@ -97,6 +97,8 @@ def build_reliable_price_frame(prices: pd.DataFrame, *, sessions: Any = None,
     data["asof_close_at"] = data["asof_date"].map(close_times).map(lambda x: x.isoformat() if pd.notna(x) else None)
     data["target_close_at"] = data["target_date"].map(close_times).map(lambda x: x.isoformat() if pd.notna(x) else None)
     data["label_return"] = close.shift(-1) / close - 1
+    data["label_target_close"] = close.shift(-1)
+    data["label_observed_at"] = data["ingested_at"].shift(-1) if "ingested_at" in data else None
     data["prediction_cutoff"] = data["asof_date"].map(close_times).map(lambda x: x.isoformat())
     if forecast_context is not None:
         current_close = utc_timestamp(close_times[forecast_context["asof_date"]])
@@ -106,6 +108,9 @@ def build_reliable_price_frame(prices: pd.DataFrame, *, sessions: Any = None,
             target_snapshot = utc_timestamp(str(row.target_date) + "T08:00:00+09:00")
             candidate = (target_snapshot if forecast_context["stage"] == "premarket_final"
                          else min(utc_timestamp(row.prediction_cutoff) + elapsed, target_snapshot))
+            if forecast_context['stage'] == 'postclose':
+                from roboquant.index_forecast.postclose import historical_cutoff
+                candidate = historical_cutoff(close_times[row.asof_date])
             historical_cutoffs.append(candidate.isoformat())
         data["prediction_cutoff"] = historical_cutoffs
         data.loc[data["asof_date"] == forecast_context["asof_date"], "prediction_cutoff"] = forecast_context["prediction_cutoff"]
@@ -215,6 +220,8 @@ def _resolved_run(payload: dict, manifest: dict) -> dict:
     checked = manifest["publication_checked_at"]
     result.update(status="research_only", issued_at=checked, artifact_written_at=checked, publication=manifest)
     for record in result["markets"]:
+        if record.get("carried_forward"):
+            continue
         record["context"]["issued_at"] = checked
         record["forecast"].update(issued_at=checked, artifact_written_at=checked)
     return result
@@ -317,7 +324,7 @@ def _publish_staged_run(run: dict, output: Path, documents: dict[str, dict], *,
                        "publication_checked_at": guard.isoformat(), "artifact_written_at": None,
                        "production_weight": 0.0, "markets": [], "contexts": contexts,
                        "reasons": ["publication_at_or_after_target_session_open"]}
-            _atomic_json(output / "reliable_index_forecast.json", blocked)
+            _atomic_json(output / ("postclose_attempt_status.json" if run.get("issuance_protocol") == "after_close_daily_v1" else "reliable_index_forecast.json"), blocked)
             return blocked
         if not (output / archive_name).exists():
             os.link(stage / archive_name, output / archive_name)
@@ -361,7 +368,12 @@ def run_reliable_pipeline(sqlite_path: str | Path, output_dir: str | Path, *, co
     """Build one immutable research run; stale inputs block before any forecast archive."""
     config = dict(config or {})
     issued = utc_timestamp(now if now is not None else datetime.now(KST))
-    raw_settings = dict(config.get("settings", {}))
+    raw_settings = dict(config.get('settings', {}))
+    raw_settings['issuance_protocol'] = config.get('issuance_protocol', raw_settings.get('issuance_protocol', 'premarket_v1'))
+    postclose = raw_settings['issuance_protocol'] == 'after_close_daily_v1'
+    cutoff = utc_timestamp(config.get('prepared_inputs', {}).get('prepared_at', issued)) if postclose else issued
+    from roboquant.index_forecast.postclose import model_directory, reference_context
+    config.setdefault('fit_state_dir', model_directory(output_dir, raw_settings['issuance_protocol']))
     if "model_families" in raw_settings:
         raw_settings["model_families"] = tuple(raw_settings["model_families"])
     settings = ReliableSettings(**raw_settings)
@@ -380,17 +392,28 @@ def run_reliable_pipeline(sqlite_path: str | Path, output_dir: str | Path, *, co
         membership = membership if membership is not None else _read_optional(conn, "reliable_membership_snapshot")
         stock_prices = stock_prices if stock_prices is not None else _read_optional(conn, "reliable_stock_prices")
         flows = flows if flows is not None else _read_optional(conn, "reliable_participant_flow")
+    if postclose:
+        from roboquant.index_forecast.market_closes import effective_index_eod_frame, apply_live_revisions
+        prices = effective_index_eod_frame(path, cutoff=cutoff)
+        live_prices = apply_live_revisions(prices)
     contexts, prepared = {}, {}
-    for market in ("KOSPI", "KOSDAQ"):
+    for market in ('KOSPI', 'KOSDAQ'):
+        if config.get('markets') is not None and market not in config['markets']:
+            continue
         subset = prices.loc[prices["index_code"] == market]
         if subset.empty:
             contexts[market] = {"status": "blocked_missing_index", "reasons": ["missing_index_close"]}
         else:
-            contexts[market] = resolve_forecast_context(subset["session_date"].max(), now=issued,
-                                                        sessions=sessions, target_date=target_date)
+            contexts[market] = resolve_forecast_context(subset["session_date"].max(), now=cutoff,
+                sessions=sessions, target_date=target_date, issuance_protocol=settings.issuance_protocol)
             context = contexts[market]
             if context["status"] != "ready":
                 continue
+            if postclose and config.get('market_closes'):
+                close_status = config['market_closes'].get('markets', {}).get(market, {})
+                if close_status.get('status') not in {'verified', 'single_source'}:
+                    context.update(status='blocked_market_close_verification', reasons=['market_close_unverified_or_conflicting'])
+                    continue
             current = subset.loc[subset["session_date"] == context["asof_date"]].iloc[-1]
             close = pd.to_numeric(current["close"], errors="coerce")
             if not np.isfinite(close) or close <= 0:
@@ -415,13 +438,19 @@ def run_reliable_pipeline(sqlite_path: str | Path, output_dir: str | Path, *, co
             if context["status"] != "ready":
                 continue
             prepared[market] = build_reliable_price_frame(subset, sessions=sessions, forecast_context=context)
+            if postclose:
+                live_frame = build_reliable_price_frame(live_prices.loc[live_prices.index_code == market], sessions=sessions, forecast_context=context)
+                mask = prepared[market].asof_date == context['asof_date']
+                live_row = live_frame.loc[live_frame.asof_date == context['asof_date']]
+                if not live_row.empty:
+                    prepared[market].loc[mask, ['close', *PRICE_FEATURES]] = live_row[['close', *PRICE_FEATURES]].to_numpy()
             latest_features = prepared[market].loc[prepared[market]["asof_date"] == context["asof_date"], PRICE_FEATURES]
             if latest_features.empty or not np.isfinite(latest_features.to_numpy(dtype=float)).all():
                 context.update(status="blocked_incomplete_input", reasons=["latest_index_price_features_incomplete"])
     blocked = [context for context in contexts.values() if context["status"] != "ready"]
     output = Path(output_dir)
     code_hash = _hash({name: hashlib.sha256(Path(__file__).with_name(name).read_bytes()).hexdigest()
-                       for name in ("reliable.py", "reliable_intervals.py", "fit_protocol.py", "market_calendar.py", "economic_calendar.py", "economic_forecast.py", "economic_sources.py", "forward_ledger.py", "reliable_inputs.py", "reliable_pipeline.py", "participant_impact.py", "us_market_inputs.py", "event_context.py", "international_news.py")})
+                       for name in ("reliable.py", "reliable_intervals.py", "fit_protocol.py", "market_calendar.py", "economic_calendar.py", "economic_forecast.py", "economic_sources.py", "forward_ledger.py", "reliable_inputs.py", "reliable_pipeline.py", "participant_impact.py", "us_market_inputs.py", "event_context.py", "international_news.py", "postclose.py", "market_closes.py")})
     input_hashes = {"index": _frame_hash(prices), "membership": _frame_hash(membership),
                     "stock_prices": _frame_hash(stock_prices), "participant_flows": _frame_hash(flows),
                     "us_observations": _frame_hash(us_data), "current_event_context": _hash(event_payload),
@@ -430,17 +459,20 @@ def run_reliable_pipeline(sqlite_path: str | Path, output_dir: str | Path, *, co
     code_hash = _hash({'modules': code_hash, 'economic_registry': hashlib.sha256(registry.read_bytes()).hexdigest() if registry.is_file() else None})
     calendar_store = load_calendar(config)
     evidence = begin_forward(output, config=config, settings=settings, started_at=issued, code_hash=code_hash, replay=now is not None)
-    if blocked:
+    if blocked and not (postclose and any(c["status"] == "ready" for c in contexts.values())):
         result = {"status": blocked[0]["status"], "issued_at": issued.isoformat(),
                   "production_weight": 0.0, "markets": [], "contexts": contexts,
                   "reasons": [reason for item in blocked for reason in item["reasons"]]}
-        _atomic_json(output / "reliable_index_forecast.json", result)
+        if not postclose:
+            _atomic_json(output / "reliable_index_forecast.json", result)
         finish_forward(output, evidence=evidence, frames=prepared, observed_at=datetime.now(KST))
         return result
-    run = {"schema_version": "reliable_index_forecast_v1", "status": "research_only",
+    blocked_contexts = {m: c for m, c in contexts.items() if c["status"] != "ready"}
+    contexts = {m: c for m, c in contexts.items() if c["status"] == "ready"}
+    run = {"issuance_protocol": settings.issuance_protocol, "blocked_markets": blocked_contexts, "schema_version": "reliable_index_forecast_v1", "status": "research_only",
            "issued_at": issued.isoformat(), "production_weight": 0.0, "horizon": "1D",
            "run_started_at": issued.isoformat(),
-           "issuance_policy": "08:00 KST snapshot cutoff; actual publication strictly before verified XKRX session open",
+           "issuance_policy": "actual completed collection cutoff; publish before target session open" if postclose else "08:00 KST snapshot cutoff; actual publication strictly before verified XKRX session open",
            "replay": now is not None, "config_hash": _hash({**config, "settings": asdict(settings)}),
            "code_hash": code_hash, "data_hash": _hash(input_hashes), "data_components": input_hashes, "markets": [],
            "restrictions": ["no production promotion", "no orders", "retrospective history does not establish original publication availability",
@@ -535,7 +567,7 @@ def run_reliable_pipeline(sqlite_path: str | Path, output_dir: str | Path, *, co
         if now is None:
             fit_state = resolve_live_fit(history, latest, evaluation.get("selected"), settings=settings,
                 state_dir=config.get("fit_state_dir", output / "fit_models"), market=market,
-                allow_capture=context["stage"] == "premarket_final")
+                allow_capture=context["stage"] == "premarket_final" or (postclose and cutoff.tz_convert(KST).date().isoformat() == context["asof_date"]))
             forecast = forecast_reliable_latest(history, latest, evaluation, settings=settings,
                 fit_artifact=fit_state.get("artifact"), require_live_snapshot=True)
             if fit_state.get("reason"):
@@ -568,10 +600,10 @@ def run_reliable_pipeline(sqlite_path: str | Path, output_dir: str | Path, *, co
                       "participant_status": "unavailable_for_training" if "participants" in missing else "final_available_observations"}
         macro = numeric_shadow(frame, store=calendar_store, settings=settings, market=market,
             state_dir=config.get("fit_state_dir", output / "fit_models"), live=now is None,
-            allow_capture=context["stage"] == "premarket_final")
+            allow_capture=context["stage"] == "premarket_final" or (postclose and cutoff.tz_convert(KST).date().isoformat() == context["asof_date"]))
         record = {"economic_calendar": economic_contexts.get(context["asof_date"], {"event_bucket": None, "calendar_complete": False}),
                   "numeric_shadow": macro, "market": market, "context": context, "forecast": forecast, "evaluation": evaluation,
-                  "incumbent_reference": {**incumbent, "role": "retrospective_reference_not_live_model"},
+                  "incumbent_reference": reference_context(incumbent, context, close),
                   "fit_state": {key: value for key, value in fit_state.items() if key != "artifact"},
                   "missing_feature_groups": missing, "active_feature_groups": groups,
                   "participant_pressure": summarize_participant_pressure(flows, market=market, cutoff=context["prediction_cutoff"]),
@@ -601,6 +633,9 @@ def run_reliable_pipeline(sqlite_path: str | Path, output_dir: str | Path, *, co
                                       "code_hash": code_hash, "feature_hash": record["feature_hash"],
                                       "model_hash": record["model_hash"]})
         record["forecast"]["forecast_id"] = record["forecast_id"]
+    if postclose:
+        from roboquant.index_forecast.postclose import carry_verified_markets, verified_latest
+        carry_verified_markets(run, verified_latest(output))
     run["run_id"] = _hash({key: value for key, value in run.items() if key != "run_id"})
     validation = {"run_id": run["run_id"], "status": "unpublished", "markets": [
         {"market": item["market"], "forecast_id": item["forecast_id"], "evaluation": item["evaluation"],

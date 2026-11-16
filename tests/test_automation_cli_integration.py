@@ -40,13 +40,15 @@ class Checkout:
             '^KS11': [['2026-11-13', 2500.]], '^KQ11': [['2026-11-13', 800.]],
             **{symbol: [['2026-11-12', 999.], ['2026-11-13', 120.]] for symbol in US_SYMBOLS}}))
 
-    def run(self, script, *args, now=PREPARE, scenario='normal', key=TEST_KEY, check=True):
+    def run(self, script, *args, now=PREPARE, scenario='normal', key=TEST_KEY, check=True, workflow_run_id=None, workflow_attempt=None):
         # Never inherit real credentials, .env, PYTHONPATH or provider settings.
         env = {name: value for name, value in os.environ.items()
                if name in {'PATH', 'HOME', 'LANG', 'LD_LIBRARY_PATH', 'VIRTUAL_ENV'}}
         env.update(FORECAST_CACHE_KEY=key, PYTHONDONTWRITEBYTECODE='1',
                    GITHUB_OUTPUT=str(self.root / 'github-output'),
                    OPENBLAS_NUM_THREADS='1', OMP_NUM_THREADS='1')
+        if workflow_run_id is not None:
+            env.update(GITHUB_RUN_ID=str(workflow_run_id), GITHUB_RUN_ATTEMPT=str(workflow_attempt or 1))
         completed = subprocess.run([sys.executable, str(LAUNCHER), str(self.root), now,
                                    scenario, script, *map(str, args)], cwd=self.root,
                                   env=env, capture_output=True, text=True, timeout=90)
@@ -95,7 +97,7 @@ def test_actual_gate_cli_runs_before_third_party_dependencies_are_installed(chec
                             capture_output=True, text=True, timeout=10)
     assert result.returncode == 0, result.stderr
     decision = json.loads(result.stdout)
-    assert decision['mode'] == 'daily'
+    assert decision['mode'] == 'postclose'
     assert isinstance(decision['allowed'], bool)
     assert decision['forecast_requested'] is decision['allowed']
     assert isinstance(decision['collect'], bool)
@@ -278,7 +280,7 @@ def test_prepare_to_predict_runs_real_collectors_forecasts_and_publication_check
     assert status['korea'] is not None and status['us'] is not None
     assert status['daily_completed_date'] == '2026-11-16'
     assert not checkout.operation('gate', 'daily', now=PREDICT)['allowed']
-    public_paths = checkout.run('accuracy_operation.py', '--phase', 'public-paths', now=PREDICT).stdout.splitlines()
+    public_paths = checkout.run('accuracy_operation.py', '--phase', 'public-paths', '--mode', 'daily', now=PREDICT).stdout.splitlines()
     assert 'docs/data/reliable_publication.json' in public_paths
     assert all(not path.endswith(('.sqlite', '.csv', '.enc')) for path in public_paths)
     replay = checkout.run('run_reliable_index_forecast.py', '--sqlite', inputs['sqlite'],
@@ -293,12 +295,12 @@ def test_prepare_to_predict_runs_real_collectors_forecasts_and_publication_check
 
 
 @pytest.mark.parametrize('clock,allowed', [
-    ('2026-11-15T22:50:00+00:00', True), ('2026-11-16T22:50:00+00:00', True),
-    ('2026-11-17T22:50:00+00:00', True), ('2026-11-18T22:50:00+00:00', True),
-    ('2026-11-19T22:50:00+00:00', True), ('2026-11-13T22:50:00+00:00', False),
-    ('2026-11-14T22:50:00+00:00', False)])
+    ('2026-11-16T09:00:00+00:00', True), ('2026-11-17T09:00:00+00:00', True),
+    ('2026-11-18T09:00:00+00:00', True), ('2026-11-19T09:00:00+00:00', True),
+    ('2026-11-20T09:00:00+00:00', True), ('2026-11-14T09:00:00+00:00', False),
+    ('2026-11-15T09:00:00+00:00', False)])
 def test_scheduled_gate_uses_single_daily_mode_on_kst_weekdays(checkout, clock, allowed):
-    for schedule, mode in [('50 22 * * 0-4', 'daily')]:
+    for schedule, mode in [('0 9 * * 1-5', 'postclose')]:
         data = json.loads(checkout.run('accuracy_operation.py', '--phase', 'gate', '--schedule', schedule,
                                       now=clock).stdout.splitlines()[-1])
         assert data['allowed'] is allowed and data['mode'] == mode

@@ -418,3 +418,24 @@ def test_existing_us_snapshot_is_not_rewritten_when_it_already_covers_the_merge(
     with pytest.raises(ValueError, match="immutable"):
         refresh.write_merged_us_snapshot(old, added, destination)
     assert destination.read_bytes() == original
+
+
+def test_live_refresh_records_clocks_only_after_corresponding_downloads(tmp_path):
+    calls = []
+    class Yahoo:
+        def download(self, symbol, start, end, **kwargs):
+            calls.append(symbol)
+            return _daily_frame(['2026-11-13'], [100.0])
+    def clock():
+        # No receipt clock may be read until its network response has arrived.
+        seconds = {0:0, 1:1, 2:2, 6:3}
+        return datetime(2026, 11, 16, 18, 0, seconds[len(calls)], tzinfo=KST)
+    result = refresh.refresh_premarket_prices(sqlite_path=tmp_path/'db.sqlite', output_dir=tmp_path,
+        yf_module=Yahoo(), sessions=['2026-11-13','2026-11-16'], clock=clock)
+    db = connect_index_forecast(tmp_path/'db.sqlite')
+    rows = {r['index_code']:r['ingested_at'] for r in db.execute('select index_code,ingested_at from index_eod')}
+    db.close()
+    assert rows['KOSPI'] == '2026-11-16T09:00:01+00:00'
+    assert rows['KOSDAQ'] == '2026-11-16T09:00:02+00:00'
+    us = pd.read_csv(result['us_csv'])
+    assert set(us['first_seen_at']) == {'2026-11-16T09:00:03+00:00'}

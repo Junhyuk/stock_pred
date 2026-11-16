@@ -43,7 +43,7 @@ from roboquant.index_forecast.us_market_inputs import (
 )
 
 
-def build_us_target_frame(observations: pd.DataFrame, *, symbol: str, reporting_cutoff) -> tuple[pd.DataFrame, pd.DataFrame]:
+def build_us_target_frame(observations: pd.DataFrame, *, symbol: str, reporting_cutoff, issuance_protocol="premarket_v1") -> tuple[pd.DataFrame, pd.DataFrame]:
     """Build each feature row from the versions known at that row's own cutoff.
 
     Snapshot zero is the declared historical reconstruction. Explicit later
@@ -95,6 +95,9 @@ def build_us_target_frame(observations: pd.DataFrame, *, symbol: str, reporting_
         if day < data.session_date.min() or day > data.session_date.max() or day > str(latest_session):
             continue
         cutoff = _utc(reporting_cutoff) if day == latest_session else minimum_availability[day]
+        if issuance_protocol == 'after_close_daily_v1' and day != latest_session:
+            from roboquant.index_forecast.postclose import historical_cutoff
+            cutoff = historical_cutoff(closes[day], 'XNYS')
         current = choose(day, cutoff)
         target_day = days[i + 1]
         outcome = choose(target_day, first=True)
@@ -103,6 +106,8 @@ def build_us_target_frame(observations: pd.DataFrame, *, symbol: str, reporting_
                "close": current["close"] if current else np.nan,
                "label_return": outcome["close"] / current["close"] - 1 if current and outcome else np.nan,
                "label_available_at": outcome["_available"].isoformat() if outcome else None,
+               "label_target_close": outcome["close"] if outcome else None,
+               "label_observed_at": outcome["_seen"].isoformat() if outcome else None,
                "label_revision_policy": "first_available_target_close; explicit later revisions not backfilled",
                **dict.fromkeys(PRICE_FEATURES, np.nan)}
         window = [choose(d, cutoff) for d in days[max(0, i - 20):i + 1]]
@@ -120,10 +125,13 @@ def build_us_target_frame(observations: pd.DataFrame, *, symbol: str, reporting_
 def run_us_reliable_pipeline(observations: pd.DataFrame | str | Path, output_dir: str | Path, *,
                              config: dict | None = None, now: datetime | None = None,
                              news_context: dict | str | Path | None = None) -> dict:
-    config = config or {}
+    config = dict(config or {})
     issued = _utc(now if now is not None else datetime.now(UTC))
     data = observations.copy() if isinstance(observations, pd.DataFrame) else pd.read_csv(observations)
     raw_settings = dict(config.get("settings", {}))
+    raw_settings['issuance_protocol'] = config.get('issuance_protocol', raw_settings.get('issuance_protocol', 'premarket_v1'))
+    postclose = raw_settings['issuance_protocol'] == 'after_close_daily_v1'
+    cutoff = _utc(config.get('prepared_inputs', {}).get('prepared_at', issued)) if postclose else issued
     raw_settings["calendar_name"] = "XNYS"
     if "model_families" in raw_settings:
         raw_settings["model_families"] = tuple(raw_settings["model_families"])
@@ -131,21 +139,26 @@ def run_us_reliable_pipeline(observations: pd.DataFrame | str | Path, output_dir
     event_source = news_context if news_context is not None else config.get("event_context", {}).get("path")
     events = event_source if isinstance(event_source, dict) else json.loads(Path(event_source).read_text()) if event_source and Path(event_source).is_file() else {}
     news_inputs = _load_news_inputs(config, events)
+    from roboquant.index_forecast.postclose import model_directory, reference_context, historical_cutoff
+    config.setdefault('fit_state_dir', model_directory(output_dir, settings.issuance_protocol))
     contexts, prepared, reasons = {}, {}, []
     for market, symbol in (("US_SPX", "^GSPC"), ("US_NASDAQ", "^IXIC")):
-        frame, schedule = build_us_target_frame(data, symbol=symbol, reporting_cutoff=issued)
+        if config.get('markets') is not None and market not in config['markets']:
+            continue
+        frame, schedule = build_us_target_frame(data, symbol=symbol, reporting_cutoff=cutoff, issuance_protocol=settings.issuance_protocol)
         if frame.empty:
             reasons.append(f"{market}:missing_source")
             continue
-        finished = schedule.loc[pd.to_datetime(schedule.session_close_at, utc=True) <= issued]
+        finished = schedule.loc[pd.to_datetime(schedule.session_close_at, utc=True) <= cutoff]
         if finished.empty:
             reasons.append(f"{market}:no_completed_session")
             continue
         asof = finished.iloc[-1].session_date
         following = schedule.loc[schedule.session_date > asof].iloc[0]
         context = {"status": "ready", "asof_date": asof, "target_date": following.session_date,
-                   "expected_asof_date": asof, "prediction_cutoff": issued.isoformat(),
-                   "issued_at": None, "run_started_at": issued.isoformat(), "stage": "us_after_close_preopen_research",
+                   "asof_close_at": finished.iloc[-1].session_close_at, "expected_asof_date": asof, "prediction_cutoff": cutoff.isoformat(),
+                   "issued_at": None, "run_started_at": issued.isoformat(), "stage": "postclose" if postclose else "us_after_close_preopen_research",
+                   "issuance_protocol": settings.issuance_protocol,
                    "issuance_deadline": following.session_open_at, "target_close_at": following.session_close_at,
                    "calendar_source": "exchange_calendars:XNYS", "timezone": "America/New_York", "reasons": []}
         latest = frame.loc[frame.asof_date == asof]
@@ -153,23 +166,28 @@ def run_us_reliable_pipeline(observations: pd.DataFrame | str | Path, output_dir
             reasons.append(f"{market}:expected_completed_bar_or_price_history_missing")
         elif issued >= _utc(following.session_open_at):
             reasons.append(f"{market}:target_session_already_open")
-        contexts[market], prepared[market] = context, frame
+        if postclose and (cutoff < historical_cutoff(finished.iloc[-1].session_close_at, 'XNYS') or cutoff.tz_convert('Asia/Seoul').weekday() >= 5 or cutoff.tz_convert('Asia/Seoul').hour < 18):
+            reasons.append(f'{market}:before_scheduled_postclose_or_weekend')
+        if not any(reason.startswith(market + ':') for reason in reasons):
+            contexts[market], prepared[market] = context, frame
     output = Path(output_dir)
     code_hash = _hash({name: hashlib.sha256(Path(__file__).with_name(name).read_bytes()).hexdigest()
-                      for name in ("us_market_pipeline.py", "us_market_inputs.py", "reliable.py", "reliable_intervals.py", "fit_protocol.py", "market_calendar.py", "economic_calendar.py", "economic_forecast.py", "economic_sources.py", "forward_ledger.py", "reliable_pipeline.py", "event_context.py", "international_news.py")})
+                      for name in ("us_market_pipeline.py", "us_market_inputs.py", "reliable.py", "reliable_intervals.py", "fit_protocol.py", "market_calendar.py", "economic_calendar.py", "economic_forecast.py", "economic_sources.py", "forward_ledger.py", "reliable_pipeline.py", "event_context.py", "international_news.py", "postclose.py", "market_closes.py")})
     registry = Path(__file__).resolve().parents[3] / 'configs/economic_calendar.yaml'
     code_hash = _hash({'modules': code_hash, 'economic_registry': hashlib.sha256(registry.read_bytes()).hexdigest() if registry.is_file() else None})
     calendar_store = load_calendar(config)
     evidence = begin_forward(output, config=config, settings=settings, started_at=issued, code_hash=code_hash, replay=now is not None)
-    if reasons:
+    if reasons and not (postclose and contexts):
         blocked = {"status": "blocked_us_input_or_deadline", "issued_at": None, "run_started_at": issued.isoformat(),
                    "markets": [], "production_weight": 0.0, "reasons": reasons, "contexts": contexts}
-        _atomic_json(output / "reliable_index_forecast.json", blocked)
+        if not postclose:
+            _atomic_json(output / "reliable_index_forecast.json", blocked)
         finish_forward(output, evidence=evidence, frames=prepared, observed_at=datetime.now(UTC))
         return blocked
     run = {"schema_version": "reliable_index_forecast_v1", "status": "unpublished", "issued_at": None,
            "artifact_written_at": None, "run_started_at": issued.isoformat(), "prepared_at": None,
            "publication_manifest": "reliable_publication.json", "replay": now is not None,
+           "issuance_protocol": settings.issuance_protocol, "blocked_markets": reasons,
            "production_weight": 0.0, "horizon": "next_US_session", "code_hash": code_hash,
            "config_hash": _hash({**config, "settings": asdict(settings)}), "data_hash": _hash({"observations": _frame_hash(data), "news": events, "news_snapshot": news_inputs["snapshot"]}),
            "restrictions": ["retrospective end-of-session reconstruction", "no production approval", "news not a trained alpha feature"],
@@ -177,15 +195,16 @@ def run_us_reliable_pipeline(observations: pd.DataFrame | str | Path, output_dir
     for market, context in contexts.items():
         frame, economic_contexts = calendar_frame(prepared[market], calendar_store)
         history = frame.dropna(subset=[*PRICE_FEATURES, "label_return", "target_date"])
-        evaluation = evaluate_reliable_forecasts(history, settings=settings, reporting_cutoff=issued,
+        evaluation = evaluate_reliable_forecasts(history, settings=settings, reporting_cutoff=cutoff,
                                                   prediction_grid=frame)
         latest = frame.loc[frame.asof_date == context["asof_date"]].copy()
-        latest["prediction_cutoff"] = issued.isoformat()
+        latest["prediction_cutoff"] = cutoff.isoformat()
         incumbent = forecast_reliable_latest(history, latest, evaluation, settings=settings)
         fit_state = {"status": "retrospective_replay", "reason": "explicit_replay_not_live_capture"}
         if now is None:
             fit_state = resolve_live_fit(history, latest, evaluation.get("selected"), settings=settings,
-                state_dir=config.get("fit_state_dir", output / "fit_models"), market=market)
+                state_dir=config['fit_state_dir'], market=market,
+                allow_capture=not postclose or cutoff.tz_convert('Asia/Seoul').date() == historical_cutoff(context['asof_close_at'], 'XNYS').tz_convert('Asia/Seoul').date())
             forecast = forecast_reliable_latest(history, latest, evaluation, settings=settings,
                 fit_artifact=fit_state.get("artifact"), require_live_snapshot=True)
             if fit_state.get("reason"):
@@ -198,7 +217,7 @@ def run_us_reliable_pipeline(observations: pd.DataFrame | str | Path, output_dir
                         expected_index=None if forecast["expected_return"] is None else close * (1 + forecast["expected_return"]),
                         index_range_low=None if forecast["range_low"] is None else close * (1 + forecast["range_low"]),
                         index_range_high=None if forecast["range_high"] is None else close * (1 + forecast["range_high"]))
-        news_report = _apply_international_news(evaluation, forecast, market=market, cutoff=issued,
+        news_report = _apply_international_news(evaluation, forecast, market=market, cutoff=cutoff,
             target_close_at=context["target_close_at"], news_inputs=news_inputs, minimum_oos=settings.min_oos_rows)
         forecast = news_report["blended_forecast"]
         feature_hash = _frame_hash(latest[["asof_date", *PRICE_FEATURES]])
@@ -209,14 +228,15 @@ def run_us_reliable_pipeline(observations: pd.DataFrame | str | Path, output_dir
                              "config_hash": run["config_hash"], "feature_hash": feature_hash, "model_hash": model_hash})
         forecast["forecast_id"] = forecast_id
         macro = numeric_shadow(frame, store=calendar_store, settings=settings, market=market,
-            state_dir=config.get("fit_state_dir", output / "fit_models"), live=now is None)
+            state_dir=config.get("fit_state_dir", output / "fit_models"), live=now is None,
+            allow_capture=not postclose or cutoff.tz_convert("Asia/Seoul").date() == historical_cutoff(context["asof_close_at"], "XNYS").tz_convert("Asia/Seoul").date())
         run["markets"].append({"economic_calendar": economic_contexts.get(context["asof_date"], {"event_bucket": None, "calendar_complete": False}),
             "numeric_shadow": macro, "market": market, "forecast_id": forecast_id, "context": context, "forecast": forecast,
-            "incumbent_reference": {**incumbent, "role": "retrospective_reference_not_live_model"},
+            "incumbent_reference": reference_context(incumbent, context, close),
             "fit_state": {key: value for key, value in fit_state.items() if key != "artifact"},
             "feature_hash": feature_hash, "model_hash": model_hash,
             "evaluation": evaluation, "active_feature_groups": {"price": PRICE_FEATURES}, "missing_feature_groups": [],
-            "event_context": build_event_risk_context(events, cutoff=issued),
+            "event_context": build_event_risk_context(events, cutoff=cutoff),
             "international_news": news_report,
             "data_provenance": {"historical_mode": HISTORICAL_MODE, "original_publication_verified": False,
                                 "sources": sorted(data.source.dropna().unique()), "retrieved_at": str(data.fetched_at.max()),
@@ -225,6 +245,9 @@ def run_us_reliable_pipeline(observations: pd.DataFrame | str | Path, output_dir
             "participant_pressure": {"status": "not_used", "observed": {}, "inferred": "inconclusive", "confidence": "unavailable", "unverified": [], "missing": []},
             "position_subproject": {"status": "not_used"}})
     run["prepared_at"] = _utc(datetime.now(UTC)).isoformat() if now is None else None
+    if postclose:
+        from roboquant.index_forecast.postclose import carry_verified_markets, verified_latest
+        carry_verified_markets(run, verified_latest(output))
     run["run_id"] = _hash(run)
     validation = {"run_id": run["run_id"], "status": "unpublished", "markets": [
         {"market": item["market"], "forecast_id": item["forecast_id"], "evaluation": item["evaluation"]}

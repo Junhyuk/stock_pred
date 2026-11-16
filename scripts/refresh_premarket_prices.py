@@ -488,9 +488,9 @@ def _download_daily(symbol: str, start: str, end: str, yf_module) -> pd.DataFram
 
 def refresh_premarket_prices(*, sqlite_path: str | Path, output_dir: str | Path,
                              start: str = HISTORY_START, fetched_at: datetime | None = None,
-                             yf_module=None, sessions=None) -> dict:
-    fetched_at = fetched_at if fetched_at is not None else datetime.now(KST)
-    fetched = utc_timestamp(fetched_at)
+                             yf_module=None, sessions=None, clock=None) -> dict:
+    read_clock = (lambda: fetched_at) if fetched_at is not None else (clock or (lambda: datetime.now(KST)))
+    fetched = utc_timestamp(read_clock())
     if pd.isna(fetched):
         raise ValueError("fetch time is required")
     end = (fetched.tz_convert(KST).date() + timedelta(days=1)).isoformat()
@@ -507,9 +507,11 @@ def refresh_premarket_prices(*, sqlite_path: str | Path, output_dir: str | Path,
         inserted = 0
         for index_code, symbol in KR_SYMBOLS.items():
             bars = bars_from_download(_download_daily(symbol, kr_start, end, yf))
-            bars = supplement_kr_bars(bars, symbol, yf, fetched_at=fetched, sessions=sessions)
+            downloaded = utc_timestamp(read_clock())
+            bars = supplement_kr_bars(bars, symbol, yf, fetched_at=downloaded, sessions=sessions)
+            received = utc_timestamp(read_clock())
             inserted += append_kr_rows(
-                conn, completed_kr_rows(bars, index_code=index_code, fetched_at=fetched, sessions=sessions))
+                conn, completed_kr_rows(bars, index_code=index_code, fetched_at=received, sessions=sessions))
         stored = conn.execute(
             "SELECT COUNT(*) FROM index_eod WHERE index_code IN ('KOSPI', 'KOSDAQ')"
         ).fetchone()[0]
@@ -527,10 +529,10 @@ def refresh_premarket_prices(*, sqlite_path: str | Path, output_dir: str | Path,
     us_summary = us_history_summary(prior)
     us_covered = series_history_covered(us_summary, set(US_PRICE_SYMBOLS), requested_start=start)
     us_start = incremental_start(lagging_latest(us_summary), requested_start=start, covered=us_covered)
-    raw = us_raw_frame(
-        {symbol: bars_from_download(_download_daily(symbol, us_start, end, yf)) for symbol in US_PRICE_SYMBOLS},
-        fetched_at=fetched,
-    )
+    us_bars = {symbol: bars_from_download(_download_daily(symbol, us_start, end, yf)) for symbol in US_PRICE_SYMBOLS}
+    received = utc_timestamp(read_clock())
+    raw = us_raw_frame(us_bars, fetched_at=received)
+    destination = dated_us_csv(output_dir, received)
     if prior.empty:
         us_csv = write_us_observations(raw, destination)
     else:
@@ -542,7 +544,7 @@ def refresh_premarket_prices(*, sqlite_path: str | Path, output_dir: str | Path,
             us_csv = prior_path
         else:
             if same_day or destination.exists():
-                receipt = fetched.tz_convert(KST).strftime("%H%M%S%f")
+                receipt = received.tz_convert(KST).strftime("%H%M%S%f")
                 destination = destination.with_name(f"{destination.stem}_{receipt}.csv")
             us_csv = write_merged_us_snapshot(prior, raw, destination)
     return {"sqlite": str(sqlite_path), "us_csv": str(us_csv), "kr_rows_inserted": inserted}

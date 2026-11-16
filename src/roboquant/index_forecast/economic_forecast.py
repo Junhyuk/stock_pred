@@ -132,13 +132,16 @@ def begin_forward(output, *, config, settings, started_at, code_hash, replay):
 
     output = Path(output)
     import hashlib
-    private_key = hashlib.sha256(str(output.resolve()).encode()).hexdigest()[:16]
+    postclose = settings.issuance_protocol == 'after_close_daily_v1'
+    prefix = 'postclose_' if postclose else ''
+    private_key = hashlib.sha256((str(output.resolve()) + (settings.issuance_protocol if postclose else '')).encode()).hexdigest()[:16]
     ledger = ForwardLedger(config.get('forward_ledger_path',
         Path(config.get('private_state_dir', 'data/processed/accuracy-state')) / f'forward-{private_key}.sqlite'))
-    history = output / 'forward_history.json'
+    history = output / f'{prefix}forward_history.json'
     if history.is_file():
         ledger.import_history(json.loads(history.read_text()), trusted_archive=True)
-    protocol = {'protocol': 'accuracy_calendar_v1', 'code_hash': code_hash, 'settings': asdict(settings),
+    protocol = {'protocol': settings.issuance_protocol if postclose else 'accuracy_calendar_v1', 'code_hash': code_hash, 'settings': asdict(settings),
+                'outcome_basis': 'issued_close_v1' if postclose else 'legacy_reconstructed_return',
                 'numeric_candidate': 'linear:price_macro_v1', 'numeric_policy': NUMERIC_POLICY,
                 'interval_candidates': ['volatility_normalized', 'event_conditional'],
                 'primary_metrics': ['brier', 'interval_score80'], 'minimum_future_mature_rows': 252,
@@ -161,9 +164,12 @@ def finish_forward(output, *, evidence, frames, observed_at):
             if pd.notna(row.get('label_return')) and pd.notna(row.get('target_close_at')) and pd.notna(row.get('label_available_at')):
                 observations.append({'market': market, 'asof_date': row['asof_date'], 'target_date': row['target_date'],
                     'actual_return': float(row['label_return']), 'target_close_at': row['target_close_at'],
-                    'label_available_at': row['label_available_at']})
+                    'label_available_at': row['label_available_at'],
+                    'target_close': float(row['label_target_close']) if pd.notna(row.get('label_target_close')) else None,
+                    'target_observed_at': row.get('label_observed_at') if pd.notna(row.get('label_observed_at')) else None})
     # Only issued targets need outcome attempts; do not persist full price history.
     issued = {(r['market'], r['asof_date'], r['target_date']) for r in ledger.export_history()['forecasts']}
     ledger.record_outcomes([r for r in observations if (r['market'], r['asof_date'], r['target_date']) in issued], observed_at=observed_at)
-    _atomic_json(Path(output) / 'forward_history.json', ledger.export_history())
-    _atomic_json(Path(output) / 'forward_validation.json', ledger.report())
+    prefix = 'postclose_' if protocol['protocol'] == 'after_close_daily_v1' else ''
+    _atomic_json(Path(output) / f'{prefix}forward_history.json', ledger.export_history())
+    _atomic_json(Path(output) / f'{prefix}forward_validation.json', ledger.report())

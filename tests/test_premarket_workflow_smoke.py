@@ -9,10 +9,11 @@ WORKFLOW = ROOT / ".github" / "workflows" / "premarket-research-forecast.yml"
 
 def test_forecast_workflow_prepares_then_issues_once_on_kst_weekdays():
     text = WORKFLOW.read_text(encoding="utf-8")
-    assert text.count('cron: "50 22 * * 0-4"') == 1
+    assert text.count('cron: "0 9 * * 1-5"') == 1
     assert text.count('cron:') == 1
     assert 'schedule:' not in (ROOT / '.github/workflows/premarket-smoke.yml').read_text()
     assert text.index('--phase freeze') < text.index('--phase wait') < text.index('--phase inputs')
+    assert "steps.operation.outputs.mode == 'daily'\n        run: python scripts/accuracy_operation.py --phase wait --mode daily" in text
     assert 'test_premarket_trading_day_gate.py tests/test_premarket_workflow_smoke.py' in text
     assert "workflow_dispatch:" in text
     assert text.index("Resolve actual-clock operation") < text.index("Install forecast and verification stack")

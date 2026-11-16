@@ -51,11 +51,14 @@ class ReliableSettings:
     model_families: tuple[str, ...] = ("linear", "lightgbm", "ensemble")
     calendar_name: str = "XKRX"
     refit_origin: str = "2019-01-02"
+    issuance_protocol: str = "premarket_v1"
 
     def __post_init__(self) -> None:
         for name, value in asdict(self).items():
-            if name not in {"model_families", "random_state", "purge_days", "calendar_name", "refit_origin"} and value < 1:
+            if name not in {"model_families", "random_state", "purge_days", "calendar_name", "refit_origin", "issuance_protocol"} and value < 1:
                 raise ValueError(f"{name} must be positive")
+        if self.issuance_protocol not in {"premarket_v1", "after_close_daily_v1"}:
+            raise ValueError("unsupported issuance protocol")
         if self.purge_days < 0:
             raise ValueError("purge_days must be nonnegative")
         if any(f not in {"linear", "lightgbm", "ensemble"} for f in self.model_families):

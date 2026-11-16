@@ -35,6 +35,12 @@ def _finite(value):
     return isinstance(value, (float, int)) and math.isfinite(value)
 
 
+def _score_key(row):
+    if row.get('outcome_basis') == 'issued_close_v1':
+        return _hash({'forecast_key': row['forecast_key'], 'outcome_basis': row['outcome_basis']})
+    return _hash({key: row[key] for key in ('market', 'asof_date', 'target_date')})
+
+
 class ForwardLedger:
     def __init__(self, path):
         self.path = Path(path)
@@ -85,12 +91,14 @@ class ForwardLedger:
                 raise ValueError('protocol_not_registered_before_issue')
             with self._connection() as db:
                 for market in payload.get('markets', []):
+                    if market.get('carried_forward'):
+                        continue
                     context = market['context']
                     if not (_utc(context['prediction_cutoff']) <= issued < _utc(context['issuance_deadline'])
                             and issued < _utc(context['target_close_at'])):
                         attempt['reason'] = 'outside_issuance_window'
                         continue
-                    if context.get('stage') not in ('premarket_final', 'us_after_close_preopen_research'):
+                    if context.get('stage') not in ('premarket_final', 'us_after_close_preopen_research', 'postclose'):
                         attempt['reason'] = 'nonfinal_stage'
                         continue
                     for role, forecast in (('primary', market.get('forecast')),
@@ -112,6 +120,12 @@ class ForwardLedger:
                             target_close_at=context['target_close_at'], prediction_cutoff=context['prediction_cutoff'],
                             issued_at=issued.isoformat(), run_id=payload['run_id'], production_weight=0.)
                         identity = _hash({k: row[k] for k in ('market', 'target_date', 'protocol_hash', 'role')})
+                        if context.get('stage') == 'postclose':
+                            baseline = forecast.get('latest_close', market.get('forecast', {}).get('latest_close'))
+                            if not _finite(baseline) or baseline <= 0:
+                                attempt['reason'] = 'issued_baseline_close_unavailable'
+                                continue
+                            row.update(outcome_basis='issued_close_v1', issued_baseline_close=float(baseline), forecast_key=identity)
                         self._insert(db, 'forecasts', identity, row)
                         attempt['accepted_roles'].append(f"{market['market']}:{role}")
                 if attempt['accepted_roles']:
@@ -127,17 +141,38 @@ class ForwardLedger:
         forecasts = self._rows('forecasts')
         with self._connection() as db:
             for observation in observations:
-                row = {key: observation[key] for key in ('market', 'asof_date', 'target_date',
-                    'actual_return', 'target_close_at', 'label_available_at')}
-                matched = [f for f in forecasts if all(f[k] == row[k] for k in ('market', 'asof_date', 'target_date'))]
-                authoritative = bool(matched) and all(_utc(f['target_close_at']) == _utc(row['target_close_at']) for f in matched)
-                mature = (authoritative and _utc(row['target_close_at']) <= stamp and _utc(row['label_available_at']) <= stamp
-                          and _finite(row['actual_return']))
-                row.update(observed_at=stamp.isoformat(), mature=mature)
-                self._insert(db, 'outcome_attempts', _hash(row), row)
-                if mature:
-                    identity = _hash({key: row[key] for key in ('market', 'asof_date', 'target_date')})
-                    self._insert(db, 'outcomes', identity, row)
+                base = {key: observation[key] for key in ('market', 'asof_date', 'target_date',
+                    'target_close_at', 'label_available_at')}
+                matched = [f for f in forecasts if all(f[k] == base[k] for k in ('market', 'asof_date', 'target_date'))]
+                for forecast in matched:
+                    if forecast.get('outcome_basis') == 'issued_close_v1':
+                        target = observation.get('target_close')
+                        received = observation.get('target_observed_at')
+                        row = {**base, 'outcome_basis': 'issued_close_v1', 'forecast_key': forecast['forecast_key'],
+                               'protocol_hash': forecast['protocol_hash'], 'role': forecast['role'],
+                               'issued_baseline_close': forecast.get('issued_baseline_close'),
+                               'target_close': target, 'target_observed_at': received,
+                               'actual_return': None}
+                        basis_valid = (_finite(target) and target > 0 and _finite(row['issued_baseline_close'])
+                                       and row['issued_baseline_close'] > 0)
+                        try:
+                            receipt_valid = _utc(base['target_close_at']) <= _utc(received) <= stamp
+                        except (ValueError, TypeError):
+                            receipt_valid = False
+                        if basis_valid and receipt_valid:
+                            row['actual_return'] = target / row['issued_baseline_close'] - 1
+                    else:
+                        # Existing premarket outcome rows and their shared legacy
+                        # identity remain byte-for-byte compatible and immutable.
+                        row = {**base, 'actual_return': observation.get('actual_return')}
+                        basis_valid = receipt_valid = True
+                    authoritative = _utc(forecast['target_close_at']) == _utc(row['target_close_at'])
+                    mature = (authoritative and basis_valid and receipt_valid and _utc(row['target_close_at']) <= stamp
+                              and _utc(row['label_available_at']) <= stamp and _finite(row['actual_return']))
+                    row.update(observed_at=stamp.isoformat(), mature=mature)
+                    self._insert(db, 'outcome_attempts', _hash(row), row)
+                    if mature:
+                        self._insert(db, 'outcomes', _score_key(row), row)
 
     def export_history(self):
         data = {'schema_version': 'forward_history_v1', **{table: self._rows(table) for table in TABLES}}
@@ -152,19 +187,18 @@ class ForwardLedger:
         with self._connection() as db:
             for table in TABLES:
                 for row in data[table]:
-                    key = (row['protocol_hash'] if table == 'protocols' else
+                    key = (_score_key(row) if table == 'outcomes' else row['protocol_hash'] if table == 'protocols' else
                            _hash({k: row[k] for k in identities[table]}) if table in identities else _hash(row))
                     self._insert(db, table, key, row)
 
     def report(self):
-        outcomes = {(r['market'], r['asof_date'], r['target_date']): r for r in self._rows('outcomes')}
+        outcomes = {_score_key(r): r for r in self._rows('outcomes')}
         groups = {}
         for row in self._rows('forecasts'):
             groups.setdefault((row['market'], row['role'], row['protocol_hash']), []).append(row)
         markets, cohorts = {}, []
         for (market, role, protocol), rows in groups.items():
-            pairs = [(r, outcomes[(market, r['asof_date'], r['target_date'])]) for r in rows
-                     if (market, r['asof_date'], r['target_date']) in outcomes]
+            pairs = [(r, outcomes[_score_key(r)]) for r in rows if _score_key(r) in outcomes]
             metrics = {}
             if pairs:
                 n = len(pairs)

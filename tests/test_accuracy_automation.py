@@ -97,7 +97,7 @@ def test_workflow_has_one_weekday_schedule_validation_and_encrypted_only_cache()
     root = Path(__file__).resolve().parents[1]
     workflow = yaml.safe_load((root / '.github/workflows/premarket-research-forecast.yml').read_text())
     trigger = workflow.get('on', workflow.get(True))
-    assert {item['cron'] for item in trigger['schedule']} == {'50 22 * * 0-4'}
+    assert {item['cron'] for item in trigger['schedule']} == {'0 9 * * 1-5'}
     assert 'validate' in trigger['workflow_dispatch']['inputs']['mode']['options']
     for job in workflow['jobs'].values():
         assert job['runs-on'] == 'ubuntu-latest'

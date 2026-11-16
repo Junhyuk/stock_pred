@@ -13,6 +13,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+from roboquant.index_forecast.postclose import prepared_config
 from roboquant.index_forecast.reliable_inputs import utc_timestamp
 from roboquant.index_forecast.reliable_pipeline import run_reliable_pipeline
 
@@ -32,11 +33,11 @@ def main() -> None:
     parser.add_argument("--prepared-manifest", help="Verified preparation manifest provenance")
     parser.add_argument("--economic-sqlite", help="Prepared economic snapshot; disables current Git history import")
     parser.add_argument("--fit-state-dir", help="Prepared model state and new anchor capture directory")
+    parser.add_argument('--issuance-protocol', choices=['premarket_v1', 'after_close_daily_v1'])
+    parser.add_argument('--markets', help='Comma-separated pending markets; completed targets are not reissued')
     args = parser.parse_args()
     config = yaml.safe_load(Path(args.config).read_text(encoding="utf-8")) or {}
-    if args.prepared_manifest:
-        manifest = json.loads(Path(args.prepared_manifest).read_text())
-        config["prepared_inputs"] = {key: manifest[key] for key in ("manifest_hash", "prepared_at", "kst_date", "code_hash")}
+    config = prepared_config(args, config)
     if args.economic_sqlite:
         config["economic_calendar"] = {**config.get("economic_calendar", {}), "sqlite_path": args.economic_sqlite, "history_path": None}
     if args.fit_state_dir:

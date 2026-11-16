@@ -73,7 +73,8 @@ def session_schedule(start: Any, end: Any, sessions: Any = None) -> tuple[pd.Dat
 
 
 def resolve_forecast_context(asof_date: Any, *, now: datetime | None = None,
-                             sessions: Any = None, target_date: Any = None) -> dict:
+                             sessions: Any = None, target_date: Any = None,
+                             issuance_protocol: str = "premarket_v1") -> dict:
     issued = utc_timestamp(now if now is not None else datetime.now(KST))
     asof = pd.Timestamp(asof_date).date().isoformat()
     result = {"status": "blocked_calendar_unavailable", "asof_date": asof,
@@ -105,6 +106,13 @@ def resolve_forecast_context(asof_date: Any, *, now: datetime | None = None,
                       scheduled_cutoff=target_cutoff.isoformat(), issuance_deadline=target_open.isoformat(),
                       target_close_at=upcoming.iloc[0]["close_at"].isoformat(),
                       stage="premarket_final" if issued >= target_cutoff else "preliminary")
+        result['issuance_protocol'] = issuance_protocol
+        if issuance_protocol == 'after_close_daily_v1':
+            from roboquant.index_forecast.postclose import historical_cutoff
+            scheduled = historical_cutoff(closed.iloc[-1]['close_at'])
+            result.update(stage='postclose', prediction_cutoff=issued.isoformat(), scheduled_cutoff=scheduled.isoformat())
+            if issued < scheduled or issued.tz_convert(KST).weekday() >= 5 or issued.tz_convert(KST).hour < 18:
+                return {**result, 'status': 'blocked_issuance_window', 'reasons': ['before_scheduled_postclose_or_weekend']}
         if target_date is not None and pd.Timestamp(target_date).date().isoformat() != target:
             return {**result, "status": "blocked_invalid_target", "reasons": ["target_is_not_next_krx_session"]}
         if issued >= target_open:

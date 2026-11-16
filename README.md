@@ -1044,6 +1044,12 @@ Top50 예측 위에 시장중립 랭크 스프레드 시뮬레이션을 생성�
 
 ## Daily Pipeline
 
+한국·미국 지수의 공개 연구 화면은 [장후 예측 페이지](https://junhyuk.github.io/stock_pred/reliable-index-forecast.html)입니다.
+GitHub Actions가 한국시간 평일18:00에 하루 한 번 수집·검증·배포합니다. 최신 종가의
+거래일·출처·확인 시각과 예측 기준일·대상일을 구분하며, 주 모델 준비 전의 연구용 전망은
+검증 상태와 함께 표시합니다. 운영 모드·복구·무료 runner/저장공간 검수는
+[일일 자동화 운영 문서](docs/DAILY_AUTOMATION.md)를 참고하세요.
+
 ```bash
 python scripts/run_daily_pipeline.py --config configs/pipeline.yaml --dry-run
 python scripts/run_daily_pipeline.py --config configs/pipeline.yaml

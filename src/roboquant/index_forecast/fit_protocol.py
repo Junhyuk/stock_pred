@@ -40,7 +40,7 @@ def runtime_fingerprint() -> dict:
                for name in ('fit_protocol.py', 'reliable.py', 'reliable_intervals.py', 'market_calendar.py',
                             'reliable_inputs.py', 'reliable_pipeline.py', 'economic_calendar.py',
                             'economic_forecast.py', 'economic_sources.py', 'forward_ledger.py',
-                            'us_market_inputs.py', 'us_market_pipeline.py')}
+                            'us_market_inputs.py', 'us_market_pipeline.py', 'postclose.py', 'market_closes.py')}
     registry = Path(__file__).resolve().parents[3] / 'configs/economic_calendar.yaml'
     sources['economic_registry'] = hashlib.sha256(registry.read_bytes()).hexdigest() if registry.is_file() else None
     return {'packages': packages, 'source_hash': content_hash(sources)}
@@ -87,6 +87,7 @@ def make_fit_snapshot(data: pd.DataFrame, features: list[str], anchor: dict,
     metadata = {k: anchor[k] for k in ('protocol', 'calendar_name', 'origin', 'step',
                                       'anchor_ordinal', 'anchor_asof', 'next_refit_asof', 'calendar_prefix_hash')}
     metadata.update(features=list(features), settings_hash=content_hash(settings),
+                    issuance_protocol=settings.get('issuance_protocol', 'premarket_v1'),
                     provenance=provenance, runtime=runtime_fingerprint(),
                     training_data_provenance='retrospective_input_reconstruction; original_publications_unverified')
     if cutoff is None:

@@ -146,6 +146,11 @@
     80% 구간은 과거 시점 외 표본 오차로 보정한 목표 구간이며, 시간 의존성으로 실제 포함률을 보장하지 않습니다.
     검증을 통과하지 못한 결과는 매매 신호가 아닙니다.</p>
   <div id="automation-status" class="notice">자동 갱신 상태를 확인하는 중입니다.</div>
+  <section class="notice" aria-labelledby="market-closes-title">
+    <h2 id="market-closes-title">최근 확인한 한국 지수 종가</h2>
+    <p>예측 기준 종가와 별도로 표시합니다. 원래 공개 시각과 거래소 공식 확정 여부는 확인되지 않았습니다.</p>
+    <div id="market-closes">종가 확인 중</div>
+  </section>
   <div id="status" role="status">로컬 연구 결과를 읽는 중입니다.</div>
   <div id="content"></div>
   <section id="economic-calendar" class="notice" aria-labelledby="economic-calendar-title">
@@ -199,6 +204,39 @@ function forecastStatusMessage(status) {
   return { text: '검증 미통과 · 매매 신호 아님', kind: 'warn' };
 }
 
+function direction(up, down) {
+  if (up == null || down == null || up === '' || down === '') return '방향 확인 불가';
+  const u = Number(up), d = Number(down);
+  if (!Number.isFinite(u) || !Number.isFinite(d)) return '방향 확인 불가';
+  return u > d ? '상승' : u < d ? '하락' : '중립';
+}
+
+function targetEnded(context, now = Date.now()) {
+  const close = context.target_close_at ? new Date(context.target_close_at) : null;
+  if (close && Number.isFinite(close.getTime())) return close.getTime() <= now;
+  const todayKst = new Intl.DateTimeFormat('en-CA', {timeZone:'Asia/Seoul', year:'numeric', month:'2-digit', day:'2-digit'}).format(new Date(now));
+  return Boolean(context.target_date && context.target_date < todayKst);
+}
+
+function renderMarketClose(market, item) {
+  const labels = {verified:'두 소스 일치', single_source:'단일 소스', conflict:'소스 충돌', stale:'이전 값 · 최신 수집 실패', unavailable:'자료 없음'};
+  return `<div class="detail-line"><strong>${escapeHtml(MARKET_LABELS[market] ?? market)}</strong> · ${escapeHtml(level(item?.close))} · 거래일 ${escapeHtml(item?.session_date ?? '확인 불가')}<br><span>${escapeHtml(labels[item?.status] ?? '상태 확인 불가')} · 출처 ${escapeHtml(item?.source ?? '확인 불가')} · 수신 ${escapeHtml(formatAutomationTime(item?.received_at))} KST</span></div>`;
+}
+
+async function loadMarketCloses() {
+  const [payload, receipt] = await Promise.all([
+    fetch('data/market_closes.json', {cache:'no-store'}),
+    fetch('data/market_closes_publication.json', {cache:'no-store'})
+  ]);
+  if (!payload.ok || !receipt.ok) throw Error('종가 검증 자료 없음');
+  const raw = await payload.text(), data = JSON.parse(raw), manifest = await receipt.json();
+  const digest = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw))))
+    .map(v => v.toString(16).padStart(2, '0')).join('');
+  if (data.schema_version !== 'market_closes_v1' || manifest.schema_version !== 'market_closes_publication_v1' ||
+      manifest.run_id !== data.run_id || !manifest.publication_checked_at || manifest.payload_checksums?.['market_closes.json'] !== digest) throw Error('종가 검증 실패');
+  return data;
+}
+
 function renderCard(item, runStatus) {
   const f = item.forecast ?? {};
   const c = item.context ?? {};
@@ -209,38 +247,45 @@ function renderCard(item, runStatus) {
   const statusInfo = forecastStatusMessage(statusForMessage);
   const blocked = String(runStatus).startsWith('blocked_') || String(f.status ?? '').startsWith('blocked_');
   const showNumbers = runStatus !== 'unpublished' && !blocked && f.status !== 'not_ready';
+  const ref = item.incumbent_reference;
+  const refReady = ref?.calibration_ready === true;
+  const showReference = runStatus !== 'unpublished' && !blocked && f.status === 'not_ready' && refReady;
+  const display = showReference ? ref : f;
+  const canDisplay = showNumbers || showReference;
 
   const latestClose = !blocked && runStatus !== 'unpublished' ? level(f.latest_close) : '—';
-  const expectedIndex = showNumbers ? level(f.expected_index) : '—';
-  const pUp = showNumbers ? probLabel(f.p_up) : '확률 없음';
-  const pDown = showNumbers ? probLabel(f.p_down) : '확률 없음';
-  const expRet = showNumbers ? pct(f.expected_return) : '—';
+  const expectedIndex = canDisplay ? level(display.expected_index) : '—';
+  const pUp = canDisplay ? probLabel(display.p_up) : '확률 없음';
+  const pDown = canDisplay ? probLabel(display.p_down) : '확률 없음';
+  const expRet = canDisplay ? pct(display.expected_return) : '—';
   const idxLo = showNumbers ? level(f.index_range_low) : '—';
   const idxHi = showNumbers ? level(f.index_range_high) : '—';
   const rangeText = (idxLo === '—' && idxHi === '—') ? '—' : `${idxLo} ~ ${idxHi}`;
 
   return `<article class="forecast-card">
     <h2>${escapeHtml(marketName)}</h2>
+    ${showReference ? '<div class="card-status warn">연구용 참고 전망 · 회고 학습 · 검증 미통과 · production_weight=0</div>' : ''}
     <div class="card-dates">
       <div><strong>기준 종가일</strong> ${escapeHtml(c.asof_date ?? '—')}</div>
       <div><strong>다음 거래일</strong> ${escapeHtml(c.target_date ?? '—')}</div>
+      ${targetEnded(c) ? '<div><strong>목표 거래일 이미 종료 · 과거 예측</strong></div>' : ''}
     </div>
     <div class="hero-metrics">
-      <div class="hero-metric"><span>최근 종가</span><strong>${escapeHtml(latestClose)}</strong></div>
+      <div class="hero-metric"><span>예측 기준 종가 (${escapeHtml(c.asof_date ?? '날짜 미확인')})</span><strong>${escapeHtml(latestClose)}</strong></div>
       <div class="hero-metric"><span>예상 지수</span><strong>${escapeHtml(expectedIndex)}</strong></div>
     </div>
     <div class="prob-row">
-      <div class="prob-box up"><span>상승 확률</span><strong>${escapeHtml(pUp)}</strong></div>
-      <div class="prob-box down"><span>하락 확률</span><strong>${escapeHtml(pDown)}</strong></div>
+      <div class="prob-box up"><span>${showReference ? '연구용 ' : ''}상승 확률</span><strong>${escapeHtml(pUp)}</strong></div>
+      <div class="prob-box down"><span>${showReference ? '연구용 ' : ''}하락 확률</span><strong>${escapeHtml(pDown)}</strong></div>
     </div>
     <div class="detail-line"><span>예상 수익률 </span><strong>${escapeHtml(expRet)}</strong></div>
     <div class="detail-line"><span>80% 지수 구간 </span><strong>${escapeHtml(rangeText)}</strong></div>
-    <p class="card-status ${escapeHtml(statusInfo.kind)}">${escapeHtml(f.status === 'not_ready' ? '주 모델 준비 미완료 · 검증된 고정 학습 상태 또는 보정 자료가 부족합니다.' : statusInfo.text)}</p>
+    <p class="card-status ${escapeHtml(statusInfo.kind)}">${escapeHtml(f.status === 'not_ready' ? `주 모델 준비 미완료 · ${(f.gate_reasons ?? []).join(', ') || '검증된 고정 학습 상태 또는 보정 자료 부족'}` : statusInfo.text)}</p>
     <div class="card-dates">입력 마감 ${escapeHtml(formatAutomationTime(c.prediction_cutoff))} KST<br>실제 공개 ${escapeHtml(formatAutomationTime(c.issued_at || f.issued_at))} KST</div>
-    ${item.fit_state?.next_refit_asof ? `<p class="card-dates">다음 고정 학습 기준 종가일: <strong>${escapeHtml(item.fit_state.next_refit_asof)}</strong><br>한국은 해당 종가 이후 다음 거래일 08:00 단계, 미국은 해당 종가의 실제 수신 이후에만 포착합니다. 이 날짜가 준비 완료를 보장하지는 않습니다.</p>` : ''}
+    ${item.fit_state?.next_refit_asof ? `<p class="card-dates">다음 고정 학습 기준 종가일: <strong>${escapeHtml(item.fit_state.next_refit_asof)}</strong><br>실제 시점의 입력 확보 여부에 따라 포착하며 준비 완료를 보장하지 않습니다.</p>` : ''}
     ${showNumbers && f.interval_shadows?.volatility_normalized?.status === 'ready' ? `<details><summary>변동성 보정 구간 연구</summary><p>${pct(f.interval_shadows.volatility_normalized.range_low)} ~ ${pct(f.interval_shadows.volatility_normalized.range_high)} · ${escapeHtml(f.interval_shadows.volatility_normalized.calibration_n)}개 과거 성숙 오차</p><p>주 구간을 대체하지 않는 연구 후보입니다.</p></details>` : ''}
-    ${!blocked && runStatus !== 'unpublished' && item.incumbent_reference?.expected_return != null ? `<div class="reference"><strong>기존 가격모형 참고 · 회고 재구성</strong><p>기준 ${escapeHtml(c.asof_date)} → 목표 ${escapeHtml(c.target_date)}<br>예상 수익률 ${pct(item.incumbent_reference.expected_return)} · 상승 ${item.incumbent_reference.calibration_ready ? probLabel(item.incumbent_reference.p_up) : '보정 준비 미완료'}<br>80% 수익률 구간 ${pct(item.incumbent_reference.range_low)} ~ ${pct(item.incumbent_reference.range_high)}</p><small>현재 확인한 입력의 참고 결과입니다. 새로운 고정 학습 주 모델이나 독립 전향 정확도 증거를 뜻하지 않습니다.</small></div>` : ''}
-    <details><summary>이번 예측의 경제자료 상태</summary><p>입력 마감 당시 이벤트: ${item.economic_calendar?.event_bucket == null ? '소스 범위 또는 시각 미확인' : item.economic_calendar.event_bucket ? '예측 구간 내 발표 확인' : '확인 범위 내 발표 없음'}<br>14개 수치 후보: ${escapeHtml(item.numeric_shadow?.status || '자료 없음')} · 주 확률과 분리</p><p>확률 방향: 상승확률 ≥50%, 수익률 방향: 예상수익률 &gt;0. 목표 구간의 포함률은 보장되지 않습니다.</p></details>
+    ${!blocked && runStatus !== 'unpublished' && ref?.expected_return != null ? `<div class="reference"><strong>보정 연구 참고 · 회고 재구성 · 검증 미통과 · production_weight=0</strong><p>기준 ${escapeHtml(ref.asof_date ?? c.asof_date ?? '—')} → 목표 ${escapeHtml(ref.target_date ?? c.target_date ?? '—')}<br>예상 지수 ${escapeHtml(level(ref.expected_index))} · 예상 수익률 ${pct(ref.expected_return)}<br>상승 ${refReady ? probLabel(ref.p_up) : '보정 준비 미완료'} · 하락 ${refReady ? probLabel(ref.p_down) : '보정 준비 미완료'} · 방향 ${refReady ? direction(ref.p_up, ref.p_down) : '확인 불가'}<br>80% 수익률 구간 ${pct(ref.range_low)} ~ ${pct(ref.range_high)}</p><small>품질 기준 미통과 사유: ${escapeHtml((ref.gate_reasons ?? []).join(', ') || '검증 미통과')} · 실전 운용 승인되지 않았습니다. 전향 정확도 증거가 아닙니다.</small></div>` : ''}
+    <details><summary>이번 예측의 경제자료 상태</summary><p>입력 마감 당시 이벤트: ${item.economic_calendar?.event_bucket == null ? '소스 범위 또는 시각 미확인' : item.economic_calendar.event_bucket ? '예측 구간 내 발표 확인' : '확인 범위 내 발표 없음'}<br>14개 수치 후보: ${escapeHtml(item.numeric_shadow?.status || '자료 없음')} · 주 확률과 분리</p><p>확률 방향은 상승과 하락 확률의 대소를 비교하며 같으면 중립입니다. 목표 구간의 포함률은 보장되지 않습니다.</p></details>
   </article>`;
 }
 
@@ -269,8 +314,10 @@ async function loadPublishedRun(base = 'data') {
   run.issued_at = manifest.publication_checked_at;
   run.publication = manifest;
   (run.markets ?? []).forEach(item => {
-    if (item.context) item.context.issued_at = run.issued_at;
-    if (item.forecast) item.forecast.issued_at = run.issued_at;
+    if (!item.carried_forward) {
+      if (item.context) item.context.issued_at = run.issued_at;
+      if (item.forecast) item.forecast.issued_at = run.issued_at;
+    }
   });
   return run;
 }
@@ -298,13 +345,17 @@ function renderAutomationStatus(data) {
     const dates = Object.entries(run.asof_dates ?? {}).map(([market, date]) => `${market} ${date ?? '확인 불가'}`).join(', ') || '확인 불가';
     return `${label}: 공개 ${formatAutomationTime(run.publication_checked_at)} (한국 시각), 기준 종가일 ${dates}`;
   };
-  return `자동 확인 ${checked} (한국 시각) · ${decision} ${summary('한국', data.korea)} · ${summary('미국', data.us)}. 미국 장중에는 새 다음 거래일 예측을 발행하지 않고 직전 확인 결과를 유지합니다. KST 월~금 07:50 하루 1회 자동 시작하며 토·일 제외입니다. 08:00 입력 마감 후 계산·검증·배포하므로 실제 공개 시각은 각 시장 카드에서 확인하세요. 외부 데이터 지연·누락 시 준비 미완료로 남습니다.`;
+  return `자동 확인 ${checked} (한국 시각) · ${decision} ${summary('한국', data.korea)} · ${summary('미국', data.us)}. KST 월~금 18:00 장 마감 후 수집·검증하며 실제 공개 시각은 각 카드에서 확인하세요. 외부 데이터 지연·누락 시 준비 미완료로 남습니다.`;
 }
 
 fetch('data/automation_status.json', { cache: 'no-store' })
   .then(response => { if (!response.ok) throw Error(); return response.json(); })
   .then(data => { document.getElementById('automation-status').textContent = renderAutomationStatus(data); })
   .catch(() => { document.getElementById('automation-status').textContent = '자동 갱신 상태를 확인할 수 없습니다. 각 카드의 기준 종가일을 확인하세요.'; });
+
+loadMarketCloses().then(data => {
+  document.getElementById('market-closes').innerHTML = ['KOSPI', 'KOSDAQ'].map(m => renderMarketClose(m, data.markets?.[m])).join('');
+}).catch(() => { document.getElementById('market-closes').textContent = '검증된 종가 자료를 확인할 수 없습니다.'; });
 
 Promise.all([
   loadPublishedRun(),
