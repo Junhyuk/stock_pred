@@ -22,13 +22,14 @@
     }
     .forecast-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 16px;
     }
     @media (max-width: 800px) {
       .forecast-grid { grid-template-columns: 1fr; }
     }
     .forecast-card {
+      min-width: 0;
       background: var(--panel);
       border: 1px solid var(--line);
       border-radius: 10px;
@@ -51,10 +52,11 @@
     .card-dates strong { color: var(--ink); font-weight: 700; }
     .hero-metrics {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 12px;
     }
     .hero-metric {
+      min-width: 0;
       padding: 12px;
       border-radius: 8px;
       background: var(--bg);
@@ -69,6 +71,7 @@
     }
     .hero-metric strong {
       display: block;
+      overflow-wrap: anywhere;
       font-size: 26px;
       line-height: 1.15;
       color: var(--teal);
@@ -76,10 +79,11 @@
     }
     .prob-row {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 12px;
     }
     .prob-box {
+      min-width: 0;
       text-align: center;
       padding: 14px 10px;
       border-radius: 8px;
@@ -95,6 +99,8 @@
       margin-bottom: 4px;
     }
     .prob-box strong {
+      display: block;
+      overflow-wrap: anywhere;
       font-size: 28px;
       font-weight: 800;
       line-height: 1.1;
