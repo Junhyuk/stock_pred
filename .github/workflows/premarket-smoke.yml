@@ -2,9 +2,6 @@ name: Premarket smoke
 
 on:
   workflow_dispatch:
-  schedule:
-    # 07:40 Asia/Seoul on weekdays, before the 07:50 forecast job.
-    - cron: "40 22 * * 0-4"
 
 permissions:
   contents: read

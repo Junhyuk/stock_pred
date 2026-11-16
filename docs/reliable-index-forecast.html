@@ -292,13 +292,13 @@ function formatAutomationTime(value) {
 
 function renderAutomationStatus(data) {
   const checked = formatAutomationTime(data.checked_at);
-  const decision = data.mode === 'prepare' ? '07:50 준비 수집 단계입니다. 새 예측 발행과 구분합니다.' : data.mode === 'latest' ? '실제 시각에 발행 가능한 시장만 갱신했습니다. 개별 상태를 확인하세요.' : data.inputs?.status === 'not_ready' ? '준비 입력을 복원하지 못해 새 예측을 만들지 않았습니다.' : data.reason === 'not_xkrx_session' ? '한국 휴장일: 예측을 새로 생성하지 않았습니다.' : '개별 시장의 공개 시각과 입력 상태를 확인하세요.';
+  const decision = data.mode === 'prepare' ? '07:50 준비 수집 단계입니다. 새 예측 발행과 구분합니다.' : data.mode === 'latest' ? '실제 시각에 발행 가능한 시장만 갱신했습니다. 개별 상태를 확인하세요.' : data.inputs?.status === 'not_ready' ? '준비 입력을 복원하지 못해 새 예측을 만들지 않았습니다.' : data.reason === 'not_xkrx_session' ? '한국 휴장일: 예측을 새로 생성하지 않았습니다.' : data.mode === 'daily' ? '하루 1회 자동 실행 결과입니다. 실제 공개 시각은 각 시장 카드에서 확인하세요.' : '개별 시장의 공개 시각과 입력 상태를 확인하세요.';
   const summary = (label, run) => {
     if (!run) return `${label}: 검증된 직전 공개 시각 확인 불가`;
     const dates = Object.entries(run.asof_dates ?? {}).map(([market, date]) => `${market} ${date ?? '확인 불가'}`).join(', ') || '확인 불가';
     return `${label}: 공개 ${formatAutomationTime(run.publication_checked_at)} (한국 시각), 기준 종가일 ${dates}`;
   };
-  return `자동 확인 ${checked} (한국 시각) · ${decision} ${summary('한국', data.korea)} · ${summary('미국', data.us)}. 미국 장중에는 새 다음 거래일 예측을 발행하지 않고 직전 확인 결과를 유지합니다. KST 월~토 07:50 준비·08:00 발행이며 일요일은 제외합니다. 외부 데이터 지연·누락 시 준비 미완료로 남습니다.`;
+  return `자동 확인 ${checked} (한국 시각) · ${decision} ${summary('한국', data.korea)} · ${summary('미국', data.us)}. 미국 장중에는 새 다음 거래일 예측을 발행하지 않고 직전 확인 결과를 유지합니다. KST 월~금 07:50 하루 1회 자동 시작하며 토·일 제외입니다. 08:00 입력 마감 후 계산·검증·배포하므로 실제 공개 시각은 각 시장 카드에서 확인하세요. 외부 데이터 지연·누락 시 준비 미완료로 남습니다.`;
 }
 
 fetch('data/automation_status.json', { cache: 'no-store' })

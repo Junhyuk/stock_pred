@@ -10,7 +10,7 @@ import json
 import os
 import socket
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -91,6 +91,19 @@ def main():
                 loaded.datetime = FrozenClock
     if hasattr(module, 'state'):
         module.state.datetime = FrozenClock
+        if script == 'accuracy_operation.py' and '--phase' in arguments and arguments[arguments.index('--phase') + 1] == 'wait':
+            import time
+
+            elapsed = 0.
+
+            def advance(seconds):
+                nonlocal instant, elapsed
+                elapsed += seconds
+                if scenario != 'stuck-clock':
+                    instant += timedelta(seconds=seconds)
+
+            origin = time.monotonic()
+            module.state.time = SimpleNamespace(sleep=advance, monotonic=lambda: origin + elapsed)
     sys.argv = [str(root / 'scripts' / script), *arguments]
     result = module.main()
     if isinstance(result, int):

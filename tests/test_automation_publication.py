@@ -132,6 +132,11 @@ assert.ok(text.includes('2026. 11. 14. 오전 7:55:00 (한국 시각)'), text);
 assert.ok(!text.includes('2026-11-13T22:55:00Z'));
 assert.equal(formatAutomationTime('invalid'), '확인 불가');
 assert.equal(formatAutomationTime(null), '확인 불가');
+const daily = renderAutomationStatus({mode: 'daily', inputs: {status: 'ready'}});
+assert.ok(daily.includes('월~금 07:50 하루 1회'), daily);
+assert.ok(daily.includes('토·일 제외'), daily);
+assert.ok(daily.includes('08:00 입력 마감 후'), daily);
+assert.ok(!daily.includes('08:00 발행'), daily);
 '''
     result = subprocess.run([node, '-e', code], capture_output=True, text=True)
     assert result.returncode == 0, result.stderr

@@ -1,4 +1,4 @@
-"""Preparation and final issuance are separate, excluding KST Sunday."""
+"""A single weekday run owns preparation, final issuance and publication."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -7,10 +7,13 @@ ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / ".github" / "workflows" / "premarket-research-forecast.yml"
 
 
-def test_forecast_workflow_prepares_then_issues_on_kst_monday_to_saturday():
+def test_forecast_workflow_prepares_then_issues_once_on_kst_weekdays():
     text = WORKFLOW.read_text(encoding="utf-8")
-    assert text.count('cron: "50 22 * * 0-5"') == 1
-    assert text.count('cron: "0 23 * * 0-5"') == 1
+    assert text.count('cron: "50 22 * * 0-4"') == 1
+    assert text.count('cron:') == 1
+    assert 'schedule:' not in (ROOT / '.github/workflows/premarket-smoke.yml').read_text()
+    assert text.index('--phase freeze') < text.index('--phase wait') < text.index('--phase inputs')
+    assert 'test_premarket_trading_day_gate.py tests/test_premarket_workflow_smoke.py' in text
     assert "workflow_dispatch:" in text
     assert text.index("Resolve actual-clock operation") < text.index("Install forecast and verification stack")
     assert "--phase freeze" in text and "--phase inputs" in text

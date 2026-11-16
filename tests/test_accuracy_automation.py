@@ -35,9 +35,9 @@ def test_frozen_input_roundtrip_rejects_late_changed_or_wrong_day(tmp_path):
         api().freeze_inputs({'sqlite': original}, tmp_path / 'late', prepared_at='2026-11-15T23:01:00Z', code_hash='code1')
 
 
-@pytest.mark.parametrize('utc,allowed', [('2026-11-14T22:50:00Z', False), ('2026-11-15T22:50:00Z', True), ('2026-11-13T22:50:00Z', True)])
-def test_kst_sunday_exclusion_applies_to_prepare_predict_latest(utc, allowed):
-    for mode in ('prepare', 'predict', 'latest'):
+@pytest.mark.parametrize('utc,allowed', [('2026-11-14T22:50:00Z', False), ('2026-11-15T22:50:00Z', True), ('2026-11-13T22:50:00Z', False)])
+def test_kst_weekend_exclusion_applies_to_operational_modes(utc, allowed):
+    for mode in ('daily', 'prepare', 'predict', 'latest'):
         assert api().operation_decision(utc, mode)['allowed'] is allowed
 
 
@@ -90,14 +90,14 @@ def test_only_authenticated_encrypted_private_cache_can_restore(tmp_path):
         api().open_private_cache(encrypted, tmp_path / 'tampered', key=key)
 
 
-def test_workflow_has_split_kst_schedule_validation_and_encrypted_only_cache():
+def test_workflow_has_one_weekday_schedule_validation_and_encrypted_only_cache():
     from pathlib import Path
 
     import yaml
     root = Path(__file__).resolve().parents[1]
     workflow = yaml.safe_load((root / '.github/workflows/premarket-research-forecast.yml').read_text())
     trigger = workflow.get('on', workflow.get(True))
-    assert {item['cron'] for item in trigger['schedule']} == {'50 22 * * 0-5', '0 23 * * 0-5'}
+    assert {item['cron'] for item in trigger['schedule']} == {'50 22 * * 0-4'}
     assert 'validate' in trigger['workflow_dispatch']['inputs']['mode']['options']
     for job in workflow['jobs'].values():
         assert job['runs-on'] == 'ubuntu-latest'
@@ -236,3 +236,33 @@ def test_new_anchor_model_from_prepared_state_is_durable_for_next_day(tmp_path):
         state_dir=next_runtime['fit_models_us'], market='US_SPX', allow_capture=False)
     assert reused['status'] == 'ready'
     assert reused['artifact']['artifact_hash'] == captured['artifact']['artifact_hash']
+
+
+@pytest.mark.parametrize('clock,seconds,status', [
+    ('2026-11-15T22:50:00Z', 600, 'waiting'),
+    ('2026-11-19T22:59:59.500000Z', .5, 'waiting'),
+    ('2026-11-15T23:00:00Z', 0, 'ready'),
+    ('2026-11-15T22:49:59Z', 0, 'not_ready'),
+    ('2026-11-13T22:50:00Z', 0, 'not_ready'),
+])
+def test_daily_wait_is_bounded_and_uses_actual_weekday_clock(clock, seconds, status):
+    result = api().daily_wait_decision(clock)
+    assert result['status'] == status
+    assert result['wait_seconds'] == seconds
+
+
+def test_daily_preparation_checkpoint_precedes_wait_with_separate_final_cache_key():
+    from pathlib import Path
+
+    import yaml
+    root = Path(__file__).resolve().parents[1]
+    workflow = yaml.safe_load((root / '.github/workflows/premarket-research-forecast.yml').read_text())
+    steps = workflow['jobs']['forecast']['steps']
+    saves = [(index, step) for index, step in enumerate(steps)
+             if step.get('uses') == 'actions/cache/save@v4']
+    wait = next(index for index, step in enumerate(steps) if '--phase wait' in step.get('run', ''))
+    assert len(saves) == 2
+    assert saves[0][0] < wait < saves[1][0]
+    assert saves[0][1]['with']['key'].endswith('-prepared')
+    assert saves[1][1]['with']['key'].endswith('-final')
+    assert saves[0][1]['if'] == "steps.checkpoint.outputs.status == 'sealed'"

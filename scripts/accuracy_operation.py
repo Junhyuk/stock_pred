@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Actual-clock orchestration for prepare, predict, latest and validation modes."""
+"""Actual-clock weekday orchestration with one daily preparation/forecast run."""
 from __future__ import annotations
 
 import argparse
@@ -34,7 +34,7 @@ def kr_input_diagnostics(dates, *, now, mode):
     contexts = [(market, resolve_forecast_context(day, now=now)) for market, day in dates]
     eligible = len(contexts) == 2 and all(
         context['status'] == 'ready'
-        and (mode != 'predict' or context['stage'] == 'premarket_final')
+        and (mode not in {'predict', 'daily'} or context['stage'] == 'premarket_final')
         for _, context in contexts
     )
     fields = ('asof_date', 'status', 'expected_asof_date', 'target_date', 'stage', 'reasons')
@@ -66,28 +66,72 @@ def restored_cache_diagnostics(private):
     return result
 
 
+def completed_publication_date(status):
+    """Recognize a verified split-predict run as well as a new daily run."""
+    from write_automation_status import verified_publication
+
+    try:
+        inputs = status.get('inputs') or {}
+        if status.get('mode') not in {'predict', 'daily'} or inputs.get('status') != 'ready':
+            return None
+        requested = [name for name in ('kr', 'us') if inputs.get(name) is True]
+        if not requested:
+            return None
+        checked = state._utc(status['checked_at'])
+        prepared = state._utc(inputs['prepared_at'])
+        for market in requested:
+            name, directory = ('korea', ROOT / 'docs/data') if market == 'kr' else ('us', ROOT / 'docs/data/us')
+            actual = verified_publication(directory)
+            if actual is None or actual != status.get(name):
+                return None
+            published = state._utc(actual['publication_checked_at'])
+            if not prepared <= published <= checked or published.astimezone(state.KST).date().isoformat() != status['kst_date']:
+                return None
+        return status['kst_date']
+    except (ValueError, KeyError, TypeError):
+        return None
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--phase', required=True, choices=['gate', 'freeze', 'inputs', 'cache-open', 'cache-seal', 'status', 'public-paths', 'publish-models'])
-    parser.add_argument('--mode', default='auto', choices=['auto', 'prepare', 'predict', 'latest', 'validate'])
+    parser.add_argument('--phase', required=True, choices=['gate', 'freeze', 'wait', 'inputs', 'cache-open', 'cache-seal', 'status', 'public-paths', 'publish-models'])
+    parser.add_argument('--mode', default='auto', choices=['auto', 'daily', 'prepare', 'predict', 'latest', 'validate'])
     parser.add_argument('--schedule', default='')
     parser.add_argument('--sqlite')
     parser.add_argument('--us-csv')
     parser.add_argument('--reason', default='completed')
     args = parser.parse_args()
     now = datetime.now(UTC)
-    mode = args.mode if args.mode != 'auto' else 'predict' if args.schedule == '0 23 * * 0-5' else 'prepare'
+    mode = args.mode if args.mode != 'auto' else 'daily'
     decision = state.operation_decision(now, mode)
     private = ROOT / 'data/processed'
     frozen = private / 'prepared' / decision['kst_date']
     encrypted = ROOT / '.forecast-cache/state.enc'
+    status_file = ROOT / 'docs/data/automation_status.json'
+    previous = json.loads(status_file.read_text()) if status_file.is_file() else {}
     if args.phase == 'gate':
-        emit({**decision, 'collect': decision['allowed'] and mode in {'prepare', 'latest'},
-              'forecast_requested': decision['allowed'] and mode in {'predict', 'latest'}})
+        if mode == 'daily' and (previous.get('daily_completed_date') == decision['kst_date']
+                               or completed_publication_date(previous) == decision['kst_date']):
+            decision.update(allowed=False, reason='daily_already_completed')
+        emit({**decision, 'collect': decision['allowed'] and (mode in {'prepare', 'latest'}
+                  or mode == 'daily' and now.astimezone(state.KST).hour < 8),
+              'forecast_requested': decision['allowed'] and mode in {'daily', 'predict', 'latest'}})
         return
     if args.phase == 'public-paths':
-        for path in state.public_payload_paths(ROOT / 'docs/data'):
-            print(path.relative_to(ROOT))
+        if decision['allowed'] and mode != 'validate':
+            for path in state.public_payload_paths(ROOT / 'docs/data'):
+                print(path.relative_to(ROOT))
+        return
+    if not decision['allowed']:
+        emit(decision)
+        return
+    if args.phase == 'wait':
+        # Missing or failed preparation must abstain immediately, not consume
+        # the job's bounded forecast budget waiting for inputs that cannot arrive.
+        if not (frozen / 'manifest.json').is_file() or not (frozen / 'completion.json').is_file():
+            emit({'status': 'not_ready', 'reason': 'missing_prepared_inputs'})
+        else:
+            emit(state.wait_for_daily_cutoff())
         return
     if args.phase.startswith('cache-'):
         key = os.environ.get('FORECAST_CACHE_KEY', '')
@@ -125,9 +169,6 @@ def main():
                             shutil.copy2(source, target)
                 emit({'status': 'sealed', **state.seal_private_cache(bundle, encrypted, key=key)})
         return
-    if not decision['allowed']:
-        emit(decision)
-        return
     if args.phase == 'freeze':
         if mode == 'latest':
             emit({'status': 'latest_uses_actual_receipts_not_0800_snapshot'})
@@ -147,7 +188,7 @@ def main():
     if args.phase == 'inputs':
         paths = {'sqlite': Path(args.sqlite), 'us_csv': Path(args.us_csv)} if mode == 'latest' and args.sqlite and args.us_csv else {}
         restored = {'status': 'latest_actual_receipts'}
-        if mode == 'predict':
+        if mode in {'predict', 'daily'}:
             restored = state.restore_inputs(frozen, now=now, code_hash=state.source_fingerprint())
             paths = restored['paths']
             if restored['status'] == 'ready':
@@ -158,7 +199,7 @@ def main():
                     runtime = private / 'accuracy-runtime' / now.strftime('%Y%m%dT%H%M%S%f')
                     paths = state.stage_prepared_runtime(restored, runtime)
         result = {'kr': False, 'us': False, 'status': restored['status'], 'reason': restored.get('reason', '')}
-        if mode == 'predict' and restored.get('status') == 'ready':
+        if mode in {'predict', 'daily'} and restored.get('status') == 'ready':
             result.update(prepared_manifest=str(frozen / 'manifest.json'),
                           prepared_manifest_hash=restored['manifest']['manifest_hash'],
                           prepared_at=restored['manifest']['prepared_at'])
@@ -181,7 +222,7 @@ def main():
                 completed = schedule.loc[pd.to_datetime(schedule.session_close_at, utc=True) <= now]
                 following = schedule.loc[schedule.session_date > completed.iloc[-1].session_date] if not completed.empty else schedule.iloc[:0]
                 result['us'] = not following.empty and now < pd.Timestamp(following.iloc[0].session_open_at)
-                if mode == 'predict' and not result['kr']:
+                if mode in {'predict', 'daily'} and not result['kr']:
                     result['us'] = False
                 result['us_reason'] = 'eligible_actual_context' if result['us'] else 'current_us_session_open_or_unavailable'
         state.atomic_json(private / 'accuracy-input-status.json', result)
@@ -200,8 +241,10 @@ def main():
                   'run_url': f"https://github.com/{os.environ.get('GITHUB_REPOSITORY', 'junhyuk/stock_pred')}/actions/runs/{os.environ.get('GITHUB_RUN_ID', '')}",
                   'korea': verified_publication(ROOT / 'docs/data'), 'us': verified_publication(ROOT / 'docs/data/us'),
                   'inputs': json.loads(status_path.read_text()) if status_path.is_file() else None,
-                  'next_scheduled_cutoff': '08:00 Asia/Seoul on the next scheduled non-Sunday XKRX session',
+                  'next_scheduled_cutoff': '08:00 Asia/Seoul; one daily run starts Monday-Friday07:50 KST',
                   'prepared_input_policy': 'Actual receipt before08:00, encrypted cache, same-day immutable manifest. Missing state abstains.'}
+        result['daily_completed_date'] = (completed_publication_date(result)
+            or previous.get('daily_completed_date') or completed_publication_date(previous))
         state.atomic_json(ROOT / 'docs/data/automation_status.json', result)
         emit(result)
 

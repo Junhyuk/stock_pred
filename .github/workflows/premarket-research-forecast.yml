@@ -2,16 +2,15 @@ name: Premarket research forecast
 
 on:
   schedule:
-    # KST Monday–Saturday: prepare07:50, final08:00; KST Sunday excluded.
-    - cron: "50 22 * * 0-5"
-    - cron: "0 23 * * 0-5"
+    # KST Monday–Friday07:50: prepare, wait until08:00, predict and publish once.
+    - cron: "50 22 * * 0-4"
   workflow_dispatch:
     inputs:
       mode:
         description: Actual-clock operation; validate never publishes a forecast
         type: choice
         default: validate
-        options: [validate, prepare, predict, latest]
+        options: [validate, daily, prepare, predict, latest]
 
 permissions:
   contents: read
@@ -23,7 +22,7 @@ jobs:
   forecast:
     if: github.ref == 'refs/heads/master' || inputs.mode == 'validate'
     runs-on: ubuntu-latest
-    timeout-minutes: ${{ (inputs.mode == 'prepare' || github.event.schedule == '50 22 * * 0-5') && 6 || inputs.mode == 'validate' && 10 || 25 }}
+    timeout-minutes: ${{ inputs.mode == 'prepare' && 6 || inputs.mode == 'validate' && 10 || 25 }}
     permissions:
       contents: write
     outputs:
@@ -49,6 +48,9 @@ jobs:
       - name: Install forecast and verification stack
         if: steps.operation.outputs.allowed == 'true'
         run: python -m pip install -e '.[forecast,dev]'
+      - name: Verify premarket gate and refresh contracts
+        if: steps.operation.outputs.allowed == 'true'
+        run: python -m pytest -q tests/test_premarket_trading_day_gate.py tests/test_premarket_workflow_smoke.py
       - name: Restore authenticated private cache
         if: steps.operation.outputs.allowed == 'true' && steps.operation.outputs.mode != 'validate'
         uses: actions/cache/restore@v4
@@ -78,8 +80,24 @@ jobs:
               stream.write(f"sqlite={data['sqlite']}\nus_csv={data['us_csv']}\n")
           PY
       - name: Freeze actual preparation inputs
+        id: freeze
         if: steps.operation.outputs.collect == 'true'
         run: python scripts/accuracy_operation.py --phase freeze --mode "${{ steps.operation.outputs.mode }}" --sqlite "${{ steps.refresh.outputs.sqlite }}" --us-csv "${{ steps.refresh.outputs.us_csv }}"
+      - name: Seal preparation checkpoint before waiting
+        id: checkpoint
+        if: steps.operation.outputs.mode == 'daily' && steps.freeze.outputs.status == 'prepared'
+        env:
+          FORECAST_CACHE_KEY: ${{ secrets.FORECAST_CACHE_KEY }}
+        run: python scripts/accuracy_operation.py --phase cache-seal --mode daily
+      - name: Save encrypted preparation checkpoint
+        if: steps.checkpoint.outputs.status == 'sealed'
+        uses: actions/cache/save@v4
+        with:
+          path: .forecast-cache/state.enc
+          key: accuracy-private-v1-${{ steps.operation.outputs.kst_date }}-${{ github.run_id }}-${{ github.run_attempt }}-prepared
+      - name: Wait for actual08:00 cutoff
+        if: steps.operation.outputs.allowed == 'true' && steps.operation.outputs.mode == 'daily'
+        run: python scripts/accuracy_operation.py --phase wait --mode daily
       - name: Resolve immutable forecast inputs
         id: prices
         if: steps.operation.outputs.forecast_requested == 'true'
@@ -108,20 +126,20 @@ jobs:
           python scripts/verify_automation_publication.py \
             --result "$RUNNER_TEMP/us-forecast.json" --data-dir docs/data/us
       - name: Persist derived model state from prepared inputs
-        if: steps.operation.outputs.mode == 'predict' && steps.prices.outputs.status == 'ready' && success()
-        run: python scripts/accuracy_operation.py --phase publish-models --mode predict
+        if: (steps.operation.outputs.mode == 'predict' || steps.operation.outputs.mode == 'daily') && steps.prices.outputs.status == 'ready' && success()
+        run: python scripts/accuracy_operation.py --phase publish-models --mode "${{ steps.operation.outputs.mode }}"
       - name: Seal private cache
         id: seal
-        if: steps.operation.outputs.collect == 'true' && success()
+        if: (steps.operation.outputs.collect == 'true' || (steps.operation.outputs.mode == 'daily' && steps.prices.outputs.status == 'ready')) && success()
         env:
           FORECAST_CACHE_KEY: ${{ secrets.FORECAST_CACHE_KEY }}
         run: python scripts/accuracy_operation.py --phase cache-seal --mode "${{ steps.operation.outputs.mode }}"
-      - name: Save encrypted preparation and history
+      - name: Save encrypted final state and history
         if: steps.seal.outputs.status == 'sealed'
         uses: actions/cache/save@v4
         with:
           path: .forecast-cache/state.enc
-          key: accuracy-private-v1-${{ steps.operation.outputs.kst_date }}-${{ github.run_id }}-${{ github.run_attempt }}
+          key: accuracy-private-v1-${{ steps.operation.outputs.kst_date }}-${{ github.run_id }}-${{ github.run_attempt }}-final
       - name: Validate without publication
         if: steps.operation.outputs.mode == 'validate'
         run: |

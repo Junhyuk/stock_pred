@@ -9,6 +9,7 @@ import signal
 import subprocess
 import sys
 import tempfile
+import time
 from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
@@ -47,8 +48,30 @@ def atomic_json(path, value):
 
 def operation_decision(now, mode):
     local = _utc(now).astimezone(KST)
-    return {'allowed': local.weekday() != 6 or mode == 'validate', 'kst_date': local.date().isoformat(),
-            'mode': mode, 'reason': 'kst_sunday_excluded' if local.weekday() == 6 and mode != 'validate' else 'allowed'}
+    return {'allowed': local.weekday() < 5 or mode == 'validate', 'kst_date': local.date().isoformat(),
+            'mode': mode, 'reason': 'kst_weekend_excluded' if local.weekday() >= 5 and mode != 'validate' else 'allowed'}
+
+
+def daily_wait_decision(now):
+    local = _utc(now).astimezone(KST)
+    seconds = max(0., (local.replace(hour=8, minute=0, second=0, microsecond=0) - local).total_seconds())
+    if not operation_decision(now, 'daily')['allowed'] or seconds > 600:
+        return {'status': 'not_ready', 'wait_seconds': 0, 'reason': 'outside_daily_wait_window'}
+    return {'status': 'waiting' if seconds else 'ready', 'wait_seconds': seconds}
+
+
+def wait_for_daily_cutoff():
+    """Bound wall-clock waiting too; never substitute a synthetic issuance time."""
+    deadline = time.monotonic() + 600
+    while True:
+        now = datetime.now(UTC)
+        result = daily_wait_decision(now)
+        if result['status'] != 'waiting':
+            return {**result, 'checked_at': now.isoformat()}
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            return {'status': 'not_ready', 'reason': 'daily_wait_deadline', 'checked_at': now.isoformat()}
+        time.sleep(min(60., result['wait_seconds'], remaining))
 
 
 def source_fingerprint():
@@ -101,7 +124,7 @@ def _freeze_inputs(files, directory, *, prepared_at, code_hash):
     if local.hour >= 8:
         raise ValueError('prepared inputs must finish before 08:00 KST')
     if not operation_decision(clock, 'prepare')['allowed']:
-        raise ValueError('KST Sunday excluded')
+        raise ValueError('KST weekend excluded')
     directory = Path(directory)
     directory.mkdir(parents=True, exist_ok=True)
     manifest = {'schema_version': 'prepared_inputs_v1', 'prepared_at': clock.isoformat(),

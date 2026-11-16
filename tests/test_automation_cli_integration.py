@@ -90,24 +90,25 @@ def checkout(tmp_path):
 
 def test_actual_gate_cli_runs_before_third_party_dependencies_are_installed(checkout):
     result = subprocess.run([sys.executable, '-S', 'scripts/accuracy_operation.py',
-                             '--phase', 'gate', '--schedule', '0 23 * * 0-5'],
+                             '--phase', 'gate', '--schedule', '50 22 * * 0-4'],
                             cwd=checkout.root, env={'PATH': os.environ.get('PATH', '')},
                             capture_output=True, text=True, timeout=10)
     assert result.returncode == 0, result.stderr
     decision = json.loads(result.stdout)
-    assert decision['mode'] == 'predict'
+    assert decision['mode'] == 'daily'
     assert isinstance(decision['allowed'], bool)
     assert decision['forecast_requested'] is decision['allowed']
-    assert decision['collect'] is False
+    assert isinstance(decision['collect'], bool)
 
 
-def test_actual_latest_cli_fits_with_fractional_clock_and_weekend_cutoff_caps(checkout):
+@pytest.mark.parametrize('mode', ['latest', 'daily'])
+def test_actual_cli_fits_with_fractional_clock_and_frozen_daily_cutoff(checkout, mode):
     """Unlike short-history smoke, execute walk-forward snapshot restoration."""
     import yaml
 
     from roboquant.index_forecast.reliable_inputs import session_schedule
 
-    now = '2026-11-14T01:42:47.385886+00:00'
+    now = '2026-11-14T01:42:47.385886+00:00' if mode == 'latest' else '2026-11-15T23:01:00.385886+00:00'
     days = session_schedule('2026-04-01', '2026-11-13')[0]['date'].tolist()
     fixture = json.loads((checkout.root / 'provider.json').read_text())
     fixture.update({symbol: [[day, 1000. + i * 2 + (i % 5)] for i, day in enumerate(days)]
@@ -122,8 +123,17 @@ def test_actual_latest_cli_fits_with_fractional_clock_and_weekend_cutoff_caps(ch
         min_calibration_rows=10, development_days=25, test_days=25,
         bootstrap_samples=20, bootstrap_block_days=5, min_oos_rows=15, model_families=['linear'])
     config_path.write_text(yaml.safe_dump(config))
-    prices = checkout.refresh(now=now)
-    completed = checkout.run('run_reliable_index_forecast.py', '--sqlite', prices['sqlite'], now=now)
+    prices = checkout.refresh(now=now if mode == 'latest' else PREPARE)
+    arguments = []
+    if mode == 'daily':
+        assert checkout.freeze(prices)['status'] == 'prepared'
+        inputs = checkout.operation('inputs', 'daily', now=now)
+        assert inputs['status'] == 'ready' and inputs['kr']
+        prices = inputs
+        arguments = ['--prepared-manifest', inputs['prepared_manifest'],
+                     '--economic-sqlite', inputs['economic_sqlite'],
+                     '--fit-state-dir', inputs['fit_models_kr']]
+    completed = checkout.run('run_reliable_index_forecast.py', '--sqlite', prices['sqlite'], *arguments, now=now)
     result = json.loads(completed.stdout.splitlines()[-1])
     assert result['status'] == 'research_only' and result['issued_at'] == now
     archive = json.loads((checkout.root / 'docs/data/archive' / f"{result['run_id']}.json").read_text())
@@ -160,7 +170,7 @@ def test_versioned_snapshot_survives_cache_pruning_rerun_and_next_day(checkout):
     checkout.seed()
     prices = checkout.refresh(now='2026-11-13T22:53:00+00:00')
     expected = (checkout.root / prices['us_csv']).read_bytes()
-    assert checkout.operation('cache-seal', 'prepare', now='2026-11-13T22:54:00+00:00')['status'] == 'sealed'
+    assert checkout.operation('cache-seal', 'prepare', now=PREPARE)['status'] == 'sealed'
     assert len(list(checkout.private.glob('us_market_observations_v2_*.csv'))) == 1
     assert b'offline fixture' not in (checkout.root / '.forecast-cache/state.enc').read_bytes()
     shutil.rmtree(checkout.private)
@@ -211,7 +221,8 @@ def _prepared(checkout, *, now=PREPARE):
     return prices, checkout.private / 'prepared' / ('2026-11-14' if now.startswith('2026-11-13') else '2026-11-16')
 
 
-def test_prepare_to_predict_runs_real_collectors_forecasts_and_publication_checks(checkout):
+@pytest.mark.parametrize('mode', ['predict', 'daily'])
+def test_prepare_to_predict_runs_real_collectors_forecasts_and_publication_checks(checkout, mode):
     # Use real exchange sessions and deterministic local prices. Keep production
     # settings: this short history must remain model-not-ready, weight zero.
     from roboquant.index_forecast.reliable_inputs import session_schedule
@@ -235,9 +246,9 @@ def test_prepare_to_predict_runs_real_collectors_forecasts_and_publication_check
     assert checkout.operation('cache-seal', 'prepare')['status'] == 'sealed'
     shutil.rmtree(checkout.private)
     assert checkout.operation('cache-open', now=PREDICT)['status'] == 'restored'
-    gate = checkout.operation('gate', now=PREDICT)
+    gate = checkout.operation('gate', mode, now=PREDICT)
     assert gate['forecast_requested'] is True and gate['collect'] is False
-    inputs = checkout.operation('inputs', now=PREDICT)
+    inputs = checkout.operation('inputs', mode, now=PREDICT)
     assert inputs['status'] == 'ready' and inputs['kr'] is True and inputs['us'] is True
     assert manifest_path.read_bytes() == manifest_bytes
     assert manifest_path.with_name('completion.json').read_bytes() == receipt_bytes
@@ -262,9 +273,11 @@ def test_prepare_to_predict_runs_real_collectors_forecasts_and_publication_check
         assert receipt['publication_checked_at'] == PREDICT
         assert receipt['payload_checksums']['reliable_index_forecast.json'] == hashlib.sha256(
             (checkout.root / output / 'reliable_index_forecast.json').read_bytes()).hexdigest()
-    assert checkout.operation('publish-models', now=PREDICT)['status'] == 'persisted_derived_model_state'
-    status = checkout.operation('status', now=PREDICT)
+    assert checkout.operation('publish-models', mode, now=PREDICT)['status'] == 'persisted_derived_model_state'
+    status = checkout.operation('status', mode, now=PREDICT)
     assert status['korea'] is not None and status['us'] is not None
+    assert status['daily_completed_date'] == '2026-11-16'
+    assert not checkout.operation('gate', 'daily', now=PREDICT)['allowed']
     public_paths = checkout.run('accuracy_operation.py', '--phase', 'public-paths', now=PREDICT).stdout.splitlines()
     assert 'docs/data/reliable_publication.json' in public_paths
     assert all(not path.endswith(('.sqlite', '.csv', '.enc')) for path in public_paths)
@@ -282,22 +295,22 @@ def test_prepare_to_predict_runs_real_collectors_forecasts_and_publication_check
 @pytest.mark.parametrize('clock,allowed', [
     ('2026-11-15T22:50:00+00:00', True), ('2026-11-16T22:50:00+00:00', True),
     ('2026-11-17T22:50:00+00:00', True), ('2026-11-18T22:50:00+00:00', True),
-    ('2026-11-19T22:50:00+00:00', True), ('2026-11-13T22:50:00+00:00', True),
+    ('2026-11-19T22:50:00+00:00', True), ('2026-11-13T22:50:00+00:00', False),
     ('2026-11-14T22:50:00+00:00', False)])
-def test_scheduled_gate_uses_kst_weekday_and_distinct_prepare_predict_phases(checkout, clock, allowed):
-    for schedule, mode in [('50 22 * * 0-5', 'prepare'), ('0 23 * * 0-5', 'predict')]:
+def test_scheduled_gate_uses_single_daily_mode_on_kst_weekdays(checkout, clock, allowed):
+    for schedule, mode in [('50 22 * * 0-4', 'daily')]:
         data = json.loads(checkout.run('accuracy_operation.py', '--phase', 'gate', '--schedule', schedule,
                                       now=clock).stdout.splitlines()[-1])
         assert data['allowed'] is allowed and data['mode'] == mode
-        assert data['collect'] is (allowed and mode == 'prepare')
-        assert data['forecast_requested'] is (allowed and mode == 'predict')
+        assert data['collect'] is allowed
+        assert data['forecast_requested'] is allowed
 
 
-def test_saturday_prepares_but_does_not_issue_monday_premarket_final(checkout):
-    _prepared(checkout, now='2026-11-13T22:53:00+00:00')
+def test_saturday_cannot_prepare_or_issue_monday_premarket_final(checkout):
+    result = checkout.operation('freeze', 'prepare', now='2026-11-13T22:53:00+00:00')
+    assert result['allowed'] is False
     result = checkout.operation('inputs', now='2026-11-13T23:01:00+00:00')
-    assert result['status'] == 'ready' and result['kr'] is False and result['us'] is False
-    assert all(row['target_date'] == '2026-11-16' for row in result['kr_sessions'])
+    assert result['allowed'] is False
     assert not (checkout.root / 'docs/data/reliable_publication.json').exists()
 
 
@@ -391,3 +404,116 @@ def test_calendar_history_survives_encrypted_restore_and_partial_source_retry(ch
     after = json.loads(history_path.read_text())
     assert after['release_versions'] == before['release_versions']
     assert len(after['collection_runs']) > len(before['collection_runs'])
+
+
+def _verified_day(checkout, now=PREDICT, mode='daily'):
+    date = pd.Timestamp(now).tz_convert('Asia/Seoul').date().isoformat()
+    data = checkout.root / 'docs/data'
+    forecast = data / 'reliable_index_forecast.json'
+    forecast.write_text(json.dumps({'run_id': 'verified-test-run', 'markets': []}))
+    (data / 'reliable_publication.json').write_text(json.dumps({
+        'schema_version': 'reliable_publication_v1', 'run_id': 'verified-test-run',
+        'publication_checked_at': now, 'payload_checksums': {
+            forecast.name: hashlib.sha256(forecast.read_bytes()).hexdigest()}}))
+    inputs = {'status': 'ready', 'kr': True, 'us': False, 'prepared_at':
+        (pd.Timestamp(now) - pd.Timedelta(minutes=10)).isoformat(), 'prepared_manifest_hash': 'test'}
+    (checkout.private / 'accuracy-input-status.json').write_text(json.dumps(inputs))
+    return checkout.operation('status', mode, now=now), date
+
+
+@pytest.mark.parametrize('now', [PREDICT, '2026-11-19T23:01:00.385886+00:00'])
+def test_daily_gate_collects_once_then_records_durable_duplicate_guard(checkout, now):
+    early = (pd.Timestamp(now) - pd.Timedelta(minutes=10)).isoformat()
+    gate = checkout.operation('gate', 'daily', now=early)
+    assert gate['allowed'] and gate['collect'] and gate['forecast_requested']
+    status, date = _verified_day(checkout, now)
+    assert status['daily_completed_date'] == date
+    repeated = checkout.operation('gate', 'daily', now=now)
+    assert not repeated['allowed'] and not repeated['collect'] and not repeated['forecast_requested']
+    assert repeated['reason'] == 'daily_already_completed'
+    checkout.operation('status', 'latest', now=now)
+    assert not checkout.operation('gate', 'daily', now=now)['allowed']
+
+
+def test_legacy_predict_completion_blocks_daily_but_missing_or_unverified_does_not(checkout):
+    status, date = _verified_day(checkout, mode='predict')
+    status.pop('daily_completed_date', None)
+    path = checkout.root / 'docs/data/automation_status.json'
+    path.write_text(json.dumps(status))
+    assert not checkout.operation('gate', 'daily', now=PREDICT)['allowed']
+    checkout.operation('status', 'latest', now=PREDICT)
+    assert not checkout.operation('gate', 'daily', now=PREDICT)['allowed']
+    status['inputs'] = {'status': 'not_ready', 'kr': False, 'us': False}
+    path.write_text(json.dumps(status))
+    assert checkout.operation('gate', 'daily', now=PREDICT)['allowed']
+    status['inputs'] = {'status': 'ready', 'kr': True, 'us': False, 'prepared_at': PREPARE}
+    path.write_text(json.dumps(status))
+    (checkout.root / 'docs/data/reliable_index_forecast.json').write_text('tampered')
+    assert checkout.operation('gate', 'daily', now=PREDICT)['allowed']
+
+
+@pytest.mark.parametrize('now', ['2026-11-13T22:53:00+00:00', '2026-11-14T22:53:00.385886+00:00'])
+def test_weekend_cli_blocks_all_operational_mutations_and_public_paths(checkout, now):
+    for mode in ('daily', 'prepare', 'predict', 'latest'):
+        gate = checkout.operation('gate', mode, now=now)
+        assert not gate['allowed'] and not gate['collect'] and not gate['forecast_requested']
+        for phase in ('freeze', 'inputs', 'cache-open', 'cache-seal', 'publish-models', 'status'):
+            result = checkout.operation(phase, mode, now=now)
+            assert result['allowed'] is False
+    (checkout.root / 'docs/data/automation_status.json').write_text('{}')
+    assert checkout.run('accuracy_operation.py', '--phase', 'public-paths', now=now).stdout == ''
+    assert checkout.operation('gate', 'validate', now=now)['allowed'] is True
+    assert not (checkout.root / '.forecast-cache').exists()
+
+
+def test_daily_late_start_does_not_collect_or_fabricate_preparation(checkout):
+    gate = checkout.operation('gate', 'daily', now=PREDICT)
+    assert gate['allowed'] and not gate['collect'] and gate['forecast_requested']
+    result = checkout.operation('inputs', 'daily', now=PREDICT)
+    assert result['status'] == 'not_ready' and not result['kr'] and not result['us']
+    assert not (checkout.root / 'docs/data/reliable_publication.json').exists()
+    status = checkout.operation('status', 'daily', now=PREDICT)
+    assert status.get('daily_completed_date') is None
+    assert checkout.operation('gate', 'daily', now=PREDICT)['allowed']
+
+
+def test_daily_wait_advances_actual_clock_then_uses_frozen_receipts(checkout):
+    prices, directory = _prepared(checkout)
+    before = (directory / 'manifest.json').read_bytes()
+    receipt = (directory / 'completion.json').read_bytes()
+    waited = checkout.operation('wait', 'daily', now=PREPARE)
+    assert waited['status'] == 'ready'
+    assert waited['checked_at'] == '2026-11-15T23:00:00+00:00'
+    inputs = checkout.operation('inputs', 'daily', now=PREDICT)
+    assert inputs['status'] == 'ready' and inputs['kr'] and inputs['us']
+    assert (directory / 'manifest.json').read_bytes() == before
+    assert (directory / 'completion.json').read_bytes() == receipt
+    assert checkout.operation('cache-seal', 'daily', now=PREDICT)['status'] == 'sealed'
+    shutil.rmtree(checkout.private)
+    assert checkout.operation('cache-open', 'daily', now=PREDICT)['status'] == 'restored'
+    assert checkout.operation('inputs', 'daily', now=PREDICT)['prepared_manifest_hash'] == inputs['prepared_manifest_hash']
+
+
+def test_daily_wait_stuck_clock_abstains_at_monotonic_budget(checkout):
+    _prepared(checkout)
+    result = checkout.operation('wait', 'daily', now=PREPARE, scenario='stuck-clock')
+    assert result['status'] == 'not_ready' and result['reason'] == 'daily_wait_deadline'
+    assert checkout.operation('inputs', 'daily', now=PREPARE)['status'] == 'not_ready'
+
+
+def test_daily_preparation_survives_failed_runner_for_late_retry(checkout):
+    _, directory = _prepared(checkout)
+    manifest = (directory / 'manifest.json').read_bytes()
+    receipt = (directory / 'completion.json').read_bytes()
+    assert checkout.operation('cache-seal', 'daily', now=PREPARE)['status'] == 'sealed'
+    shutil.rmtree(checkout.private)
+    gate = checkout.operation('gate', 'daily', now=PREDICT)
+    assert gate['allowed'] and gate['forecast_requested'] and not gate['collect']
+    assert checkout.operation('cache-open', 'daily', now=PREDICT)['status'] == 'restored'
+    inputs = checkout.operation('inputs', 'daily', now=PREDICT)
+    assert inputs['status'] == 'ready'
+    assert (directory / 'manifest.json').read_bytes() == manifest
+    assert (directory / 'completion.json').read_bytes() == receipt
+    script = checkout.root / 'scripts/accuracy_operation.py'
+    script.write_bytes(script.read_bytes() + b'\n# changed source after crash\n')
+    assert checkout.operation('inputs', 'daily', now=PREDICT)['status'] == 'not_ready'
