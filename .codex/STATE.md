@@ -2,10 +2,24 @@
 
 ## Current Phase
 
-2026-11-16 KST: reliable-index-forecast UI uses an Asia/Seoul clock and
-today/tomorrow labels, separate Korea/US columns, and red-rise/blue-fall
-research probability boxes. Algorithms, data, and the weekday 18:00 KST
-schedule are unchanged. This UI phase does not approve a production model.
+2026-11-19 KST: Robo Stock KOSPI/KOSDAQ next-session accuracy research.
+The primary objective is lower paired close MAE. The scheduled research
+forecast remains at 18:00 KST on weekdays and production weight is zero.
+
+## Next-session accuracy evidence
+
+- `scripts/run_robo_stock_accuracy.py` verifies frozen inputs, separates
+  actual ledger cohorts from historical replay, and exports JSON and CSV.
+- The 2026-10-08 through 2026-11-19 replay has 30 matched closes per market.
+  Incumbent MAE is 167.20/22.96 points, versus 165.23/22.29 for flat.
+  The actual postclose primary has two mature forecasts per market.
+- The two rolling-504 candidates were evaluated on fixed 21-session anchors
+  using one purge session. Neither beat the incumbent and both point
+  baselines on the frozen development period in either market.
+- Sourced CSAT hours apply to the standalone audit. Stored ledger clocks
+  are retained as reported evidence. See `ROBO_STOCK_ACCURACY.md`.
+- Focused runner command uses the manual Premarket smoke workflow.
+  Comparative real-data artifacts are local under `logs/robo-accuracy-20261119/`.
 
 ## Latest UI Verification
 
@@ -91,9 +105,8 @@ schedule are unchanged. This UI phase does not approve a production model.
 
 ## Next Recommended Phase
 
-1. Verify the UI commit's ordinary Pages artifact/deployment and public HTML;
-   do not rerun ML or alter the verified forecast JSON for this UI phase.
-2. Observe the next eligible fixed-anchor capture, persistence, and restore;
-   capture alone does not imply calibration or quality-gate approval.
-3. Keep retrospective reference results and all rejected candidates separate
-   from production. Leave the paused participant-flow subproject paused.
+1. Establish availability and historical coverage of point-in-time market
+   breadth. Measure paired improvement and ablation before integrating it.
+2. Continue capturing actual postclose predictions and outcomes. Require
+   a separate eligible cohort with 252 mature paired outcomes and independent
+   review before a model serving change.
