@@ -1,0 +1,21 @@
+.credit-intro, .credit-source { color: var(--muted); font-size: 13px; }
+#margin-credit-status { margin: 8px 0 14px; color: var(--muted); font-size: 13px; }
+.credit-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.credit-card { --credit-accent: #0f766e; min-width: 0; padding: 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+.credit-card[data-market="KOSDAQ"] { --credit-accent: #24518b; }
+.credit-card h3 { margin: 0 0 4px; font-size: 16px; }
+.credit-latest { color: var(--credit-accent); font-size: 24px; font-weight: 800; line-height: 1.25; }
+.credit-date, .credit-axis-label { color: var(--muted); font-size: 12px; }
+.credit-chart { display: block; width: 100%; height: auto; margin: 8px 0; overflow: visible; }
+.credit-chart text { fill: #596675; font: 12px sans-serif; }
+.credit-chart .credit-gridline { stroke: var(--line); stroke-width: 1; }
+.credit-chart .credit-line { fill: none; stroke: var(--credit-accent); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.credit-chart .credit-dot { fill: var(--credit-accent); }
+.credit-card details { color: var(--muted); font-size: 13px; }
+.credit-card summary { cursor: pointer; color: var(--ink); font-weight: 700; padding: 6px 0; }
+.credit-values { max-height: 240px; overflow: auto; }
+.credit-values table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.credit-values th, .credit-values td { text-align: left; padding: 5px 2px; border-bottom: 1px solid var(--line); }
+.credit-values th:last-child, .credit-values td:last-child { text-align: right; }
+.credit-source { margin-top: 12px; }
+@media (max-width: 800px) { .credit-grid { grid-template-columns: minmax(0, 1fr); } }

@@ -1050,6 +1050,14 @@ GitHub Actions가 한국시간 평일18:00에 하루 한 번 수집·검증·배
 검증 상태와 함께 표시합니다. 운영 모드·복구·무료 runner/저장공간 검수는
 [일일 자동화 운영 문서](docs/DAILY_AUTOMATION.md)를 참고하세요.
 
+예측 페이지의 신용융자 잔고는 시장별 최근 90개 결제일에 대한 스냅샷입니다.
+연구용 SQLite에 FreeSIS의 새 잔고를 적재한 뒤 다음 명령으로 그래프 자료를 갱신합니다.
+SQLite는 읽기 전용으로 열고 공개 사이트에는 그래프용 JSON을 배포합니다.
+
+```bash
+python scripts/export_margin_credit_chart.py --sqlite data/processed/robo_session_inputs.sqlite
+```
+
 ```bash
 python scripts/run_daily_pipeline.py --config configs/pipeline.yaml --dry-run
 python scripts/run_daily_pipeline.py --config configs/pipeline.yaml

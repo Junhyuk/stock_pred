@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>한국·미국 다음 거래일 확률·예측구간 연구</title>
   <link rel="stylesheet" href="assets/site.css" />
+  <link rel="stylesheet" href="assets/margin-credit.css" />
   <style>
     .notice {
       padding: 16px;
@@ -180,6 +181,13 @@
   </section>
   <div id="status" role="status">로컬 연구 결과를 읽는 중입니다.</div>
   <div id="content"></div>
+  <section id="margin-credit" class="notice" aria-labelledby="margin-credit-title">
+    <h2 id="margin-credit-title">시장별 신용융자 잔고</h2>
+    <p class="credit-intro">결제일 기준</p>
+    <p id="margin-credit-status" role="status">신용융자 잔고를 불러오는 중입니다.</p>
+    <div id="margin-credit-content"></div>
+    <p class="credit-source">출처 <a href="https://freesis.kofia.or.kr/stat/FreeSIS.do?parentDivId=MSIS10000000000000&amp;serviceId=STATSCU0100000140">금융투자협회 FreeSIS</a></p>
+  </section>
   <section id="economic-calendar" class="notice" aria-labelledby="economic-calendar-title">
     <h2 id="economic-calendar-title">경제 발표 캘린더와 실제 수치</h2>
     <p id="economic-collection-status" role="status">공식 소스 수집 상태 확인 중</p>
@@ -463,6 +471,8 @@ Promise.all([
   refreshKstLabels();
 }).catch(error => {
   document.getElementById('status').textContent = error.message;
+}).finally(() => {
+  if (location.hash === '#margin-credit') document.getElementById('margin-credit').scrollIntoView();
 });
 </script>
 <script>
@@ -472,5 +482,6 @@ window.addEventListener('focus', () => refreshKstLabels());
 document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshKstLabels(); });
 </script>
 <script src="assets/economic-calendar.js"></script>
+<script src="assets/margin-credit.js"></script>
 </body>
 </html>
