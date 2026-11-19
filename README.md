@@ -1058,6 +1058,7 @@ GitHub Actions가 한국시간 평일18:00에 하루 한 번 수집·검증·배
 
 SQLite에 관측 이력을 이어 붙이고 기존 암호화 캐시에 저장합니다. 공개 페이지에는 지표 상태와
 시장별 최근 90개 결제일의 그래프를 배포합니다. 수동 적재 뒤에도 그래프를 갱신할 수 있습니다.
+Actions에서 `mode=validate`와 `indicators_only=true`를 선택하면 시장 지표만 임시 경로에서 검증합니다.
 
 ```bash
 python scripts/export_margin_credit_chart.py --sqlite data/processed/robo_session_inputs.sqlite

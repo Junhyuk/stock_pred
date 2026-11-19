@@ -60,7 +60,7 @@ def test_validation_collects_in_temp_paths_and_exposes_code_errors():
     assert "--seed-dir docs/data" in collector["run"]
     assert "--output-dir docs/data" not in collector["run"]
     assert "|| true" not in collector["run"]
-    validation = next(step for step in steps if step["name"] == "Validate without publication")
+    validation = next(step for step in steps if step["name"] == "Validate market indicator contracts")
     for name in (
         "test_market_indicators",
         "test_official_yields",
@@ -70,3 +70,8 @@ def test_validation_collects_in_temp_paths_and_exposes_code_errors():
         assert f"tests/{name}.py" in validation["run"]
     upload = next(step for step in steps if step["name"] == "Upload compact validation status")
     assert "market-indicators-validation/market_indicators_status.json" in upload["with"]["path"]
+    full = next(step for step in steps if step["name"] == "Validate without publication")
+    assert full["if"] == "steps.operation.outputs.mode == 'validate' && !inputs.indicators_only"
+    assert steps.index(collector) < steps.index(full)
+    manual = workflow()["on"]["workflow_dispatch"]["inputs"]["indicators_only"]
+    assert manual["default"] == "false"
