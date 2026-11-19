@@ -123,6 +123,59 @@ Those snapshots support a later research comparison for 2026-11-20. The
 standalone test retains zero production weight and runs outside the scheduled
 workflow. The raw data and append-only SQLite stay local.
 
+## Previous-session credit and official macro releases
+
+`prior_session_margin_credit` uses the credit balance from the KRX session
+immediately before the prediction origin. It compares that balance with the
+same market's 1-, 5- and 20-session reference dates and fits the three log
+changes. The report includes the original balance, ordinary percent changes,
+input dates and the receipt time. The point contribution is the change in the
+same fitted forecast when all three credit changes are set to zero. The
+matched price-only Ridge is reported separately for the performance ablation.
+
+The prior-session historical replay assumes the balance is available at the
+first later KRX session's after-close cutoff. Prospective research also checks
+the actual receipt and any known publication time. Unknown finality remains
+labeled. Financial Services Commission's rebroadcast API describes a next
+business day update after 13:00 KST. Historical first-seen timestamps and
+official current receipts govern use in the scheduled run. The original
+two-session credit variant stays in the comparison.
+[FSC credit API](https://www.data.go.kr/data/15094809/openapi.do).
+
+Pass `--macro-releases /path/to/first-releases.csv` to the full accuracy
+command. Repeat the option for each curated source. Required columns are
+`country,measure,reference_period,value,unit,seasonal_adjustment,vintage,`
+`source_id,source_url,release_date,received_at`. Use reference months as
+`YYYY-MM`, timezone-aware receipts and the vintage `first_release`. Use
+`actual_release_at` only for a documented clock with a timezone. Date-only
+release records use the next midnight in the publishing agency's timezone
+for historical replay. A new estimate also requires actual receipt. The
+import checks the series definition, chronology and duplicate consistency.
+The curated archive supplies the vintage label and source evidence. Review
+the original publication and extraction when preparing a new archive.
+
+Each eligible monthly series is tested independently. It uses the latest
+release and its change from the immediately preceding reference month.
+Nominal dollar trade series are converted to year-over-year growth and
+its change. The US industrial production experiment uses Fed G.17
+`init.b50001.pct` first-published monthly growth with the official release
+dates. From January 2018 through October 2026, 106 months were available.
+Korean CPI and industrial production and Korean customs first-release
+trade samples are retained for coverage checks. Existing calendar entries
+can provide context for inflation and employment while first-release inputs
+are accumulated. ISM and S&P Global PMI are separate third-party surveys.
+[Fed G.17](https://www.federalreserve.gov/releases/g17/revhist.htm),
+[BLS releases](https://www.bls.gov/news.release/),
+[Census FT900](https://www.census.gov/foreign-trade/Press-Release/ft900_index.html),
+[Korea industry release](https://mods.go.kr/board.es?act=view&bid=216&list_no=447747&mid=a10301050100),
+[Korea Customs](https://www.customs.go.kr/).
+
+`accuracy.json` records the SHA-256 of each input archive and its usable
+periods. The prior-session credit and G.17 fits use the same 252 development
+sessions as the price-only comparisons. The macro model's repeated daily
+values derive from monthly releases. The block bootstrap accounts for some
+serial dependence. These are research forecasts with zero production weight.
+
 ## Additional input priorities
 
 Test previous-session open gaps, intraday ranges and closing location first.

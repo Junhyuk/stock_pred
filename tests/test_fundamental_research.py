@@ -1,6 +1,8 @@
 """Publication and matched-fit regression tests for macro feature research."""
 
 import json
+import sys
+from types import SimpleNamespace
 
 import numpy as np
 import pandas as pd
@@ -165,6 +167,7 @@ def test_historical_kofia_margin_waits_for_d_plus_two_and_requires_actual_receip
         as_of=pd.Timestamp(days[i] + "T09:29:00Z"),
     )
     assert before["markets"]["KOSPI"]["families"]["margin_credit"]["next_forecast"] is None
+    assert before["markets"]["KOSPI"]["families"]["prior_session_margin_credit"]["next_forecast"] is None
     result = evaluate(inputs, rows, i=i)
     family = result["markets"]["KOSPI"]["families"]["margin_credit"]
     assert family["windows"]["development"]["scored_n"] == 252
@@ -180,9 +183,50 @@ def test_historical_kofia_margin_waits_for_d_plus_two_and_requires_actual_receip
     assert forecast["model_training_clock"] == "simulated_historical_cutoffs"
     assert result["markets"]["KOSDAQ"]["families"]["margin_credit"]["next_forecast"] is None
 
+    prior = result["markets"]["KOSPI"]["families"]["prior_session_margin_credit"]
+    assert prior["windows"]["development"]["scored_n"] == 252
+    evidence = prior["latest_features"]
+    assert evidence["availability_policy"] == "historical_dated_credit_d_plus_1_after_close"
+    assert evidence["balance_observation_date"] == days[i - 1]
+    balance = rows[i - 1]["value"]
+    assert evidence["balance_krw"] == balance
+    assert evidence["available_at"] == days[i] + "T09:00:00+00:00"
+    for lag in (1, 5, 20):
+        older = i - 1 - lag
+        ratio = balance / rows[older]["value"]
+        assert evidence["comparison_observation_dates"][str(lag)] == days[older]
+        assert evidence["native_change_pct"][str(lag)] == pytest.approx((ratio - 1.) * 100)
+        assert evidence["features"][f"credit_log_change_{lag}d"] == pytest.approx(np.log(ratio))
+    assert len(evidence["features"]) == 3
+    prior_forecast = prior["next_forecast"]
+    assert prior_forecast["feature_evidence"]["available_at"] == pd.Timestamp(received).isoformat()
+    assert prior_forecast["feature_evidence"]["source_finality"] == "unverified_settlement_snapshot"
+    effect = prior_forecast["credit_counterfactual"]
+    assert effect["point_effect"] == pytest.approx(
+        prior_forecast["expected_index"] - effect["flat_credit_change_expected_index"],
+    )
+    assert result["markets"]["KOSDAQ"]["families"]["prior_session_margin_credit"]["next_forecast"] is None
+
     unverified = [dict(row, source="unverified_credit_export") for row in rows[-7:]]
     other = evaluate(inputs, unverified, i=i)["markets"]["KOSPI"]["families"]["margin_credit"]
     assert other["latest_features"] is None
+
+
+def test_prior_credit_does_not_fill_exact_dates_or_ignore_later_publication(inputs):
+    _, _, _, days = inputs
+    i = 1403
+    positions = [i - 22, i - 6, i - 2, i - 1]
+    rows = [{"market": "KOSPI", "series": "MARGIN_CREDIT_BALANCE", "observation_date": days[pos],
+             "value": 1e12 + pos * 1e8, "unit": "KRW", "source": "kofia_freesis_margin_credit",
+             "received_at": days[i] + "T09:55:00Z", "published_at": None, "is_final": None,
+             "availability_policy": "historical_dated_credit"}
+            for pos in positions]
+    result = evaluate(inputs, rows, i=i)
+    assert result["markets"]["KOSPI"]["families"]["prior_session_margin_credit"]["latest_features"] is None
+    rows[0]["observation_date"] = days[i - 21]
+    rows[-1]["published_at"] = days[i] + "T09:45:00Z"
+    result = evaluate(inputs, rows, i=i)
+    assert result["markets"]["KOSPI"]["families"]["prior_session_margin_credit"]["latest_features"] is None
 
 
 def test_unapproved_final_flows_and_pending_credit_are_excluded(inputs):
@@ -210,3 +254,38 @@ def test_kofia_freesis_complete_korean_yield_panel_can_be_evaluated(inputs):
         row["series"] = row["series"].replace("US_", "KR_")
     family = evaluate(inputs, rows)["markets"]["KOSPI"]["families"]["kr_rates"]
     assert family["latest_features"]["observation_dates"] == [days[1401], days[1402]]
+
+
+def test_optional_macro_families_use_matched_windows_and_gate_prospective_inputs(inputs, monkeypatch):
+    from roboquant.index_forecast.fundamental_research import evaluate_fundamental_research
+
+    prices, archive, sessions, days = inputs
+    now = pd.Timestamp(days[1403] + "T10:00:00Z")
+    raw = pd.DataFrame({"family": ["fed_g17"]})
+    evidence = {"fed_g17": {"rows": 1}, "kr_exports": {"status": "unavailable"}}
+
+    def features_at(family, cutoff, *, prospective):
+        assert family == "fed_g17"
+        if prospective:
+            return None
+        return {"features": {"level_change": cutoff.month / 100.},
+                "available_at": cutoff.isoformat(), "sources": ["federal_reserve_g17"]}
+
+    def prepare_macro_releases(releases, *, as_of):
+        pd.testing.assert_frame_equal(releases, raw)
+        assert as_of == now
+        return SimpleNamespace(families=("fed_g17",), evidence=evidence, features_at=features_at)
+
+    monkeypatch.setitem(sys.modules, "roboquant.index_forecast.macro_release_inputs",
+                        SimpleNamespace(prepare_macro_releases=prepare_macro_releases))
+    result = evaluate_fundamental_research(
+        prices, archive, pd.DataFrame(), sessions=sessions, as_of=now, macro_releases=raw,
+    )
+    assert result["macro_release_evidence"] == evidence
+    family = result["markets"]["KOSPI"]["families"]["fed_g17"]
+    development = family["windows"]["development"]
+    assert development["expected_n"] == development["scored_n"] == 252
+    assert development["models"]["price_only_matched"]["n"] == 252
+    assert family["latest_features"]["sources"] == ["federal_reserve_g17"]
+    assert family["next_forecast"] is None
+    assert result["production_weight"] == 0.0

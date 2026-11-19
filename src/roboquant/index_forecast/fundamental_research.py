@@ -37,20 +37,24 @@ RATE_SOURCES = {
 }
 FLOW = ("FOREIGN_NET", "INSTITUTION_NET", "RETAIL_NET")
 CREDIT = "MARGIN_CREDIT_BALANCE"
-FAMILIES = ("kr_rates", "us_rates", "kr_us_spreads", "prior_session_flow", "margin_credit")
+PRIOR_CREDIT = "prior_session_margin_credit"
+CREDIT_LAGS = (1, 5, 20)
+FAMILIES = ("kr_rates", "us_rates", "kr_us_spreads", "prior_session_flow", "margin_credit", PRIOR_CREDIT)
 MODEL = "price_plus_family"
 BASELINES = ("price_only_matched", "linear:price", "flat", "expanding_mean")
 COLUMNS = {"market", "series", "observation_date", "value", "unit", "source",
            "received_at", "published_at", "is_final"}
 HISTORICAL_YIELD = "historical_dated_yield"
 HISTORICAL_CREDIT = "historical_dated_credit"
+HISTORICAL_CREDIT_D1 = "historical_dated_credit_d_plus_1_after_close"
 FREESIS_CREDIT_SOURCE = "kofia_freesis_margin_credit"
 OBSERVED_CREDIT_SOURCES = frozenset({FREESIS_CREDIT_SOURCE, "fsc_kofia_margin_credit"})
 OBSERVED_FLOW_SOURCE = "krx_market_investor_value"
 OBSERVED = "observed"
 
 
-def _normalise(observations: pd.DataFrame, grid: pd.DataFrame, as_of: pd.Timestamp) -> tuple[list, dict]:
+def _normalise(observations: pd.DataFrame, grid: pd.DataFrame, as_of: pd.Timestamp,
+               *, prior_credit_clock: bool = False) -> tuple[list, dict]:
     if observations.empty:
         return [], {}
     if not COLUMNS.issubset(observations.columns):
@@ -125,13 +129,17 @@ def _normalise(observations: pd.DataFrame, grid: pd.DataFrame, as_of: pd.Timesta
             continue
         comparable = earliest
         if historical_yield or historical_credit:
-            # Second later KRX session, including when the observation falls on a local holiday.
-            pos = bisect_right(days, day) + 1
+            # Keep the existing credit comparator on D+2. For the exact prior-session
+            # challenger, simulate D+1 after close, bounded by any known publication.
+            d_plus_one = historical_credit and prior_credit_clock
+            pos = bisect_right(days, day) + (0 if d_plus_one else 1)
             if pos >= len(cutoffs):
                 continue
             inferred = cutoffs[pos]
             comparable = max(inferred, published) if published is not None else inferred
             earliest = max(earliest, comparable)
+            if d_plus_one:
+                policy = HISTORICAL_CREDIT_D1
         output.append({
             "market": market, "series": series, "day": day, "source": source, "value": value,
             "available_at": comparable, "prospective_available_at": earliest,
@@ -171,7 +179,7 @@ def _evidence(rows: list, features: dict) -> dict:
 
 
 def _daily_features(family: str, market: str, day: str, cutoff: pd.Timestamp,
-                    history: dict, lookback: list[str]) -> dict | None:
+                    history: dict, lookback: list[str], credit_dates: tuple[str, ...]) -> dict | None:
     def panel(names, date, scope="GLOBAL"):
         rows = [history.get((scope, name, date)) for name in names]
         if all(row is not None and row["available_at"] <= cutoff for row in rows):
@@ -184,6 +192,28 @@ def _daily_features(family: str, market: str, day: str, cutoff: pd.Timestamp,
             return _evidence(rows, {f"{key.lower()}_trillion_krw": r["value"] / 1e12
                                     for key, r in zip(FLOW, rows, strict=True)})
         return None
+    if family == PRIOR_CREDIT:
+        if not credit_dates:
+            return None
+        panels = [panel((CREDIT,), date, market) for date in credit_dates]
+        if any(rows is None for rows in panels):
+            return None
+        values = [rows[0] for rows in panels]
+        if len({r["source"] for r in values}) != 1:
+            return None
+        balance = values[0]["value"]
+        ratios = [balance / r["value"] for r in values[1:]]
+        if not all(np.isfinite(ratio) and ratio > 0 for ratio in ratios):
+            return None
+        evidence = _evidence(values, {
+            f"credit_log_change_{lag}d": np.log(ratio) for lag, ratio in zip(CREDIT_LAGS, ratios, strict=True)
+        })
+        return {
+            **evidence, "balance_krw": balance, "balance_observation_date": credit_dates[0],
+            "comparison_observation_dates": dict(zip(map(str, CREDIT_LAGS), credit_dates[1:], strict=True)),
+            "native_change_pct": {str(lag): (ratio - 1) * 100
+                                  for lag, ratio in zip(CREDIT_LAGS, ratios, strict=True)},
+        }
     if family == "margin_credit":
         for scope in (market, "GLOBAL"):
             values = [rows[0] for date in lookback[:15] if (rows := panel((CREDIT,), date, scope))]
@@ -254,10 +284,28 @@ def _fit_models(frame: pd.DataFrame, features: dict, anchor: int) -> tuple | Non
 def _predict(frame: pd.DataFrame, features: dict, i: int, fitted: tuple) -> dict:
     x = frame.loc[[i], PRICE_FEATURES].to_numpy()
     extra = list(features["features"].values())
-    return {
+    forecasts = {
         "price_only_matched": float(fitted[0].predict(x)[0]),
         MODEL: float(fitted[1].predict(np.column_stack((x, [extra])))[0]),
     }
+    if "balance_observation_date" in features:
+        forecasts["same_fit_flat_credit_change"] = float(
+            fitted[1].predict(np.column_stack((x, np.zeros((1, len(extra))))))[0],
+        )
+    return forecasts
+
+
+def _credit_counterfactual(forecasts: dict, close: float) -> dict:
+    if "same_fit_flat_credit_change" not in forecasts:
+        return {}
+    flat = forecasts["same_fit_flat_credit_change"]
+    delta = forecasts[MODEL] - flat
+    return {"credit_counterfactual": {
+        "method": "same_fit_set_all_credit_log_changes_to_zero",
+        "flat_credit_change_expected_index": close * (1 + flat),
+        "point_effect": close * delta,
+        "return_effect_pp": 100 * delta,
+    }}
 
 
 def _metrics(rows: list, *, bootstrap: bool = True) -> dict:
@@ -315,18 +363,29 @@ def _next_forecast(frame: pd.DataFrame, features: dict, i: int, fitted: tuple,
         "expected_index": close * (1 + points[MODEL]),
         "price_only_matched_expected_index": close * (1 + points["price_only_matched"]),
         "expected_return": points[MODEL],
-        "feature_evidence": features, **fitted[2],
+        "feature_evidence": features, **_credit_counterfactual(points, close), **fitted[2],
     }
 
 
 def _family_result(family: str, market: str, frame: pd.DataFrame, matched: dict, windows: dict,
                    history: dict, real: dict, lookbacks: list, latest: int,
-                   as_of: pd.Timestamp, comparator_selected: bool) -> dict:
+                   as_of: pd.Timestamp, comparator_selected: bool, *, macro_sampler=None) -> dict:
+    def sample_at(i, cutoff, *, prospective=False):
+        if macro_sampler is not None:
+            sample = macro_sampler(family, cutoff, prospective=prospective)
+            available_at = _timestamp(sample.get("available_at")) if sample is not None else None
+            return sample if available_at is not None and available_at <= cutoff else None
+        credit_dates = ()
+        if family == PRIOR_CREDIT and i > max(CREDIT_LAGS):
+            credit_dates = tuple(frame.at[i - 1 - lag, "date"] for lag in (0, *CREDIT_LAGS))
+        return _daily_features(family, market, frame.at[i, "date"], cutoff,
+                               real if prospective else history, lookbacks[i], credit_dates)
+
     features = {}
     for i in range(latest + 1):
-        day, cutoff = frame.at[i, "date"], frame.at[i, "cutoff"]
+        cutoff = frame.at[i, "cutoff"]
         if cutoff <= as_of:
-            sample = _daily_features(family, market, day, cutoff, history, lookbacks[i])
+            sample = sample_at(i, cutoff)
             if sample is not None:
                 features[i] = sample
     fits = {}
@@ -349,13 +408,15 @@ def _family_result(family: str, market: str, frame: pd.DataFrame, matched: dict,
             continue
         predictions = _predict(frame, features[i], i, fit)
         predictions.update({"linear:price": archived, "flat": 0., "expanding_mean": mean})
+        close = float(frame.at[i, "close"])
         scored[i] = {
             "asof_date": frame.at[i, "date"], "target_date": frame.at[i + 1, "date"],
-            "actual_return": actual, "origin_close": float(frame.at[i, "close"]),
+            "actual_return": actual, "origin_close": close,
             "label_available_at": maturity.isoformat(),
             "volatility_regime": record.get("volatility_regime") or "unknown",
             "trend_regime": record.get("trend_regime") or "unknown",
-            "feature_evidence": features[i], "predictions": predictions, **fit[2],
+            "feature_evidence": features[i], "predictions": predictions,
+            **_credit_counterfactual(predictions, close), **fit[2],
         }
     summary = {name: _window(indices, features, scored, frame, freeze)
                for name, (indices, freeze) in windows.items()}
@@ -380,8 +441,7 @@ def _family_result(family: str, market: str, frame: pd.DataFrame, matched: dict,
             frame.at[latest, "features_ready"]):
         # Historical date availability may train the replay; a new forecast also
         # requires the actual receipt on this invocation's point-in-time cutoff.
-        prospective = _daily_features(family, market, frame.at[latest, "date"],
-                                      as_of, real, lookbacks[latest])
+        prospective = sample_at(latest, as_of, prospective=True)
         if prospective is not None and (fit := models(latest)) is not None:
             next_forecast = _next_forecast(frame, prospective, latest, fit, as_of)
     return {
@@ -393,8 +453,8 @@ def _family_result(family: str, market: str, frame: pd.DataFrame, matched: dict,
 
 
 def _market_report(market: str, prices: pd.DataFrame, evaluation: dict, grid: pd.DataFrame,
-                   history: dict, real: dict, lookbacks: list, latest: int,
-                   as_of: pd.Timestamp) -> dict:
+                   normal_views: tuple, prior_credit_views: tuple, lookbacks: list, latest: int,
+                   as_of: pd.Timestamp, *, macro=None) -> dict:
     frame = _prices_on_grid(prices, grid, as_of)
     cutoffs = dict(zip(frame["date"], frame["cutoff"], strict=True))
     start, frozen = evaluation.get("development_start"), evaluation.get("selection_frozen_before")
@@ -419,9 +479,16 @@ def _market_report(market: str, prices: pd.DataFrame, evaluation: dict, grid: pd
         "last30_descriptive": (sorted(recent), None),
     }
     compare_selected = selection.get("family") == "linear" and selection.get("group") == "price"
-    families = {family: _family_result(family, market, frame, matched, windows,
-                                      history, real, lookbacks, latest, as_of, compare_selected)
-                for family in FAMILIES}
+    families = {}
+    for family in FAMILIES:
+        history, real = prior_credit_views if family == PRIOR_CREDIT else normal_views
+        families[family] = _family_result(family, market, frame, matched, windows,
+                                          history, real, lookbacks, latest, as_of, compare_selected)
+    if macro is not None:
+        for family in macro.families:
+            families[family] = _family_result(family, market, frame, matched, windows,
+                                              *normal_views, lookbacks, latest, as_of, compare_selected,
+                                              macro_sampler=macro.features_at)
     candidates = [name for name, result in families.items() if result["development_gate"]["passed"]]
     return {
         "families": families,
@@ -434,7 +501,8 @@ def _market_report(market: str, prices: pd.DataFrame, evaluation: dict, grid: pd
 
 
 def evaluate_fundamental_research(prices: pd.DataFrame, archive: dict, observations: pd.DataFrame,
-                                  *, sessions: pd.DataFrame, as_of: datetime) -> dict:
+                                  *, sessions: pd.DataFrame, as_of: datetime,
+                                  macro_releases: pd.DataFrame | None = None) -> dict:
     """Measure incremental next-close performance with independent matched Ridge fits."""
     now = _timestamp(as_of)
     if now is None:
@@ -442,9 +510,19 @@ def evaluate_fundamental_research(prices: pd.DataFrame, archive: dict, observati
     if not {"index_code", "session_date", "close"}.issubset(prices.columns):
         raise ValueError("prices must contain index_code, session_date and close")
     grid = _session_grid(sessions)
+    macro = None
+    if macro_releases is not None:
+        from roboquant.index_forecast.macro_release_inputs import prepare_macro_releases
+
+        macro = prepare_macro_releases(macro_releases, as_of=now)
+        if set(macro.families).intersection(FAMILIES):
+            raise ValueError("Macro family names must not overlap existing fundamental families")
     prepared, rejected = _normalise(observations, grid, now)
-    history = _first_vintages(prepared, prospective=False, cutoff=now)
-    real = _first_vintages(prepared, prospective=True, cutoff=now)
+    credit_rows = observations if observations.empty else observations.loc[observations["series"].eq(CREDIT)]
+    prior_prepared, _ = _normalise(credit_rows, grid, now, prior_credit_clock=True)
+    normal_views = tuple(_first_vintages(prepared, prospective=current, cutoff=now) for current in (False, True))
+    prior_credit_views = tuple(_first_vintages(prior_prepared, prospective=current, cutoff=now)
+                               for current in (False, True))
     latest = int((grid["close_at"] <= now).sum()) - 1
     lookbacks = [[(day - timedelta(days=offset)).date().isoformat() for offset in range(15)]
                  for day in pd.to_datetime(grid["date"])]
@@ -458,17 +536,25 @@ def evaluate_fundamental_research(prices: pd.DataFrame, archive: dict, observati
         evaluation = entries[market][0] if len(entries[market]) == 1 else {}
         markets[market] = _market_report(
             market, normal_prices.loc[normal_prices["index_code"].eq(market)], evaluation, grid,
-            history, real, lookbacks, latest, now,
+            normal_views, prior_credit_views, lookbacks, latest, now, macro=macro,
         )
     return {
         "schema_version": "robo_stock_fundamental_research_v1", "as_of": now.isoformat(),
         "production_weight": 0.,
+        **({"macro_release_evidence": macro.evidence} if macro is not None else {}),
         "input_rejections": rejected,
-        "admissible_observations_by_series": dict(Counter(series for _, series, _ in history)),
+        "admissible_observations_by_series": dict(Counter(series for _, series, _ in normal_views[0])),
         "protocol": {
             "issuance": PROTOCOL, "target": "next scheduled KRX session close",
             "historical_dated_yield_policy": "approved_sources_second_scheduled_krx_session_after_observation",
             "historical_dated_credit_policy": "kofia_freesis_second_scheduled_krx_session_after_settlement_date",
+            "prior_session_margin_credit_policy": {
+                "historical_availability": "simulated_first_scheduled_krx_session_after_settlement_at_after_close_cutoff",
+                "prospective_availability": "maximum_of_simulated_d_plus_1_after_close_verified_publication_and_receipt",
+                "observed_availability": "maximum_of_verified_publication_and_actual_receipt",
+                "observations": "same_market_and_source_exact_previous_session_and_1_5_20_session_references",
+                "model_inputs": "natural_log_changes_only",
+            },
             "historical_dated_credit_finality": "source_finality_may_be_unknown; expressly_pending_observations_excluded",
             "observed_krw_policy": "official_krx_or_kofia_fsc_source_and_explicit_finality_required",
             "observed_policy": "maximum_of_received_at_and_present_verified_published_at",

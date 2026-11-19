@@ -52,4 +52,5 @@ jobs:
             tests/test_robo_stock_accuracy_cli.py \
             tests/test_collect_robo_yields.py \
             tests/test_session_input_store.py \
-            tests/test_fundamental_research.py
+            tests/test_fundamental_research.py \
+            tests/test_macro_release_inputs.py

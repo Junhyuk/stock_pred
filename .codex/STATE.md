@@ -24,6 +24,10 @@ forecast remains at 18:00 KST on weekdays and production weight is zero.
   dedicated SQLite input store. Historical availability uses D+2 KRX sessions.
   The actual receipts follow the 11-19 scheduled cutoff. Archived flows lack
   verified finality. Feature ablations and later forecasts carry zero weight.
+- Prior-session credit uses exact 1/5/20-session changes and records actual
+  receipt plus the same-model point contribution. Official G.17 first-release
+  monthly growth is compared independently on matched sessions. See the
+  `credit-and-macro` research report under the run's local logs.
 
 ## Latest UI Verification
 
