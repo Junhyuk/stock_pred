@@ -91,7 +91,8 @@ streamlit run app_streamlit.py --server.address 0.0.0.0 --server.port 8501
 
 ## Public PoC (GitHub Pages)
 
-로컬 DuckDB 스냅샷을 `docs/` 정적 **Top50 Daily Dashboard**로 export한 뒤 GitHub Pages에 배포합니다.
+GitHub Pages [기본 주소](https://junhyuk.github.io/stock_pred/)에서 [장후 예측 메인](https://junhyuk.github.io/stock_pred/reliable-index-forecast.html)이 열립니다.
+로컬 DuckDB의 Top50 스냅샷은 [일일 대시보드](https://junhyuk.github.io/stock_pred/dashboard.html)에 배포합니다.
 (로컬 미리보기: `python -m http.server 8787 --directory reports/github_pages_site` 또는 export 후 `docs/`)
 
 ```bash
@@ -105,8 +106,7 @@ streamlit run app_streamlit.py --server.address 0.0.0.0 --server.port 8501
 .venv/bin/python scripts/export_github_pages_site.py --output docs
 ```
 
-- legacy Today/up-down only export: `scripts/export_github_pages_snapshot.py`
-- 공개 URL (Pages 활성화 후): `https://junhyuk.github.io/stock_pred/`
+- 기존 Today/up-down 전용 내보내기 스크립트는 `scripts/export_github_pages_snapshot.py`입니다.
 - GitHub 저장소 설정: Settings → Pages → Source = **GitHub Actions**
 - `.env`, DuckDB, models는 커밋되지 않습니다. `docs/` JSON/HTML만 push됩니다.
 
@@ -1044,7 +1044,7 @@ Top50 예측 위에 시장중립 랭크 스프레드 시뮬레이션을 생성�
 
 ## Daily Pipeline
 
-한국·미국 지수의 공개 연구 화면은 [장후 예측 페이지](https://junhyuk.github.io/stock_pred/reliable-index-forecast.html)입니다.
+한국·미국 지수의 메인 화면은 [장후 예측 페이지](https://junhyuk.github.io/stock_pred/reliable-index-forecast.html)입니다.
 GitHub Actions가 한국시간 평일18:00에 하루 한 번 수집·검증·배포합니다. 최신 종가의
 거래일·출처·확인 시각과 예측 기준일·대상일을 구분하며, 주 모델 준비 전의 연구용 전망은
 검증 상태와 함께 표시합니다. 운영 모드·복구·무료 runner/저장공간 검수는

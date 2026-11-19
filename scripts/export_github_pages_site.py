@@ -27,6 +27,7 @@ from roboquant.dashboard.long_short_service import get_latest_long_short
 from roboquant.dashboard.marketnewsfeed_llm_service import get_marketnewsfeed_llm_status
 from roboquant.dashboard.price_forecast_service import get_top20_price_forecast
 from roboquant.db import connect_database, get_table_columns, table_exists
+from roboquant.index_forecast.automation_state import public_payload_paths
 from roboquant.market_anchor_shadow import get_market_anchor_shadow
 from roboquant.market_us_linkage import get_market_us_linkage_shadow
 
@@ -36,13 +37,11 @@ INDEX_FORECAST_PAGE_FILES = (
     "index-forecast.html",
     "reliable-index-forecast.html",
     "assets/index-forecast.js",
+    "assets/economic-calendar.js",
+    "assets/margin-credit.css",
+    "assets/margin-credit.js",
     "data/index_forecast.json",
-    "data/reliable_index_forecast.json",
-    "data/reliable_publication.json",
-    "data/reliable_model_card.json",
-    "data/us/reliable_index_forecast.json",
-    "data/us/reliable_publication.json",
-    "data/us/reliable_model_card.json",
+    "data/margin_credit_chart.json",
 )
 
 
@@ -53,9 +52,10 @@ def _preserve_index_forecast_pages(output: Path) -> dict[str, bytes]:
     if repo_docs.resolve() != output.resolve():
         sources.append(repo_docs)
     for base in sources:
-        for rel in INDEX_FORECAST_PAGE_FILES:
-            path = base / rel
-            if rel not in preserved and path.exists():
+        files = [*(base / rel for rel in INDEX_FORECAST_PAGE_FILES), *public_payload_paths(base / "data")]
+        for path in files:
+            rel = path.relative_to(base).as_posix()
+            if rel not in preserved and path.is_file():
                 preserved[rel] = path.read_bytes()
     return preserved
 
@@ -103,6 +103,7 @@ def export_site(
     output = Path(output_dir)
     data_dir = output / "data"
     assets_dir = output / "assets"
+    landing = (ROOT / "docs" / "index.html").read_bytes()
     preserved = _preserve_index_forecast_pages(output)
     if output.exists():
         shutil.rmtree(output)
@@ -133,7 +134,8 @@ def export_site(
     for name, payload in payloads.items():
         _write_json(data_dir / f"{name}.json", _sanitize(payload))
     asset_version = _asset_version(str(manifest["generated_at"]))
-    (output / "index.html").write_text(_index_html(asset_version), encoding="utf-8")
+    (output / "index.html").write_bytes(landing)
+    (output / "dashboard.html").write_text(_dashboard_html(asset_version), encoding="utf-8")
     (assets_dir / "site.css").write_text(_site_css(), encoding="utf-8")
     (assets_dir / "site.js").write_text(_site_js(), encoding="utf-8")
     (output / ".nojekyll").write_text("", encoding="utf-8")
@@ -750,7 +752,7 @@ def _asset_version(generated_at: str) -> str:
     return "".join(ch for ch in generated_at if ch.isdigit() or ch in "TZ")
 
 
-def _index_html(version: str) -> str:
+def _dashboard_html(version: str) -> str:
     return f"""<!doctype html>
 <html lang="ko">
 <head>
@@ -769,7 +771,7 @@ def _index_html(version: str) -> str:
       <div id="runStatus" class="status">loading</div>
     </header>
     <nav class="quick-nav" aria-label="대시보드 섹션 이동">
-      <a href="reliable-index-forecast.html">다음 거래일 예측</a>
+      <a href="reliable-index-forecast.html">메인 예측</a>
       <a href="index-forecast.html">지수 1D/2D 리포트</a>
       <a href="#top20-section">Top20</a>
       <a href="#top50-section">Top50</a>

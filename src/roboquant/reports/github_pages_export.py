@@ -69,7 +69,7 @@ def _overall_status(snapshots: dict[str, Any]) -> str:
     return "partial"
 
 
-def build_meta(*, root: Path, snapshots: dict[str, Any]) -> dict[str, Any]:
+def build_meta(*, root: Path, snapshots: dict[str, Any], today_page: str = "index.html") -> dict[str, Any]:
     today = snapshots["today"]
     return {
         "pages_version": PAGES_VERSION,
@@ -79,7 +79,7 @@ def build_meta(*, root: Path, snapshots: dict[str, Any]) -> dict[str, Any]:
         "snapshot_date": today.get("snapshot_date"),
         "status": _overall_status(snapshots),
         "disclaimer": PUBLIC_DISCLAIMER,
-        "pages": ["index.html", "up-down.html"],
+        "pages": [today_page, "up-down.html"],
     }
 
 
@@ -207,6 +207,7 @@ def render_up_down_html(
     meta: dict[str, Any],
     up_down_2m: dict[str, Any],
     up_down_6m: dict[str, Any],
+    today_page: str = "index.html",
 ) -> str:
     body = """
 <section class="hero compact">
@@ -243,6 +244,7 @@ def render_up_down_html(
 </section>
 <p id="marketUpDownDisclaimer" class="notice"></p>
 """
+    body = body.replace('href="./index.html"', f'href="./{_escape_html(today_page)}"', 1)
     return _page_shell(
         title="AI Robo Quant Top50 Up-Down",
         body=body,
@@ -270,7 +272,8 @@ def export_docs_bundle(
     finally:
         conn.close()
 
-    meta = build_meta(root=root, snapshots=snapshots)
+    today_page = "today-snapshot.html" if output_dir.resolve() == (root / "docs").resolve() else "index.html"
+    meta = build_meta(root=root, snapshots=snapshots, today_page=today_page)
     output_dir.mkdir(parents=True, exist_ok=True)
     data_dir = output_dir / "data"
     _write_json(data_dir / "today.json", snapshots["today"])
@@ -279,7 +282,7 @@ def export_docs_bundle(
     _write_json(data_dir / "meta.json", meta)
 
     (output_dir / ".nojekyll").touch()
-    (output_dir / "index.html").write_text(
+    (output_dir / today_page).write_text(
         render_index_html(meta=meta, today=snapshots["today"]),
         encoding="utf-8",
     )
@@ -288,6 +291,7 @@ def export_docs_bundle(
             meta=meta,
             up_down_2m=snapshots["up_down_2m"],
             up_down_6m=snapshots["up_down_6m"],
+            today_page=today_page,
         ),
         encoding="utf-8",
     )
@@ -295,7 +299,7 @@ def export_docs_bundle(
         "meta": meta,
         "output_dir": str(output_dir),
         "files": [
-            "index.html",
+            today_page,
             "up-down.html",
             "data/today.json",
             "data/up-down-2M.json",

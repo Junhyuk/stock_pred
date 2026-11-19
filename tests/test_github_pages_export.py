@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from roboquant.db import connect_database
+from roboquant.reports import github_pages_export as legacy_exporter
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -59,7 +60,13 @@ def test_export_github_pages_site_writes_static_json_and_relative_assets(tmp_pat
     )
 
     assert result["status"] == "exported"
-    assert (output / "index.html").exists()
+    landing = (output / "index.html").read_text(encoding="utf-8")
+    assert 'href="reliable-index-forecast.html"' in landing
+    assert 'Top50 Daily Dashboard' not in landing
+    for relative in ("reliable-index-forecast.html", "assets/margin-credit.js", "assets/margin-credit.css",
+                     "assets/economic-calendar.js", "data/margin_credit_chart.json", "data/economic_calendar.json",
+                     "data/market_closes.json", "data/market_closes_publication.json", "data/automation_status.json"):
+        assert (output / relative).read_bytes() == (ROOT / "docs" / relative).read_bytes()
     assert (output / "assets" / "site.css").exists()
     assert (output / "assets" / "site.js").exists()
     assert (output / "data" / "manifest.json").exists()
@@ -83,7 +90,7 @@ def test_export_github_pages_site_writes_static_json_and_relative_assets(tmp_pat
     assert manifest["status"] == "partial_ready"
     assert manifest["run_result"]["NAVER_CLIENT_SECRET"] == "[redacted]"
     js = (output / "assets" / "site.js").read_text(encoding="utf-8")
-    html = (output / "index.html").read_text(encoding="utf-8")
+    html = (output / "dashboard.html").read_text(encoding="utf-8")
     assert 'const DATA = "data/"' in js
     assert "/api/" not in js
     assert "/api/" not in html
@@ -315,6 +322,26 @@ def test_publish_site_dry_run_does_not_create_or_push_worktree(tmp_path) -> None
     assert result["pushed"] is False
     assert result["file_count"] == 3
     assert not worktree.exists()
+
+
+def test_legacy_export_preserves_public_landing_and_links_to_today_snapshot(tmp_path, monkeypatch) -> None:
+    db_path = tmp_path / "site.duckdb"
+    connect_database(db_path).close()
+    config = _write_config(tmp_path / "top50.yaml", db_path)
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    landing = docs / "index.html"
+    landing.write_text('forecast landing', encoding="utf-8")
+    monkeypatch.setattr(legacy_exporter, "collect_snapshots", lambda *_args, **_kwargs: {
+        "today": {}, "up_down_2m": {}, "up_down_6m": {},
+    })
+
+    result = legacy_exporter.export_docs_bundle(root=tmp_path, output_dir=docs, config_path=config,
+                                                today_config_path=config)
+
+    assert landing.read_text(encoding="utf-8") == 'forecast landing'
+    assert "today-snapshot.html" in result["files"]
+    assert 'href="./today-snapshot.html"' in (docs / "up-down.html").read_text(encoding="utf-8")
 
 
 def test_publish_site_blocks_failed_validation_without_allow_empty(tmp_path) -> None:
