@@ -20,6 +20,10 @@ forecast remains at 18:00 KST on weekdays and production weight is zero.
   are retained as reported evidence. See `ROBO_STOCK_ACCURACY.md`.
 - Focused runner command uses the manual Premarket smoke workflow.
   Comparative real-data artifacts are local under `logs/robo-accuracy-20261119/`.
+- Official daily yields and FreeSIS margin balances are appendable in a
+  dedicated SQLite input store. Historical availability uses D+2 KRX sessions.
+  The actual receipts follow the 11-19 scheduled cutoff. Archived flows lack
+  verified finality. Feature ablations and later forecasts carry zero weight.
 
 ## Latest UI Verification
 

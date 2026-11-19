@@ -198,6 +198,7 @@ def main() -> None:
     parser.add_argument("--publication", type=Path, required=True, help="Corresponding publication receipt JSON")
     parser.add_argument("--ledger", type=Path, required=True, help="Forward history JSON")
     parser.add_argument("--legacy-db", type=Path, help="Optional market_outlook forecasts DuckDB (read only)")
+    parser.add_argument("--session-input-db", type=Path, help="Optional rate, flow and margin credit observations (read only)")
     parser.add_argument("--as-of", required=True, help="Audit cutoff with timezone")
     parser.add_argument("--output-dir", type=Path, required=True, help="New directory for audit results")
     parser.add_argument("--audit-only", action="store_true", help="Compute price comparisons without model fits")
@@ -231,6 +232,14 @@ def main() -> None:
         from roboquant.index_forecast.accuracy_research import evaluate_accuracy_research
 
         report["model_research"] = evaluate_accuracy_research(prices, archive, sessions=sessions, as_of=cutoff)
+        if args.session_input_db:
+            from roboquant.index_forecast.fundamental_research import evaluate_fundamental_research
+            from roboquant.index_forecast.session_input_store import read_inputs
+
+            observations = read_inputs(args.session_input_db, as_of=cutoff)
+            report["additional_inputs"] = evaluate_fundamental_research(
+                prices, archive, observations, sessions=sessions, as_of=cutoff,
+            )
     write_report(args.output_dir, report)
     print(f"Accuracy results written to {args.output_dir}")
 
