@@ -2,9 +2,10 @@ import json
 import subprocess
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / 'docs/assets/margin-credit.js'
-PAGE = ROOT / 'docs/reliable-index-forecast.html'
 
 
 def render(payload, *, failed=False):
@@ -44,9 +45,11 @@ def fixture():
                                    {'date': '2026-11-18', 'balance_krw': 5942694000000}]}}
 
 
-def test_credit_graph_displays_market_dates_units_receipt_and_text_alternative():
-    html = PAGE.read_text()
+@pytest.mark.parametrize('page', ['reliable-index-forecast.html', 'index-forecast.html'])
+def test_credit_graph_displays_market_dates_units_receipt_and_text_alternative(page):
+    html = (ROOT / 'docs' / page).read_text()
     assert 'assets/margin-credit.js' in html
+    assert 'assets/margin-credit.css' in html
     assert 'margin-credit-content' in html
     nodes = render(fixture())
     content = nodes['margin-credit-content']['innerHTML']

@@ -174,6 +174,8 @@ async function main() {
   } catch (error) {
     document.getElementById("runStatus").textContent = "not_ready";
     document.getElementById("freshness").textContent = `리포트를 불러오지 못했습니다: ${error.message}`;
+  } finally {
+    if (location.hash === "#margin-credit") document.getElementById("margin-credit")?.scrollIntoView();
   }
 }
 
