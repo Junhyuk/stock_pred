@@ -64,6 +64,14 @@ jobs:
         env:
           FORECAST_CACHE_KEY: ${{ secrets.FORECAST_CACHE_KEY }}
         run: python scripts/accuracy_operation.py --phase cache-open --mode "${{ steps.operation.outputs.mode }}"
+      - name: Collect bounded market indicators
+        if: steps.operation.outputs.collect == 'true'
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          BOK_ECOS_API_KEY: ${{ secrets.BOK_ECOS_API_KEY }}
+          DATA_GO_KR_SERVICE_KEY: ${{ secrets.DATA_GO_KR_SERVICE_KEY }}
+        run: python scripts/collect_market_indicators.py --output-dir docs/data --sqlite data/processed/robo_session_inputs.sqlite
       - name: Collect bounded official economic facts
         if: steps.operation.outputs.collect == 'true'
         run: python scripts/collect_economic_calendar.py
@@ -157,15 +165,28 @@ jobs:
         if: steps.operation.outputs.mode == 'validate'
         run: |
           set -euo pipefail
-          python -m pytest -q tests/test_reliable_accuracy_protocol.py tests/test_reliable_intervals.py tests/test_economic_calendar.py tests/test_economic_sources.py tests/test_economic_forecast.py tests/test_forward_ledger.py tests/test_accuracy_automation.py tests/test_accuracy_calendar_audit.py tests/test_automation_publication.py tests/test_automation_cli_integration.py tests/test_pages_artifact_wait.py tests/test_postclose_protocol.py tests/test_postclose_review_fixes.py tests/test_market_closes.py tests/test_postclose_ui.py
+          python -m pytest -q tests/test_reliable_accuracy_protocol.py tests/test_reliable_intervals.py tests/test_economic_calendar.py tests/test_economic_sources.py tests/test_economic_forecast.py tests/test_forward_ledger.py tests/test_accuracy_automation.py tests/test_accuracy_calendar_audit.py tests/test_automation_publication.py tests/test_automation_cli_integration.py tests/test_pages_artifact_wait.py tests/test_postclose_protocol.py tests/test_postclose_review_fixes.py tests/test_market_closes.py tests/test_postclose_ui.py tests/test_market_indicators.py tests/test_official_yields.py tests/test_official_credit.py tests/test_market_indicators_workflow.py
           python scripts/collect_economic_calendar.py --output-dir "$RUNNER_TEMP/calendar-validation" --private-dir "$RUNNER_TEMP/calendar-private"
           cp "$RUNNER_TEMP/calendar-validation/economic_collection_status.json" "$RUNNER_TEMP/accuracy-validation.json"
+      - name: Validate market indicators without publication
+        if: steps.operation.outputs.mode == 'validate'
+        timeout-minutes: 1
+        env:
+          BOK_ECOS_API_KEY: ${{ secrets.BOK_ECOS_API_KEY }}
+          DATA_GO_KR_SERVICE_KEY: ${{ secrets.DATA_GO_KR_SERVICE_KEY }}
+        run: |
+          python scripts/collect_market_indicators.py \
+            --output-dir "$RUNNER_TEMP/market-indicators-validation" \
+            --sqlite "$RUNNER_TEMP/market-indicators-private/indicators.sqlite" \
+            --seed-dir docs/data
       - name: Upload compact validation status
         if: steps.operation.outputs.mode == 'validate' && !cancelled()
         uses: actions/upload-artifact@v4
         with:
           name: accuracy-validation-status
-          path: ${{ runner.temp }}/accuracy-validation.json
+          path: |
+            ${{ runner.temp }}/accuracy-validation.json
+            ${{ runner.temp }}/market-indicators-validation/market_indicators_status.json
           retention-days: 14
           if-no-files-found: warn
       - name: Compress derived OOF evidence

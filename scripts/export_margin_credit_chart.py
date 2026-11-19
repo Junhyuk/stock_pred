@@ -23,7 +23,7 @@ WITH observed AS (
     SELECT market, observation_date, value, utc_stamp(received_at) AS received_utc, published_at
     FROM session_input_observations
     WHERE series = 'MARGIN_CREDIT_BALANCE'
-      AND source = 'kofia_freesis_margin_credit' AND unit = 'KRW'
+      AND source IN ('kofia_freesis_margin_credit', 'fsc_kofia_margin_credit') AND unit = 'KRW'
       AND market IN ('KOSPI', 'KOSDAQ')
       AND (is_final IS NULL OR is_final = 1)
       AND observation_date <= ?

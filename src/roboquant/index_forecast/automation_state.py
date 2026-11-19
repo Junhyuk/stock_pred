@@ -18,6 +18,7 @@ from zoneinfo import ZoneInfo
 KST = ZoneInfo('Asia/Seoul')
 ROOT = Path(__file__).resolve().parents[3]
 PUBLIC_NAMES = frozenset({'automation_status.json', 'reliable_index_forecast.json',
+    'market_indicators_status.json', 'margin_credit_chart.json',
     'reliable_validation_report.json', 'reliable_model_card.json', 'reliable_publication.json',
     'economic_calendar.json', 'economic_history.json', 'economic_collection_status.json',
     'forward_history.json', 'forward_validation.json', 'actions_budget.json',

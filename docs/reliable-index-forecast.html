@@ -157,6 +157,9 @@
     #economic-calendar table { width:100%; border-collapse:collapse; min-width:580px; }
     #economic-calendar th, #economic-calendar td { text-align:left; padding:12px; border-bottom:1px solid var(--line); vertical-align:top; }
     #economic-calendar small { color:var(--muted); overflow-wrap:anywhere; }
+    #market-indicators table { width: 100%; min-width: 420px; border-collapse: collapse; }
+    #market-indicators th, #market-indicators td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--line); }
+    #market-indicators-sources { color: var(--muted); font-size: 13px; }
     .reference { padding:12px; background:var(--bg); border:1px dashed var(--line); border-radius:8px; }
   </style>
 </head>
@@ -173,6 +176,7 @@
     <a href="index-forecast.html">1D/2D 리포트</a>
     <a href="dashboard.html">일일 대시보드</a>
     <a href="#margin-credit">신용융자 잔고</a>
+    <a href="#market-indicators">시장 지표</a>
   </nav>
   <p class="notice">상승 확률은 P(다음 거래일 수익률 &gt; 0)입니다. 하락 확률은 1−상승 확률이며 보합은 별도 추정하지 않습니다.
     80% 구간은 과거 시점 외 표본 오차로 보정한 목표 구간이며, 시간 의존성으로 실제 포함률을 보장하지 않습니다.
@@ -191,6 +195,16 @@
     <p id="margin-credit-status" role="status">신용융자 잔고를 불러오는 중입니다.</p>
     <div id="margin-credit-content"></div>
     <p class="credit-source">출처 <a href="https://freesis.kofia.or.kr/stat/FreeSIS.do?parentDivId=MSIS10000000000000&amp;serviceId=STATSCU0100000140">금융투자협회 FreeSIS</a></p>
+  </section>
+  <section id="market-indicators" class="notice" aria-labelledby="market-indicators-title">
+    <h2 id="market-indicators-title">국채 금리와 전체 신용융자</h2>
+    <p id="market-indicators-status" role="status">수집 상태를 확인하는 중입니다.</p>
+    <div class="economic-table"><table>
+      <thead><tr><th scope="col">지표</th><th scope="col">최근 값</th><th scope="col">기준일</th><th scope="col">수집 상태</th></tr></thead>
+      <tbody id="market-indicators-rows"></tbody>
+    </table></div>
+    <p id="market-indicators-sources"></p>
+    <p class="credit-source">출처 <a href="https://ecos.bok.or.kr/#/SearchStat">한국은행 ECOS</a> · <a href="https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml">미 재무부</a> · <a href="https://freesis.kofia.or.kr/stat/main.do">FreeSIS</a></p>
   </section>
   <section id="economic-calendar" class="notice" aria-labelledby="economic-calendar-title">
     <h2 id="economic-calendar-title">경제 발표 캘린더와 실제 수치</h2>
@@ -476,7 +490,7 @@ Promise.all([
 }).catch(error => {
   document.getElementById('status').textContent = error.message;
 }).finally(() => {
-  if (location.hash === '#margin-credit') document.getElementById('margin-credit').scrollIntoView();
+  if (['#margin-credit', '#market-indicators'].includes(location.hash)) document.querySelector(location.hash)?.scrollIntoView();
 });
 </script>
 <script>
@@ -487,5 +501,6 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) refr
 </script>
 <script src="assets/economic-calendar.js"></script>
 <script src="assets/margin-credit.js"></script>
+<script src="assets/market-indicators.js"></script>
 </body>
 </html>

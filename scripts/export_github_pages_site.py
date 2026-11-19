@@ -40,8 +40,8 @@ INDEX_FORECAST_PAGE_FILES = (
     "assets/economic-calendar.js",
     "assets/margin-credit.css",
     "assets/margin-credit.js",
+    "assets/market-indicators.js",
     "data/index_forecast.json",
-    "data/margin_credit_chart.json",
 )
 
 

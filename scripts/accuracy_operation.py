@@ -170,7 +170,8 @@ def main():
             import tempfile
             with tempfile.TemporaryDirectory(prefix='accuracy-cache-') as temporary:
                 bundle = Path(temporary)
-                permitted = [private / 'index_forecast.sqlite', private / 'postclose-prepared.json', *(csvs[-1:] or [private / 'us_market_observations_v2_unavailable.csv'])]
+                permitted = [private / 'index_forecast.sqlite', private / 'robo_session_inputs.sqlite',
+                             private / 'postclose-prepared.json', *(csvs[-1:] or [private / 'us_market_observations_v2_unavailable.csv'])]
                 for directory in ('prepared', 'economic-calendar', 'accuracy-state'):
                     permitted.extend(p for p in (private / directory).rglob('*') if p.is_file() and p.suffix in {'.sqlite', '.csv', '.json'})
                 for source in permitted:

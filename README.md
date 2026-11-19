@@ -1050,9 +1050,14 @@ GitHub Actions가 한국시간 평일18:00에 하루 한 번 수집·검증·배
 검증 상태와 함께 표시합니다. 운영 모드·복구·무료 runner/저장공간 검수는
 [일일 자동화 운영 문서](docs/DAILY_AUTOMATION.md)를 참고하세요.
 
-예측 페이지의 신용융자 잔고는 시장별 최근 90개 결제일에 대한 스냅샷입니다.
-연구용 SQLite에 FreeSIS의 새 잔고를 적재한 뒤 다음 명령으로 그래프 자료를 갱신합니다.
-SQLite는 읽기 전용으로 열고 공개 사이트에는 그래프용 JSON을 배포합니다.
+같은 Actions 실행에서 미국·한국 1·3·10년물 국채와 신용융자 잔고의 최신 관측을 확인합니다.
+미국 국채와 FreeSIS의 전체 신용융자는 공개 출처에서 수집합니다. 한국 국고채는
+`BOK_ECOS_API_KEY`, 시장별 신용융자는 `DATA_GO_KR_SERVICE_KEY`가 있으면 수집합니다.
+시장별 잔고는 같은 날짜의 FreeSIS 전체 잔고와 대조한 뒤 반영합니다.
+페이지에서 기준일과 수집 상태를 확인할 수 있으며, 새 값이 들어오지 않으면 최근 관측을 표시합니다.
+
+SQLite에 관측 이력을 이어 붙이고 기존 암호화 캐시에 저장합니다. 공개 페이지에는 지표 상태와
+시장별 최근 90개 결제일의 그래프를 배포합니다. 수동 적재 뒤에도 그래프를 갱신할 수 있습니다.
 
 ```bash
 python scripts/export_margin_credit_chart.py --sqlite data/processed/robo_session_inputs.sqlite

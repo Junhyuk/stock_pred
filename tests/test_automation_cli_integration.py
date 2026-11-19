@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import shutil
+import sqlite3
 import subprocess
 import sys
 from pathlib import Path
@@ -172,12 +173,18 @@ def test_versioned_snapshot_survives_cache_pruning_rerun_and_next_day(checkout):
     checkout.seed()
     prices = checkout.refresh(now='2026-11-13T22:53:00+00:00')
     expected = (checkout.root / prices['us_csv']).read_bytes()
+    indicators = checkout.private / 'robo_session_inputs.sqlite'
+    with sqlite3.connect(indicators) as db:
+        db.execute('CREATE TABLE session_input_observations (value REAL)')
+        db.execute('INSERT INTO session_input_observations VALUES (4.62)')
     assert checkout.operation('cache-seal', 'prepare', now=PREPARE)['status'] == 'sealed'
     assert len(list(checkout.private.glob('us_market_observations_v2_*.csv'))) == 1
     assert b'offline fixture' not in (checkout.root / '.forecast-cache/state.enc').read_bytes()
     shutil.rmtree(checkout.private)
     assert checkout.operation('cache-open', 'prepare')['status'] == 'restored'
     assert (checkout.root / prices['us_csv']).read_bytes() == expected
+    with sqlite3.connect(indicators) as db:
+        assert db.execute('SELECT value FROM session_input_observations').fetchall() == [(4.62,)]
     assert checkout.refresh(now='2026-11-13T22:55:00+00:00')['us_csv'] == prices['us_csv']
     following = checkout.refresh(now=PREPARE)
     frame = pd.read_csv(checkout.root / following['us_csv'])
