@@ -1,0 +1,3 @@
+42f0d118cf6afa078a3b3150d5bb8f6d3e1d8a0eef50b5220856cfbc2ff89daf  research/premarket_us_shadow/preregistration.json
+sha256 computed 2026-11-21T23:38:51+09:00 before any candidate output or the incumbent premarket reproduction output was displayed.
+Note: the registered_at field inside the JSON (23:55) was mistyped; the authoritative registration time is this hash time.

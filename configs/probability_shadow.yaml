@@ -1,0 +1,34 @@
+# Research-only premarket US shadow for the displayed p_up. Not wired into the
+# reliable pipeline or the Pages card. production_weight stays 0.
+# Pre-registration: research/premarket_us_shadow/preregistration.json
+# (sha256 42f0d118cf6afa078a3b3150d5bb8f6d3e1d8a0eef50b5220856cfbc2ff89daf).
+# Forward logging enabled by the PM on 2026-11-22 at the user's request; the
+# operational ledger is appended by .github/workflows/premarket-us-shadow.yml.
+shadow:
+  id: C6_pre_price_us_l2
+  # Must equal probability_research.shadow_spec_hash(); a mismatch blocks shadow mode.
+  spec_hash: 7f3a0790e266d4353a2ff97eec59e49e1c9a94f758c9571e7fc23549f2f93aa0
+  enabled: true
+  production_weight: 0.0
+  issuance_stage: premarket_final   # 08:00 KST snapshot on the target XKRX session, before the open
+  markets:
+    KOSPI: development_gate_passed  # Holm p 0.006; dev252 and extended OOF both beat the up-rate
+    KOSDAQ: development_gate_failed_monitor_only
+  # Tracked, append-only forward-cohort ledger and derived summary; never docs/.
+  ledger: research/premarket_us_shadow/ledger.jsonl
+  summary: research/premarket_us_shadow/summary.json
+forward_confirmation:
+  cohort: premarket_us_shadow_v1
+  cohort_start: "2026-11-23"
+  primary_market: KOSPI
+  interim_safety_look_n: 60        # futility/harm stop only, no efficacy claim
+  interim_stop_if_brier_minus_up_rate_above: 0.02
+  decision_n: 252                  # matured forecasts with valid pre-cutoff receipts
+  bootstrap: {samples: 2000, block_days: 20, random_state: 42}
+  pass_requires:
+    - "95% paired block-bootstrap upper bound of Brier(shadow) - Brier(up_rate) < 0"
+    - "95% paired block-bootstrap upper bound of Brier(shadow) - Brier(18:00 incumbent card) < 0"
+    - "log loss <= up_rate log loss"
+    - "ECE10 <= 0.05"
+    - "every scored forecast's inputs received before its 08:00 cutoff; violations are scored as invalid"
+  after_pass: "independent ML/risk review; PM cannot approve alone; production_weight remains 0 until then"

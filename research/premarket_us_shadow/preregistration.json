@@ -1,0 +1,100 @@
+{
+  "schema_version": "probability_candidate_preregistration_v1",
+  "registered_at": "2026-11-21T23:55:00+09:00",
+  "registered_by": "ML Expert Agent (skills/ML_EXPERT.md)",
+  "goal": "Improve the probability quality of the displayed p_up/p_down (Brier, log loss, ECE, direction hit) for KOSPI and KOSDAQ next-session close versus the historical up-rate.",
+  "selection_exposure_disclosure": [
+    "Incumbent development metrics (2024-10-25..2025-11-07) were already public and viewed before this registration, including the fact that the uncalibrated 'legacy' logistic scored better than the calibrated incumbent.",
+    "Prior worktree feat/robo-stock-accuracy-20261119 viewed MAE (not probability) results for KR/US yields, spreads and margin credit on the same 252 development sessions, and a rolling Laplace-252 up-rate probability (not repeated here).",
+    "The terminal block (as-of >= 2025-11-10) is burned. No candidate fitting, calibration, scoring or selection uses any row with as-of >= 2025-11-10; inputs are truncated at 2025-11-10 (the outcome date of the last development row).",
+    "Only data-quality checks (OHLC consistency, duplicates, coverage) were run on the new inputs before this registration; no outcome-based statistic of any candidate was computed."
+  ],
+  "common_protocol": {
+    "target": "y = 1[close(T+1)/close(T) - 1 > 0], next scheduled XKRX session",
+    "anchors": "fit_protocol.session_anchor XKRX, origin 2019-01-02, refit every 21 scheduled sessions; training rows from fit_protocol.make_fit_snapshot (expanding, purge 1 session, label matured at or before the anchor cutoff, finite features only)",
+    "missing_values": "rows with a missing candidate feature are excluded from training and from scoring; never filled with zero",
+    "preprocessing": "median imputer + StandardScaler fitted on the anchor's training rows only",
+    "model_for_logistic_candidates": "sklearn LogisticRegression(C=0.01, l2, lbfgs, max_iter=2000); no OOF sigmoid recalibration; random_state 42 recorded (solver deterministic)",
+    "clocks": {
+      "postclose": "after_close_daily_v1: postclose.historical_cutoff = first KST weekday 18:00 after the XKRX close of T",
+      "premarket": "premarket_final: 08:00 KST on target session T+1 (US session closing before that cutoff is available)"
+    },
+    "baselines_same_dates": [
+      "up_rate: expanding Laplace up-rate of labels available at the cutoff (incumbent definition)",
+      "incumbent: linear:price with sigmoid OOF calibration (postclose walk via reliable._walk)",
+      "legacy: same linear price model, raw uncalibrated logistic C=1",
+      "previous_direction and simple_trend hard-direction references (uncalibrated; direction hit only meaningful)"
+    ],
+    "scoring_windows": {
+      "primary_extended_pre_terminal_oof": "every as-of < 2025-11-10 where the postclose incumbent linear:price record is calibration_ready and the candidate has a prediction",
+      "secondary_development_block": "2024-10-25 <= as-of < 2025-11-10 (published development_start; 252 sessions)"
+    },
+    "metrics": ["brier", "log_loss", "direction_hit (p>=0.5)", "ECE 10 equal-width bins", "reliability bins", "sharpness (std of p)", "mean p"],
+    "bootstrap": "paired moving-block bootstrap of per-session loss differences, 2000 draws, block 20, seed 42 (reliable._bootstrap)",
+    "slices": ["volatility_regime high/low (incumbent definition)", "drawdown: close <= 0.90 x max close of prior 252 sessions", "trend_regime (return_20d sign)", "big-down outcome days (actual <= -2%): mean p_up", "year"]
+  },
+  "candidates": [
+    {
+      "id": "C1_post_price_l2",
+      "clock": "postclose",
+      "features": ["return_1d", "return_5d", "return_20d", "volatility_5d", "volatility_20d", "ma_gap_5d", "ma_gap_20d"],
+      "model": "logistic_C0.01_no_recalibration",
+      "hypothesis": "Price features carry at most a weak 1D signal; the incumbent's second-stage sigmoid recalibration fitted on 252 noisy OOF rows plus weak L2 adds variance. Strong L2 without recalibration should shrink toward the base rate and lower Brier variance."
+    },
+    {
+      "id": "C2_post_price_ohlc_l2",
+      "clock": "postclose",
+      "features": ["C1 features", "intraday_return_1d = close/open - 1", "range_1d = ln(high/low)", "clv_1d = ((close-low)-(high-close))/(high-low)"],
+      "model": "logistic_C0.01_no_recalibration",
+      "hypothesis": "The close-to-close return mixes the US-driven opening gap with the Korea-specific intraday move; intraday return, closing location and range (more efficient vol estimator) may carry end-of-day pressure/reversal information not in close-to-close features. Prior worktree's top recommended untested input."
+    },
+    {
+      "id": "C3_post_price_credit_l2",
+      "clock": "postclose",
+      "features": ["C1 features", "credit_log_change_1/5/20 (own-market FreeSIS margin credit balance; observation D usable at the 18:00 cutoff of the 2nd XKRX session after D)"],
+      "model": "logistic_C0.01_no_recalibration",
+      "hypothesis": "Retail leverage build-up/unwind (margin calls, forced selling) creates short-horizon continuation after credit contraction in Korea.",
+      "sensitivity": "1st-session-after-D availability (prior D+1 credit variant), reported, not separately gated"
+    },
+    {
+      "id": "C4_post_price_rates_l2",
+      "clock": "postclose",
+      "features": ["C1 features", "kr3y_change_5obs_bp", "us10y_change_5obs_bp", "us1y_change_5obs_bp (ECOS KR / Treasury US par yields; observation D usable at the 18:00 cutoff of the 2nd XKRX session after D)"],
+      "model": "logistic_C0.01_no_recalibration",
+      "hypothesis": "Discount-rate and policy-expectation shocks shift equity risk appetite; rising yields lower the next-session up-probability.",
+      "sensitivity": "1st-session-after-D availability, reported, not separately gated"
+    },
+    {
+      "id": "C5_post_regime_cell_rate",
+      "clock": "postclose",
+      "features": ["volatility_20d versus the training rows' median (high/low)", "return_20d sign"],
+      "model": "4-cell expanding up-rate shrunk to the overall training up-rate with 20 pseudo-observations, refit at each anchor",
+      "hypothesis": "The incumbent is anchored to the long-run up drift; the up-rate itself differs by volatility/trend regime (e.g. high-vol downtrends). A low-variance conditional base rate captures that without parametric noise."
+    },
+    {
+      "id": "C6_pre_price_us_l2",
+      "clock": "premarket",
+      "features": ["C1 features", "us_spx_return_1d", "us_nasdaq_return_1d", "us_sox_return_1d", "us_vix_level", "us_vix_return_1d", "sox_nasdaq_spread_1d (US session closing before 08:00 KST of T+1; close + 15 min buffer reconstruction)"],
+      "model": "logistic_C0.01_no_recalibration",
+      "hypothesis": "The US session that trades after the 18:00 KST issue is the main driver of the KRX opening gap. A premarket cutoff that sees it should materially beat the base rate. Difference to C1 quantifies the information lost by issuing at 18:00. This is a different issuance clock/product, not a drop-in for the 18:00 card."
+    }
+  ],
+  "preregistered_ablations_not_gated": [
+    "A1 premarket US-only (6 US features, no price), C6 model",
+    "A2 incumbent pipeline linear:price_us with sigmoid OOF recalibration on the premarket clock (from reliable._walk)",
+    "A3 C3 credit with 1st-session availability",
+    "A4 C4 rates with 1st-session availability",
+    "A5 incumbent pipeline linear:price_us on the postclose clock (US T-1, as published)",
+    "Each feature-block candidate (C2, C3, C4) is compared with C1 on identical dates (block removal ablation)"
+  ],
+  "multiple_testing": "Holm step-down across 12 tests (6 candidates x 2 markets) at family-wise alpha 0.05, one-sided p-value = (1 + #{bootstrap mean of (candidate - up_rate) Brier difference >= 0}) / 2001 on the primary window",
+  "development_gate_per_candidate_market": [
+    "Holm-adjusted p < 0.05 on the primary window (Brier below up-rate)",
+    "secondary 252 development block: Brier point estimate below up-rate",
+    "log loss not worse than up-rate on both windows",
+    "ECE10 <= 0.05 on the primary window",
+    "no single-year slice with Brier worse than up-rate by more than 0.01"
+  ],
+  "decision_if_passed": "Implement as a research/shadow family behind config with production_weight 0; incumbent output unchanged; forward confirmation required before any promotion discussion.",
+  "decision_if_none_passed": "Report the non-result; implement nothing in the serving path."
+}
