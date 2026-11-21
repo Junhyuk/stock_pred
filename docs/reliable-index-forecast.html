@@ -240,20 +240,6 @@ const level = value => {
   return n.toLocaleString('ko-KR', { maximumFractionDigits: 2 });
 };
 
-function forecastStatusMessage(status) {
-  const s = String(status ?? '');
-  if (s.startsWith('blocked_')) {
-    return { text: '종가가 최신 거래일까지 아니라 오늘 예측을 내지 않음', kind: 'blocked' };
-  }
-  if (s === 'accepted_shadow' || s === 'accepted' || s === 'research_only') {
-    return { text: '연구 결과', kind: 'ok' };
-  }
-  if (s === 'rejected' || s === 'not_ready') {
-    return { text: '검증 미통과 · 매매 신호 아님', kind: 'warn' };
-  }
-  return { text: '검증 미통과 · 매매 신호 아님', kind: 'warn' };
-}
-
 function direction(up, down) {
   if (up == null || down == null || up === '' || down === '') return '방향 확인 불가';
   const u = Number(up), d = Number(down);
