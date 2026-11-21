@@ -193,7 +193,7 @@ def test_workflow_commits_only_in_live_mode_with_identity_and_ledger_guard():
     script = commit["run"]
     # Identity is configured before any commit or rebase in the retry loop.
     assert script.index("git config user.email") < script.index("git commit") < script.index("git pull --rebase")
-    assert "no new ledger rows" in script and "docs/" not in script
+    assert "no new ledger rows" in script and "append-only" in script and "docs/" not in script
     shadow = steps["Shadow forecast"]["run"]
     assert "--rehearsal" in shadow and "rehearsal-ledger.jsonl" in shadow
     assert "second=30" in steps["Wait for the actual 08:00 KST cutoff"]["run"]

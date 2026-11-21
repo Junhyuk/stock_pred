@@ -152,6 +152,14 @@ jobs:
             echo "no new ledger rows; nothing to commit"
             exit 0
           fi
+          # The forward-cohort ledger is append-only: a run may add rows, never remove or rewrite them.
+          if git ls-files --error-unmatch "$ledger" >/dev/null 2>&1; then
+            removed=$(git diff --numstat -- "$ledger" | awk '{print $2}')
+            if [ "${removed:-0}" != "0" ]; then
+              echo "ledger is append-only; refusing a change that removes ${removed} line(s)"
+              exit 1
+            fi
+          fi
           allowed="$ledger $summary"
           git add -- $(for f in $allowed; do [ -e "$f" ] && echo "$f"; done)
           staged=$(git diff --cached --name-only)
