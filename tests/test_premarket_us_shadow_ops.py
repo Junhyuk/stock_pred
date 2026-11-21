@@ -180,3 +180,20 @@ def test_evaluate_cli_writes_a_summary_outside_docs(script, tmp_path):
     with pytest.raises(SystemExit):
         script.main(["evaluate", "--sqlite", str(db), "--ledger", str(ledger),
                      "--output", str(ROOT / "docs/data/should_not_exist.json")])
+
+
+def test_workflow_commits_only_in_live_mode_with_identity_and_ledger_guard():
+    workflow = yaml.safe_load((ROOT / ".github/workflows/premarket-us-shadow.yml").read_text())
+    job = workflow["jobs"]["shadow"]
+    assert workflow["permissions"] == {"contents": "read"} and job["permissions"] == {"contents": "write"}
+    assert [c["cron"] for c in workflow[True]["schedule"]] == ["35 22 * * 0-4", "50 22 * * 0-4"]
+    steps = {s["name"]: s for s in job["steps"]}
+    commit = steps["Commit the forward-cohort ledger"]
+    assert "env.MODE == 'live'" in commit["if"]
+    script = commit["run"]
+    # Identity is configured before any commit or rebase in the retry loop.
+    assert script.index("git config user.email") < script.index("git commit") < script.index("git pull --rebase")
+    assert "no new ledger rows" in script and "docs/" not in script
+    shadow = steps["Shadow forecast"]["run"]
+    assert "--rehearsal" in shadow and "rehearsal-ledger.jsonl" in shadow
+    assert "second=30" in steps["Wait for the actual 08:00 KST cutoff"]["run"]

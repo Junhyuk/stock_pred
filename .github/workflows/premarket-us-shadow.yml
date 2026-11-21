@@ -94,7 +94,8 @@ jobs:
           from datetime import datetime, timedelta
           from zoneinfo import ZoneInfo
           now = datetime.now(ZoneInfo("Asia/Seoul"))
-          cutoff = now.replace(hour=8, minute=0, second=5, microsecond=0)
+          # 30 s margin so a slightly slow runner clock still issues at premarket_final.
+          cutoff = now.replace(hour=8, minute=0, second=30, microsecond=0)
           wait = (cutoff - now).total_seconds()
           if 0 < wait <= 1800:
               print(f"waiting {wait:.0f}s for {cutoff.isoformat()}")
@@ -140,15 +141,25 @@ jobs:
         if: steps.plan.outputs.run == 'true' && env.MODE == 'live' && success()
         run: |
           set -euo pipefail
-          allowed="research/premarket_us_shadow/ledger.jsonl research/premarket_us_shadow/summary.json"
+          # Identity for both the commit and any rebase in the push retry loop.
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          ledger=research/premarket_us_shadow/ledger.jsonl
+          summary=research/premarket_us_shadow/summary.json
+          # The summary is derived from the ledger; without new ledger rows (e.g. the
+          # 07:50 fallback skipping already-issued markets) there is nothing to record.
+          if [ ! -e "$ledger" ] || { git ls-files --error-unmatch "$ledger" >/dev/null 2>&1 && git diff --quiet -- "$ledger"; }; then
+            echo "no new ledger rows; nothing to commit"
+            exit 0
+          fi
+          allowed="$ledger $summary"
           git add -- $(for f in $allowed; do [ -e "$f" ] && echo "$f"; done)
           staged=$(git diff --cached --name-only)
           for f in $staged; do
             case " $allowed " in *" $f "*) ;; *) echo "staged path outside allowlist: $f"; exit 1;; esac
           done
           if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
-          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
-            commit -m 'Record premarket US shadow forecasts for the forward check.'
+          git commit -m 'Record premarket US shadow forecasts for the forward check.'
           for attempt in 1 2 3; do
             if git push origin HEAD:master; then exit 0; fi
             git pull --rebase origin master
