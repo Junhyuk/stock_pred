@@ -7,14 +7,6 @@
     ...['1Y', '3Y', '10Y'].map(tenor => [`US_YIELD_${tenor}`, `미국 국채 ${tenor.slice(0, -1)}년`, 'percent']),
     ['MARGIN_CREDIT_BALANCE', '전체 신용융자 잔고', 'KRW'],
   ];
-  const messages = {
-    ready: '수집 완료',
-    missing_credentials: 'API 키 필요',
-    missing_market_split_credentials: '전체만 수집 · 시장별 API 키 필요',
-    incomplete_scope: '일부 자료만 확인',
-    source_error: '수집 실패',
-    no_valid_observation: '새 관측 미확인',
-  };
   const kst = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit',
     day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
 
@@ -33,12 +25,7 @@
         const state = row ? (row.tracking_status === 'seen' ? '이번 수집 확인' : '이전 관측') : '자료 없음';
         for (const text of [name, value, row?.observation_date ?? '—', state]) tr.insertCell().textContent = text;
       }
-      status.textContent = `최근 수집 확인 ${kst.format(checked)} KST`;
-      const labels = [['credit', '신용융자'], ['kr_yields', '한국 국고채'], ['us_yields', '미국 국채']];
-      document.getElementById('market-indicators-sources').textContent = labels.map(([key, label]) => {
-        const result = data.sources?.[key];
-        return `${label} ${messages[result?.reason || result?.status] || '상태 미확인'}`;
-      }).join(' · ');
+      status.textContent = `수집 ${kst.format(checked)} KST`;
     })
     .catch(() => { status.textContent = '시장 지표 수집 상태를 불러오지 못했습니다.'; });
 })();

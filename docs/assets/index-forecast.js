@@ -67,8 +67,6 @@ function horizonBox(block) {
   }
   const pUp = forecast ? pct(forecast.p_up) : "—";
   const pDown = forecast ? pct(forecast.p_down) : "—";
-  const gate = champion.gate_status || block.status || "—";
-  const rejected = gate === "rejected" || block.status === "rejected";
   const probability = forecast && forecast.p_up == null
     ? "상승 확률은 추정하지 않습니다"
     : `상승 확률 ${pUp} · 하락 확률 ${pDown}`;
@@ -80,8 +78,7 @@ function horizonBox(block) {
       <div class="inline-metric"><span>3년 MAE</span><strong>${num(champion.metrics?.mae, 5)}</strong></div>
       <div class="inline-metric"><span>예상 수익률</span><strong>${forecast ? pct(forecast.expected_return) : "—"}</strong></div>
       <div class="inline-metric"><span>80% 범위</span><strong>${forecast ? `${pct(forecast.range_low)} ~ ${pct(forecast.range_high)}` : "—"}</strong></div>
-      <p class="prob">${probability} · ${signalLabel(forecast?.signal)}${rejected ? " · 검증 미통과" : ""}</p>
-      <p class="tiny">게이트 ${gate} · 연구 예측이며 수익을 보장하지 않습니다.</p>
+      <p class="prob">${probability} · ${signalLabel(forecast?.signal)}</p>
     </div>`;
 }
 

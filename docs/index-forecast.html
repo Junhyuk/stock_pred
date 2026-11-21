@@ -25,7 +25,6 @@
   <main>
     <header class="topbar">
       <div>
-        <p class="eyebrow">Sequential-7 · 연구 트랙 · production_weight=0</p>
         <h1>KOSPI · KOSDAQ · KOSPI100 · KOSDAQ100 예측 리포트</h1>
       </div>
       <div id="runStatus" class="status">loading</div>
@@ -51,8 +50,7 @@
         <p class="credit-source">출처 <a href="https://freesis.kofia.or.kr/stat/FreeSIS.do?parentDivId=MSIS10000000000000&amp;serviceId=STATSCU0100000140">금융투자협회 FreeSIS</a></p>
       </article>
       <article id="leaderboard" class="panel wide">
-        <h2>3년 백테스트 우승 모델 (실제 등락 부호 vs 예측 부호)</h2>
-        <p class="tiny">방향 적중률이 1순위, MAE가 2순위입니다. 1D와 2D는 따로 고릅니다. 2거래일은 1일 예측을 두 번 잇지 않고, 2거래일 뒤 종가를 직접 맞춥니다. 학습에서 그 2거래일을 빼고, 우승은 겹치지 않는 2거래일마다 한 번씩 센 결과로 고릅니다. 승자도 production Ridge를 대체하지 않습니다.</p>
+        <h2>3년 백테스트 우승 모델</h2>
         <div id="leaderboardTable" class="table"></div>
       </article>
       <article id="compare" class="panel wide">

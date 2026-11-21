@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>한국·미국 다음 거래일 확률·예측구간 연구</title>
+  <title>한국·미국 다음 거래일 확률·예측구간</title>
   <link rel="stylesheet" href="assets/site.css" />
   <link rel="stylesheet" href="assets/margin-credit.css" />
   <style>
@@ -12,10 +12,13 @@
       border: 1px solid var(--line);
       border-radius: 8px;
       margin: 16px 0;
-      line-height: 1.55;
+      line-height: 1.45;
       font-size: 14px;
       color: var(--ink);
     }
+    h1, .notice > h2, .market-region h2, .forecast-card h3, .card-dates, .detail-line { word-break: keep-all; }
+    .notice > h2 { font-size: 18px; margin: 0 0 8px; }
+    #economic-calendar h3 { font-size: 16px; margin: 16px 0 8px; }
     #status {
       color: var(--muted);
       font-weight: 700;
@@ -43,7 +46,7 @@
       .market-region > h2 { grid-row: 1; }
       .market-region > .forecast-card:nth-of-type(1), .market-region > p { grid-row: 2; }
       .market-region > .forecast-card:nth-of-type(2) { grid-row: 3; }
-      .forecast-card > .card-dates.session-dates { min-height: 105px; }
+      .forecast-card > .card-dates.session-dates { min-height: 4.8em; }
     }
     @media (max-width: 800px) {
       .forecast-grid { grid-template-columns: minmax(0, 1fr); gap: 24px; }
@@ -61,7 +64,7 @@
       gap: 16px;
     }
     .forecast-card h3 {
-      font-size: 22px;
+      font-size: 20px;
       margin: 0;
       color: var(--ink);
       letter-spacing: -0.02em;
@@ -69,7 +72,7 @@
     .card-dates {
       font-size: 14px;
       color: var(--muted);
-      line-height: 1.5;
+      line-height: 1.45;
     }
     .card-dates strong { color: var(--ink); font-weight: 700; }
     .hero-metrics {
@@ -129,10 +132,10 @@
     }
     .prob-box.up span, .prob-box.up strong { color: #a3201b; }
     .prob-box.down span, .prob-box.down strong { color: #174b9a; }
-  .detail-line {
+    .detail-line {
       font-size: 15px;
-      line-height: 1.5;
-      padding: 10px 0;
+      line-height: 1.45;
+      padding: 8px 0 0;
       border-top: 1px solid var(--line);
     }
     .detail-line span { color: var(--muted); font-weight: 700; }
@@ -153,21 +156,19 @@
       color: var(--muted);
       font-weight: 700;
     }
-    .economic-table { overflow-x: auto; margin: 12px 0 24px; }
-    #economic-calendar table { width:100%; border-collapse:collapse; min-width:580px; }
-    #economic-calendar th, #economic-calendar td { text-align:left; padding:12px; border-bottom:1px solid var(--line); vertical-align:top; }
-    #economic-calendar small { color:var(--muted); overflow-wrap:anywhere; }
-    #market-indicators table, #extra-numerics table { width: 100%; min-width: 420px; border-collapse: collapse; }
-    #market-indicators th, #market-indicators td, #extra-numerics th, #extra-numerics td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--line); }
-    #market-indicators-sources { color: var(--muted); font-size: 13px; }
-    .reference { padding:12px; background:var(--bg); border:1px dashed var(--line); border-radius:8px; }
+    .economic-table { overflow-x: auto; margin: 8px 0 12px; }
+    #market-indicators table, #extra-numerics table, #economic-calendar table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+    #economic-calendar table { min-width: 520px; }
+    #extra-numerics table, #market-indicators table { min-width: 420px; }
+    #market-indicators th, #market-indicators td, #extra-numerics th, #extra-numerics td, #economic-calendar th, #economic-calendar td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: middle; }
+    #extra-numerics th:nth-child(n+2), #extra-numerics td:nth-child(n+2),
+    #market-indicators th:nth-child(2), #market-indicators td:nth-child(2) { text-align: right; white-space: nowrap; }
   </style>
 </head>
 <body>
 <main>
   <header class="topbar">
     <div>
-      <p class="eyebrow">1D · 연구 전용 · production_weight=0</p>
       <h1>한국·미국 다음 거래일 확률·예측구간</h1>
       <p id="kst-clock">현재 한국 시각 확인 중</p>
     </div>
@@ -182,7 +183,6 @@
   <div id="automation-status" hidden></div>
   <section class="notice" aria-labelledby="market-closes-title">
     <h2 id="market-closes-title">최근 확인한 한국 지수 종가</h2>
-    <p>예측 기준 종가와 별도로 표시합니다. 원래 공개 시각과 거래소 공식 확정 여부는 확인되지 않았습니다.</p>
     <div id="market-closes">종가 확인 중</div>
   </section>
   <div id="status" role="status">로컬 연구 결과를 읽는 중입니다.</div>
@@ -209,7 +209,6 @@
       <thead><tr><th scope="col">지표</th><th scope="col">최근 값</th><th scope="col">기준일</th><th scope="col">수집 상태</th></tr></thead>
       <tbody id="market-indicators-rows"></tbody>
     </table></div>
-    <p id="market-indicators-sources"></p>
     <p class="credit-source">출처 <a href="https://ecos.bok.or.kr/#/SearchStat">한국은행 ECOS</a> · <a href="https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml">미 재무부</a> · <a href="https://freesis.kofia.or.kr/stat/main.do">FreeSIS</a></p>
   </section>
   <section id="economic-calendar" class="notice" aria-labelledby="economic-calendar-title">
@@ -232,7 +231,8 @@ const pct = value => {
   if (value == null || value === '') return '—';
   const n = Number(value);
   if (Number.isNaN(n)) return '—';
-  return (n * 100).toFixed(2) + '%';
+  const text = (n * 100).toFixed(2) + '%';
+  return n > 0 ? `+${text}` : text;
 };
 
 const probLabel = value => {
@@ -293,8 +293,10 @@ function targetEnded(context, now = Date.now()) {
 }
 
 function renderMarketClose(market, item) {
-  const labels = {verified:'두 소스 일치', single_source:'단일 소스', conflict:'소스 충돌', stale:'이전 값 · 최신 수집 실패', unavailable:'자료 없음'};
-  return `<div class="detail-line"><strong>${escapeHtml(MARKET_LABELS[market] ?? market)}</strong> · ${escapeHtml(level(item?.close))} · 거래일 ${escapeHtml(item?.session_date ?? '확인 불가')}<br><span>${escapeHtml(labels[item?.status] ?? '상태 확인 불가')} · 출처 ${escapeHtml(item?.source ?? '확인 불가')} · 수신 ${escapeHtml(formatAutomationTime(item?.received_at))} KST</span></div>`;
+  const labels = {verified:'두 소스 일치', single_source:'단일 소스', conflict:'소스 충돌', stale:'이전 값', unavailable:'자료 없음'};
+  const source = String(item?.source ?? '확인 불가').split(';')[0].trim() || '확인 불가';
+  const received = item?.received_at ? formatKstClock(item.received_at) : '확인 불가';
+  return `<div class="detail-line"><strong>${escapeHtml(MARKET_LABELS[market] ?? market)}</strong> ${escapeHtml(level(item?.close))} · ${escapeHtml(item?.session_date ?? '확인 불가')} · ${escapeHtml(labels[item?.status] ?? '상태 확인 불가')} · ${escapeHtml(source)} · 수신 ${escapeHtml(received)} KST</div>`;
 }
 
 async function loadMarketCloses() {
@@ -326,24 +328,23 @@ function renderCard(item, runStatus, now = Date.now()) {
 
   const latestClose = !blocked && runStatus !== 'unpublished' ? level(f.latest_close) : '—';
   const expectedIndex = canDisplay ? level(display.expected_index) : '—';
-  const pUp = canDisplay ? probLabel(display.p_up) : '확률 없음';
-  const pDown = canDisplay ? probLabel(display.p_down) : '확률 없음';
+  const pUp = canDisplay ? probLabel(display.p_up) : '—';
+  const pDown = canDisplay ? probLabel(display.p_down) : '—';
   const expRet = canDisplay ? pct(display.expected_return) : '—';
   const idxLo = showNumbers ? level(f.index_range_low) : '—';
   const idxHi = showNumbers ? level(f.index_range_high) : '—';
-  const rangeText = (idxLo === '—' && idxHi === '—') ? '—' : `${idxLo} ~ ${idxHi}`;
+  const rangeText = (idxLo === '—' || idxHi === '—') ? '' : `${idxLo} ~ ${idxHi}`;
 
   return `<article class="forecast-card">
     <h3>${escapeHtml(marketName)}</h3>
     ${item.carried_forward ? '<div class="card-dates">이전 공개 결과</div>' : ''}
     <div class="card-dates session-dates">
       <div><strong>${isUS ? '기준 종가일 (미국 거래일)' : '기준 종가일'}</strong> ${escapeHtml(c.asof_date ?? '—')}${isUS ? '' : relativeDateMarkup(c.asof_date, now, 'asof')}</div>
-      <div><strong>${isUS ? '목표 미국 거래일' : '다음 거래일'}</strong> ${escapeHtml(c.target_date ?? '—')}${isUS ? '' : relativeDateMarkup(c.target_date, now, 'target')}</div>
+      <div><strong>${isUS ? '목표 미국 거래일' : '다음 거래일'}</strong> ${escapeHtml(c.target_date ?? '—')}${isUS ? '' : relativeDateMarkup(c.target_date, now, 'target')} <span data-target-date="${escapeHtml(c.target_date ?? '')}" data-target-close="${escapeHtml(c.target_close_at ?? '')}" ${targetEnded(c, now) ? '' : 'hidden'}>이미 종료</span></div>
       ${isUS ? `<div>한국 시각 · 개장 ${escapeHtml(formatOptionalKstTime(c.issuance_deadline))} · 종료 ${escapeHtml(formatOptionalKstTime(c.target_close_at))}</div>` : ''}
-      <div data-target-date="${escapeHtml(c.target_date ?? '')}" data-target-close="${escapeHtml(c.target_close_at ?? '')}" ${targetEnded(c, now) ? '' : 'hidden'}><strong>목표 거래일 이미 종료 · 과거 예측</strong></div>
     </div>
     <div class="hero-metrics">
-      <div class="hero-metric"><span>예측 기준 종가 (${escapeHtml(c.asof_date ?? '날짜 미확인')})</span><strong>${escapeHtml(latestClose)}</strong></div>
+      <div class="hero-metric"><span>기준 종가</span><strong>${escapeHtml(latestClose)}</strong></div>
       <div class="hero-metric"><span>예상 지수</span><strong>${escapeHtml(expectedIndex)}</strong></div>
     </div>
     <div class="prob-row">
@@ -351,7 +352,7 @@ function renderCard(item, runStatus, now = Date.now()) {
       <div class="prob-box down"><span>하락 확률</span><strong>${escapeHtml(pDown)}</strong></div>
     </div>
     <div class="detail-line"><span>예상 수익률 </span><strong>${escapeHtml(expRet)}</strong></div>
-    <div class="detail-line"><span>80% 지수 구간 </span><strong>${escapeHtml(rangeText)}</strong></div>
+    ${rangeText ? `<div class="detail-line"><span>80% 지수 구간 </span><strong>${escapeHtml(rangeText)}</strong></div>` : ''}
   </article>`;
 }
 
