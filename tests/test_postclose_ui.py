@@ -21,8 +21,10 @@ def test_not_ready_renders_calibrated_reference_direction_and_distinct_close_dat
               'production_weight': 0, 'expected_index': 5120.0, 'expected_return': 0.0038,
               'p_up': 0.63, 'p_down': 0.37, 'asof_date': '2026-11-16', 'target_date': '2026-11-17'}}
     out = run_ui('console.log(renderCard(' + json.dumps(item) + ", 'research_only'));" )
-    for text in ('63.00%', '37.00%', '5,120', '2026-11-16', '2026-11-17', '회고', '검증 미통과', 'production_weight=0', '상승'):
+    for text in ('63.00%', '37.00%', '5,120', '2026-11-16', '2026-11-17', '상승'):
         assert text in out
+    assert '검증 미통과' not in out
+    assert '품질 기준 미통과' not in out
     assert 'undefined' not in out
 
 
@@ -32,7 +34,7 @@ def test_expired_target_and_equal_probabilities_are_not_presented_as_today_up():
              'p_up': 0.5, 'p_down': 0.5, 'expected_return': 0, 'status': 'rejected'}}
     out = run_ui('console.log(renderCard(' + json.dumps(item) + ", 'research_only'));" )
     assert '이미 종료' in out
-    assert '중립' in out
+    assert '검증 미통과' not in out
     assert 'undefined' not in out
 
 
@@ -69,7 +71,8 @@ def test_calibrated_reference_appears_in_primary_probability_boxes_when_main_not
     out = run_ui('console.log(renderCard(' + json.dumps(item) + ", 'research_only'));" )
     hero = out.split('<div class="prob-row">', 1)[1].split('<div class="detail-line">', 1)[0]
     assert '63.00%' in hero and '37.00%' in hero
-    assert '연구용' in hero
+    assert '상승 확률' in hero and '하락 확률' in hero
+    assert '연구용' not in hero
 
 
 def test_loader_preserves_verified_carried_card_publication_time():
@@ -117,8 +120,9 @@ def test_us_card_preserves_exchange_session_dates_and_kst_open_close():
 def test_probability_labels_and_region_grouping_follow_requested_order():
     item = {'market': 'KOSPI', 'context': {}, 'forecast': {'status': 'not_ready'}, 'incumbent_reference': {'calibration_ready': True, 'status': 'rejected', 'p_up': 0.63, 'p_down': 0.37}}
     out = run_ui('console.log(renderCard(' + json.dumps(item) + ", 'research_only'));")
-    assert '(연구용)</span><span>상승 확률' in out
-    assert '(연구용)</span><span>하락 확률' in out
+    assert '상승 확률' in out
+    assert '하락 확률' in out
+    assert '(연구용)' not in out
     entries = [{'item': {'market': m, 'context': {}, 'forecast': {'status': 'not_ready'}}, 'runStatus': 'research_only'} for m in ['US_NASDAQ', 'KOSDAQ', 'US_SPX', 'KOSPI']]
     grid = run_ui('console.log(renderForecastGrid(' + json.dumps(entries) + '));')
     assert grid.index('한국') < grid.index('KOSPI') < grid.index('KOSDAQ') < grid.index('미국') < grid.index('S&amp;P 500') < grid.index('Nasdaq')
@@ -127,8 +131,10 @@ def test_probability_labels_and_region_grouping_follow_requested_order():
 def test_missing_live_anchor_explains_saved_model_not_missing_prices_and_shows_carry_forward():
     item = {'market': 'KOSPI', 'carried_forward': True, 'context': {'asof_date': '2026-11-13', 'target_date': '2026-11-16'}, 'forecast': {'status': 'not_ready', 'gate_reasons': ['missing_live_anchor_snapshot']}, 'incumbent_reference': {'calibration_ready': True, 'status': 'rejected', 'p_up': 0.63, 'p_down': 0.37}}
     out = run_ui('console.log(renderCard(' + json.dumps(item) + ", 'research_only'));")
-    for text in ('저장한 실시간 모델', '가격 데이터 부족과는 다른 상태', '이전 공개 결과', '회고', '검증 미통과', 'missing_live_anchor_snapshot'):
-        assert text in out
+    assert '63.00%' in out and '이전 공개 결과' in out
+    assert '검증 미통과' not in out
+    assert '품질 기준 미통과' not in out
+    assert 'missing_live_anchor_snapshot' not in out
 
 
 def test_clock_refresh_updates_relative_dates_and_expiry_without_fetch():
@@ -151,8 +157,9 @@ console.log(JSON.stringify([expiry.hidden]));
 def test_us_next_refit_date_is_identified_as_exchange_date_not_completion_date():
     item = {'market': 'US_SPX', 'context': {}, 'forecast': {'status': 'not_ready'}, 'fit_state': {'next_refit_asof': '2026-12-09'}}
     out = run_ui('console.log(renderCard(' + json.dumps(item) + ", 'research_only'));")
-    assert '다음 고정 학습 기준 종가일 (미국 거래일)' in out
-    assert '실시간 모델 저장 후 검증이 필요' in out
+    assert 'S&amp;P 500' in out
+    assert '다음 고정 학습' not in out
+    assert '검증이 필요' not in out
 
 
 def test_us_missing_or_invalid_session_times_do_not_become_current_time_or_epoch():

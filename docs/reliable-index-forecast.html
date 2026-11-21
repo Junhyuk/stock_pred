@@ -178,10 +178,7 @@
     <a href="#margin-credit">신용융자 잔고</a>
     <a href="#market-indicators">시장 지표</a>
   </nav>
-  <p class="notice">상승 확률은 P(다음 거래일 수익률 &gt; 0)입니다. 하락 확률은 1−상승 확률이며 보합은 별도 추정하지 않습니다.
-    80% 구간은 과거 시점 외 표본 오차로 보정한 목표 구간이며, 시간 의존성으로 실제 포함률을 보장하지 않습니다.
-    검증을 통과하지 못한 결과는 매매 신호가 아닙니다.</p>
-  <div id="automation-status" class="notice">자동 갱신 상태를 확인하는 중입니다.</div>
+  <div id="automation-status" hidden></div>
   <section class="notice" aria-labelledby="market-closes-title">
     <h2 id="market-closes-title">최근 확인한 한국 지수 종가</h2>
     <p>예측 기준 종가와 별도로 표시합니다. 원래 공개 시각과 거래소 공식 확정 여부는 확인되지 않았습니다.</p>
@@ -324,10 +321,6 @@ function renderCard(item, runStatus, now = Date.now()) {
   const c = item.context ?? {};
   const marketName = MARKET_LABELS[item.market] ?? item.market;
   const isUS = String(item.market).startsWith('US_');
-  const fs = String(f.status ?? '');
-  const rs = String(runStatus ?? '');
-  const statusForMessage = fs.startsWith('blocked_') ? fs : (rs.startsWith('blocked_') ? rs : fs);
-  const statusInfo = forecastStatusMessage(statusForMessage);
   const blocked = String(runStatus).startsWith('blocked_') || String(f.status ?? '').startsWith('blocked_');
   const showNumbers = runStatus !== 'unpublished' && !blocked && f.status !== 'not_ready';
   const ref = item.incumbent_reference;
@@ -347,8 +340,7 @@ function renderCard(item, runStatus, now = Date.now()) {
 
   return `<article class="forecast-card">
     <h3>${escapeHtml(marketName)}</h3>
-    ${item.carried_forward ? '<div class="card-dates">이전 공개 결과 유지</div>' : ''}
-    ${showReference ? '<div class="card-status warn">연구용 참고 전망 · 회고 학습 · 검증 미통과 · production_weight=0</div>' : ''}
+    ${item.carried_forward ? '<div class="card-dates">이전 공개 결과</div>' : ''}
     <div class="card-dates session-dates">
       <div><strong>${isUS ? '기준 종가일 (미국 거래일)' : '기준 종가일'}</strong> ${escapeHtml(c.asof_date ?? '—')}${isUS ? '' : relativeDateMarkup(c.asof_date, now, 'asof')}</div>
       <div><strong>${isUS ? '목표 미국 거래일' : '다음 거래일'}</strong> ${escapeHtml(c.target_date ?? '—')}${isUS ? '' : relativeDateMarkup(c.target_date, now, 'target')}</div>
@@ -360,18 +352,11 @@ function renderCard(item, runStatus, now = Date.now()) {
       <div class="hero-metric"><span>예상 지수</span><strong>${escapeHtml(expectedIndex)}</strong></div>
     </div>
     <div class="prob-row">
-      <div class="prob-box up"><span>(연구용)</span><span>상승 확률</span><strong>${escapeHtml(pUp)}</strong></div>
-      <div class="prob-box down"><span>(연구용)</span><span>하락 확률</span><strong>${escapeHtml(pDown)}</strong></div>
+      <div class="prob-box up"><span>상승 확률</span><strong>${escapeHtml(pUp)}</strong></div>
+      <div class="prob-box down"><span>하락 확률</span><strong>${escapeHtml(pDown)}</strong></div>
     </div>
     <div class="detail-line"><span>예상 수익률 </span><strong>${escapeHtml(expRet)}</strong></div>
     <div class="detail-line"><span>80% 지수 구간 </span><strong>${escapeHtml(rangeText)}</strong></div>
-    <p class="card-status ${escapeHtml(statusInfo.kind)}">${escapeHtml(f.status === 'not_ready' ? `주 모델 준비 미완료 · ${(f.gate_reasons ?? []).includes('missing_live_anchor_snapshot') ? '정해진 학습 기준일에 저장한 실시간 모델이 아직 없습니다. 가격 데이터 부족과는 다른 상태입니다.' : '검증된 고정 학습 상태 또는 보정 자료 부족'}` : statusInfo.text)}</p>
-    ${f.gate_reasons?.length ? `<details><summary>주 모델 준비 상태 상세</summary><p>${escapeHtml(f.gate_reasons.join(', '))}</p></details>` : ''}
-    <div class="card-dates">입력 마감 ${escapeHtml(formatAutomationTime(c.prediction_cutoff))} KST<br>실제 공개 ${escapeHtml(formatAutomationTime(c.issued_at || f.issued_at))} KST</div>
-    ${item.fit_state?.next_refit_asof ? `<p class="card-dates">다음 고정 학습 기준 종가일${isUS ? ' (미국 거래일)' : ''}: <strong>${escapeHtml(item.fit_state.next_refit_asof)}</strong><br>실시간 모델 저장 후 검증이 필요하며 준비 완료를 보장하지 않습니다.</p>` : ''}
-    ${showNumbers && f.interval_shadows?.volatility_normalized?.status === 'ready' ? `<details><summary>변동성 보정 구간 연구</summary><p>${pct(f.interval_shadows.volatility_normalized.range_low)} ~ ${pct(f.interval_shadows.volatility_normalized.range_high)} · ${escapeHtml(f.interval_shadows.volatility_normalized.calibration_n)}개 과거 성숙 오차</p><p>주 구간을 대체하지 않는 연구 후보입니다.</p></details>` : ''}
-    ${!blocked && runStatus !== 'unpublished' && ref?.expected_return != null ? `<div class="reference"><strong>보정 연구 참고 · 회고 재구성 · 검증 미통과 · production_weight=0</strong><p>기준 ${escapeHtml(ref.asof_date ?? c.asof_date ?? '—')} → 목표 ${escapeHtml(ref.target_date ?? c.target_date ?? '—')}<br>예상 지수 ${escapeHtml(level(ref.expected_index))} · 예상 수익률 ${pct(ref.expected_return)}<br>상승 ${refReady ? probLabel(ref.p_up) : '보정 준비 미완료'} · 하락 ${refReady ? probLabel(ref.p_down) : '보정 준비 미완료'} · 방향 ${refReady ? direction(ref.p_up, ref.p_down) : '확인 불가'}<br>80% 수익률 구간 ${pct(ref.range_low)} ~ ${pct(ref.range_high)}</p><small>품질 기준 미통과 사유: ${escapeHtml((ref.gate_reasons ?? []).join(', ') || '검증 미통과')} · 실전 운용 승인되지 않았습니다. 전향 정확도 증거가 아닙니다.</small></div>` : ''}
-    <details><summary>이번 예측의 경제자료 상태</summary><p>입력 마감 당시 이벤트: ${item.economic_calendar?.event_bucket == null ? '소스 범위 또는 시각 미확인' : item.economic_calendar.event_bucket ? '예측 구간 내 발표 확인' : '확인 범위 내 발표 없음'}<br>14개 수치 후보: ${escapeHtml(item.numeric_shadow?.status || '자료 없음')} · 주 확률과 분리</p><p>확률 방향은 상승과 하락 확률의 대소를 비교하며 같으면 중립입니다. 목표 구간의 포함률은 보장되지 않습니다.</p></details>
   </article>`;
 }
 

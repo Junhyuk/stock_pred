@@ -18,6 +18,7 @@ def test_forecast_workflow_prepares_then_issues_once_on_kst_weekdays():
     assert "workflow_dispatch:" in text
     assert text.index("Resolve actual-clock operation") < text.index("Install forecast and verification stack")
     assert "--phase freeze" in text and "--phase inputs" in text
+    assert "scripts/collect_market_indicators.py" in text
     assert "scripts/run_reliable_index_forecast.py" in text
     assert "scripts/run_us_index_forecast.py" in text
     assert "docs/reliable-index-forecast.html" not in text.split("git add", 1)[-1]
