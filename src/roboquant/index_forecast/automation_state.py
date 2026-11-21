@@ -22,7 +22,8 @@ PUBLIC_NAMES = frozenset({'automation_status.json', 'reliable_index_forecast.jso
     'reliable_validation_report.json', 'reliable_model_card.json', 'reliable_publication.json',
     'economic_calendar.json', 'economic_history.json', 'economic_collection_status.json',
     'forward_history.json', 'forward_validation.json', 'actions_budget.json',
-    'postclose_forward_history.json', 'postclose_forward_validation.json', 'postclose_completions.json', 'postclose_attempt_status.json', 'market_closes.json', 'market_closes_publication.json'})
+    'postclose_forward_history.json', 'postclose_forward_validation.json', 'postclose_completions.json', 'postclose_attempt_status.json', 'market_closes.json', 'market_closes_publication.json',
+    'unofficial_numerics.json'})
 POSTCLOSE_PREPARED_NAMES = frozenset({'sqlite', 'us_csv', 'economic_sqlite', 'fit_models_kr', 'fit_models_us', 'market_closes', 'market_closes_receipt'})
 PREPARED_NAMES = frozenset({'sqlite', 'us_csv', 'economic_sqlite', 'fit_models_kr', 'fit_models_us'})
 

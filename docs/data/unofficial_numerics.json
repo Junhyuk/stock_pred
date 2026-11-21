@@ -1,0 +1,197 @@
+{
+  "schema_version": "unofficial_numerics_v1",
+  "received_at": "2026-11-21T14:11:39.421121+00:00",
+  "production_weight": 0.0,
+  "series": [
+    {
+      "id": "kospi_foreignValue",
+      "label": "KOSPI 외국인 순매수",
+      "value": -10956.0,
+      "display": "-10,956억",
+      "change_pct": null,
+      "date": "2026-11-20",
+      "source": "naver_index_trend_unofficial",
+      "unit": "억원"
+    },
+    {
+      "id": "kospi_institutionalValue",
+      "label": "KOSPI 기관 순매수",
+      "value": -9330.0,
+      "display": "-9,330억",
+      "change_pct": null,
+      "date": "2026-11-20",
+      "source": "naver_index_trend_unofficial",
+      "unit": "억원"
+    },
+    {
+      "id": "kospi_personalValue",
+      "label": "KOSPI 개인 순매수",
+      "value": 15381.0,
+      "display": "+15,381억",
+      "change_pct": null,
+      "date": "2026-11-20",
+      "source": "naver_index_trend_unofficial",
+      "unit": "억원"
+    },
+    {
+      "id": "kosdaq_foreignValue",
+      "label": "KOSDAQ 외국인 순매수",
+      "value": -1615.0,
+      "display": "-1,615억",
+      "change_pct": null,
+      "date": "2026-11-20",
+      "source": "naver_index_trend_unofficial",
+      "unit": "억원"
+    },
+    {
+      "id": "kosdaq_institutionalValue",
+      "label": "KOSDAQ 기관 순매수",
+      "value": -1065.0,
+      "display": "-1,065억",
+      "change_pct": null,
+      "date": "2026-11-20",
+      "source": "naver_index_trend_unofficial",
+      "unit": "억원"
+    },
+    {
+      "id": "kosdaq_personalValue",
+      "label": "KOSDAQ 개인 순매수",
+      "value": 2803.0,
+      "display": "+2,803억",
+      "change_pct": null,
+      "date": "2026-11-20",
+      "source": "naver_index_trend_unofficial",
+      "unit": "억원"
+    },
+    {
+      "id": "kospi200_futures",
+      "label": "KOSPI200 선물",
+      "value": 752.75,
+      "display": "752.75",
+      "change_pct": -5.43,
+      "date": "2026-11-20",
+      "source": "naver_index_unofficial",
+      "unit": "index"
+    },
+    {
+      "id": "kospi200",
+      "label": "KOSPI200",
+      "value": 755.34,
+      "display": "755.34",
+      "change_pct": -5.53,
+      "date": "2026-11-20",
+      "source": "naver_index_unofficial",
+      "unit": "index"
+    },
+    {
+      "id": "kospi200_basis",
+      "label": "KOSPI200 선물-현물",
+      "value": -2.59,
+      "display": "-2.59",
+      "change_pct": null,
+      "date": "2026-11-20",
+      "source": "derived_naver_unofficial",
+      "unit": "index_points"
+    },
+    {
+      "id": "usdkrw",
+      "label": "USD/KRW",
+      "value": 1346.13,
+      "display": "1,346.13원",
+      "change_pct": 0.938,
+      "date": "2026-11-20",
+      "source": "yahoo_chart_unofficial",
+      "unit": "원"
+    },
+    {
+      "id": "wti",
+      "label": "WTI",
+      "value": 83.41,
+      "display": "83.41",
+      "change_pct": 1.177,
+      "date": "2026-11-20",
+      "source": "yahoo_chart_unofficial",
+      "unit": "USD"
+    },
+    {
+      "id": "vix",
+      "label": "VIX",
+      "value": 35.89,
+      "display": "35.89",
+      "change_pct": 26.195,
+      "date": "2026-11-20",
+      "source": "yahoo_chart_unofficial",
+      "unit": "index"
+    },
+    {
+      "id": "sox",
+      "label": "SOX",
+      "value": 8408.591,
+      "display": "8,408.59",
+      "change_pct": -10.734,
+      "date": "2026-11-20",
+      "source": "yahoo_chart_unofficial",
+      "unit": "index"
+    },
+    {
+      "id": "dxy",
+      "label": "달러인덱스",
+      "value": 103.84,
+      "display": "103.84",
+      "change_pct": 0.032,
+      "date": "2026-11-20",
+      "source": "yahoo_chart_unofficial",
+      "unit": "index"
+    },
+    {
+      "id": "gold",
+      "label": "금 선물",
+      "value": 3515.4,
+      "display": "3,515.40",
+      "change_pct": -4.615,
+      "date": "2026-11-20",
+      "source": "yahoo_chart_unofficial",
+      "unit": "USD"
+    },
+    {
+      "id": "copper",
+      "label": "구리 선물",
+      "value": 5.485,
+      "display": "5.49",
+      "change_pct": -2.636,
+      "date": "2026-11-20",
+      "source": "yahoo_chart_unofficial",
+      "unit": "USD"
+    },
+    {
+      "id": "us10y",
+      "label": "미국 10년 금리",
+      "value": 4.912,
+      "display": "4.912%",
+      "change_pct": -2.771,
+      "date": "2026-11-20",
+      "source": "yahoo_chart_unofficial",
+      "unit": "percent"
+    },
+    {
+      "id": "nq_futures",
+      "label": "나스닥 선물",
+      "value": 25126.5,
+      "display": "25,126.50",
+      "change_pct": -5.54,
+      "date": "2026-11-20",
+      "source": "yahoo_chart_unofficial",
+      "unit": "index"
+    },
+    {
+      "id": "es_futures",
+      "label": "S&P 선물",
+      "value": 6935.0,
+      "display": "6,935.00",
+      "change_pct": -3.644,
+      "date": "2026-11-20",
+      "source": "yahoo_chart_unofficial",
+      "unit": "index"
+    }
+  ]
+}

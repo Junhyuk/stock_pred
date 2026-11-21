@@ -41,6 +41,7 @@ INDEX_FORECAST_PAGE_FILES = (
     "assets/margin-credit.css",
     "assets/margin-credit.js",
     "assets/market-indicators.js",
+    "assets/unofficial-numerics.js",
     "data/index_forecast.json",
 )
 

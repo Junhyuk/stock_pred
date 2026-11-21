@@ -157,8 +157,8 @@
     #economic-calendar table { width:100%; border-collapse:collapse; min-width:580px; }
     #economic-calendar th, #economic-calendar td { text-align:left; padding:12px; border-bottom:1px solid var(--line); vertical-align:top; }
     #economic-calendar small { color:var(--muted); overflow-wrap:anywhere; }
-    #market-indicators table { width: 100%; min-width: 420px; border-collapse: collapse; }
-    #market-indicators th, #market-indicators td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--line); }
+    #market-indicators table, #extra-numerics table { width: 100%; min-width: 420px; border-collapse: collapse; }
+    #market-indicators th, #market-indicators td, #extra-numerics th, #extra-numerics td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--line); }
     #market-indicators-sources { color: var(--muted); font-size: 13px; }
     .reference { padding:12px; background:var(--bg); border:1px dashed var(--line); border-radius:8px; }
   </style>
@@ -175,6 +175,7 @@
   <nav class="quick-nav" aria-label="예측 페이지 메뉴">
     <a href="index-forecast.html">1D/2D 리포트</a>
     <a href="dashboard.html">일일 대시보드</a>
+    <a href="#extra-numerics">추가 수치</a>
     <a href="#margin-credit">신용융자 잔고</a>
     <a href="#market-indicators">시장 지표</a>
   </nav>
@@ -186,6 +187,14 @@
   </section>
   <div id="status" role="status">로컬 연구 결과를 읽는 중입니다.</div>
   <div id="content"></div>
+  <section id="extra-numerics" class="notice" aria-labelledby="extra-numerics-title">
+    <h2 id="extra-numerics-title">이번 예측과 함께 받은 수치</h2>
+    <p id="extra-numerics-status" role="status">추가 수치를 불러오는 중입니다.</p>
+    <div class="economic-table"><table>
+      <thead><tr><th scope="col">수치</th><th scope="col">값</th><th scope="col">전일 대비</th><th scope="col">기준일</th></tr></thead>
+      <tbody id="extra-numerics-rows"></tbody>
+    </table></div>
+  </section>
   <section id="margin-credit" class="notice" aria-labelledby="margin-credit-title">
     <h2 id="margin-credit-title">시장별 신용융자 잔고</h2>
     <p class="credit-intro">결제일 기준</p>
@@ -461,7 +470,7 @@ Promise.all([
 }).catch(error => {
   document.getElementById('status').textContent = error.message;
 }).finally(() => {
-  if (['#margin-credit', '#market-indicators'].includes(location.hash)) document.querySelector(location.hash)?.scrollIntoView();
+  if (['#margin-credit', '#market-indicators', '#extra-numerics'].includes(location.hash)) document.querySelector(location.hash)?.scrollIntoView();
 });
 </script>
 <script>
@@ -473,5 +482,6 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) refr
 <script src="assets/economic-calendar.js"></script>
 <script src="assets/margin-credit.js"></script>
 <script src="assets/market-indicators.js"></script>
+<script src="assets/unofficial-numerics.js"></script>
 </body>
 </html>

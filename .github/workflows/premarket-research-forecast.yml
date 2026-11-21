@@ -79,6 +79,11 @@ jobs:
       - name: Collect bounded official economic facts
         if: steps.operation.outputs.collect == 'true'
         run: python scripts/collect_economic_calendar.py
+      - name: Collect unofficial market numerics
+        if: steps.operation.outputs.collect == 'true'
+        timeout-minutes: 2
+        continue-on-error: true
+        run: python scripts/collect_unofficial_numerics.py --output docs/data/unofficial_numerics.json
       - name: Refresh prices
         id: refresh
         if: steps.operation.outputs.collect == 'true'
