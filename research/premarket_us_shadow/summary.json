@@ -1,0 +1,36 @@
+{
+ "cohort": "premarket_us_shadow_v1",
+ "generated_at": "2026-11-22T23:03:42.690318+00:00",
+ "ledger_sha256": "fc81d528f2641a228f00b2439d451f57784cae76655e1656c367d79919d8b321",
+ "markets": {
+  "KOSDAQ": {
+   "issued": 1,
+   "matured": 0,
+   "role": "monitor_only",
+   "status": "accumulating"
+  },
+  "KOSPI": {
+   "issued": 1,
+   "matured": 0,
+   "role": "primary",
+   "status": "accumulating"
+  }
+ },
+ "note": "Descriptive until decision_n matured forecasts; no efficacy claim before then.",
+ "production_weight": 0.0,
+ "rule": {
+  "after_pass": "independent ML/risk review; PM cannot approve alone; production_weight remains 0 until then",
+  "decision_n": 252,
+  "interim_safety_look_n": 60,
+  "interim_stop_if_brier_minus_up_rate_above": 0.02,
+  "pass_requires": [
+   "95% paired block-bootstrap upper bound of Brier(shadow) - Brier(up_rate) < 0",
+   "95% paired block-bootstrap upper bound of Brier(shadow) - Brier(18:00 incumbent card) < 0",
+   "log loss <= up_rate log loss",
+   "ECE10 <= 0.05",
+   "every scored forecast's inputs received before its 08:00 cutoff; violations are scored as invalid"
+  ]
+ },
+ "schema_version": "premarket_us_shadow_summary_v1",
+ "spec_hash": "7f3a0790e266d4353a2ff97eec59e49e1c9a94f758c9571e7fc23549f2f93aa0"
+}
