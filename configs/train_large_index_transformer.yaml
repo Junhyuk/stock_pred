@@ -1,0 +1,20 @@
+model:
+  model_name: large_index_transformer_v1
+  lookback: 120
+  patch_len: 8
+  stride: 4
+  d_model: 768
+  n_heads: 12
+  num_layers: 12
+  dropout: 0.1
+  batch_size: 64
+  max_epochs: 8
+  early_stopping_patience: 3
+  learning_rate: 0.0002
+  weight_decay: 0.01
+  device: cuda
+  production_weight: 0.0
+
+split:
+  valid_days: 252
+  test_days: 252

@@ -176,6 +176,7 @@
   <nav class="quick-nav" aria-label="예측 페이지 메뉴">
     <a href="index-forecast.html">1D/2D 리포트</a>
     <a href="dashboard.html">일일 대시보드</a>
+    <a href="#model-b">모델 B</a>
     <a href="#extra-numerics">추가 수치</a>
     <a href="#margin-credit">신용융자 잔고</a>
     <a href="#market-indicators">시장 지표</a>
@@ -187,6 +188,11 @@
   </section>
   <div id="status" role="status">로컬 연구 결과를 읽는 중입니다.</div>
   <div id="content"></div>
+  <section id="model-b" class="notice" aria-labelledby="model-b-title">
+    <h2 id="model-b-title">모델 B</h2>
+    <p id="model-b-status" role="status">모델 B를 불러오는 중입니다.</p>
+    <div id="model-b-cards" class="forecast-grid"></div>
+  </section>
   <section id="extra-numerics" class="notice" aria-labelledby="extra-numerics-title">
     <h2 id="extra-numerics-title">이번 예측과 함께 받은 수치</h2>
     <p id="extra-numerics-status" role="status">추가 수치를 불러오는 중입니다.</p>
@@ -484,5 +490,6 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) refr
 <script src="assets/margin-credit.js"></script>
 <script src="assets/market-indicators.js"></script>
 <script src="assets/unofficial-numerics.js"></script>
+<script src="assets/model-b.js"></script>
 </body>
 </html>

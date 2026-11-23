@@ -1,0 +1,29 @@
+{
+  "schema_version": "model_b_forecast_v1",
+  "model_name": "모델 B",
+  "architecture": "8층 트랜스포머",
+  "trigger": "manual_gpu",
+  "production_weight": 0.0,
+  "generated_at": "2026-11-23T11:57:40.567929+00:00",
+  "gpu": "NVIDIA GeForce RTX 3090",
+  "markets": [
+    {
+      "market": "KOSPI",
+      "asof_date": "2026-11-23",
+      "target_date": "2026-11-24",
+      "close": 4708.54,
+      "p_up": 0.5306,
+      "p_down": 0.4694,
+      "trained_through": "2026-11-20"
+    },
+    {
+      "market": "KOSDAQ",
+      "asof_date": "2026-11-23",
+      "target_date": "2026-11-24",
+      "close": 635.45,
+      "p_up": 0.5258,
+      "p_down": 0.4742,
+      "trained_through": "2026-11-20"
+    }
+  ]
+}
