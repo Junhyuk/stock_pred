@@ -1,19 +1,113 @@
 {
  "cohort": "premarket_us_shadow_v1",
- "generated_at": "2026-11-22T23:03:42.690318+00:00",
- "ledger_sha256": "fc81d528f2641a228f00b2439d451f57784cae76655e1656c367d79919d8b321",
+ "generated_at": "2026-11-23T23:03:44.682183+00:00",
+ "ledger_sha256": "13cb775fe9a13da1579166a8a7fa9a8bc82c369f94e0594041b36d75842eb1d4",
  "markets": {
   "KOSDAQ": {
-   "issued": 1,
-   "matured": 0,
+   "brier_minus_up_rate": -0.2650467977770419,
+   "first_target": "2026-11-23",
+   "issued": 2,
+   "last_target": "2026-11-23",
+   "matured": 1,
    "role": "monitor_only",
-   "status": "accumulating"
+   "shadow": {
+    "brier": 0.030991556341532472,
+    "direction_hit": 1.0,
+    "ece10": 0.17604418860482862,
+    "log_loss": 0.19363837745824908,
+    "mean_p": 0.17604418860482862,
+    "n": 1,
+    "observed_up_rate": 0.0,
+    "sharpness_std": 0.0
+   },
+   "status": "accumulating",
+   "up_rate": {
+    "brier": 0.2960383541185743,
+    "direction_hit": 0.0,
+    "ece10": 0.5440940673436665,
+    "log_loss": 0.7854687787824105,
+    "mean_p": 0.5440940673436665,
+    "n": 1,
+    "observed_up_rate": 0.0,
+    "sharpness_std": 0.0
+   },
+   "vs_incumbent_postclose": {
+    "brier_minus_incumbent": -0.242637045706014,
+    "incumbent": {
+     "brier": 0.27362860204754647,
+     "direction_hit": 0.0,
+     "ece10": 0.5230952131759059,
+     "log_loss": 0.7404384163534236,
+     "mean_p": 0.5230952131759059,
+     "n": 1,
+     "observed_up_rate": 0.0,
+     "sharpness_std": 0.0
+    },
+    "n": 1,
+    "shadow": {
+     "brier": 0.030991556341532472,
+     "direction_hit": 1.0,
+     "ece10": 0.17604418860482862,
+     "log_loss": 0.19363837745824908,
+     "mean_p": 0.17604418860482862,
+     "n": 1,
+     "observed_up_rate": 0.0,
+     "sharpness_std": 0.0
+    }
+   }
   },
   "KOSPI": {
-   "issued": 1,
-   "matured": 0,
+   "brier_minus_up_rate": -0.300445961360805,
+   "first_target": "2026-11-23",
+   "issued": 2,
+   "last_target": "2026-11-23",
+   "matured": 1,
    "role": "primary",
-   "status": "accumulating"
+   "shadow": {
+    "brier": 0.005562281129641787,
+    "direction_hit": 1.0,
+    "ece10": 0.07458070212623227,
+    "log_loss": 0.07750834917818535,
+    "mean_p": 0.07458070212623227,
+    "n": 1,
+    "observed_up_rate": 0.0,
+    "sharpness_std": 0.0
+   },
+   "status": "accumulating",
+   "up_rate": {
+    "brier": 0.3060082424904468,
+    "direction_hit": 0.0,
+    "ece10": 0.5531801175841796,
+    "log_loss": 0.8055997131893881,
+    "mean_p": 0.5531801175841796,
+    "n": 1,
+    "observed_up_rate": 0.0,
+    "sharpness_std": 0.0
+   },
+   "vs_incumbent_postclose": {
+    "brier_minus_incumbent": -0.3306383051488508,
+    "incumbent": {
+     "brier": 0.3362005862784926,
+     "direction_hit": 0.0,
+     "ece10": 0.5798280661355507,
+     "log_loss": 0.8670912851283377,
+     "mean_p": 0.5798280661355507,
+     "n": 1,
+     "observed_up_rate": 0.0,
+     "sharpness_std": 0.0
+    },
+    "n": 1,
+    "shadow": {
+     "brier": 0.005562281129641787,
+     "direction_hit": 1.0,
+     "ece10": 0.07458070212623227,
+     "log_loss": 0.07750834917818535,
+     "mean_p": 0.07458070212623227,
+     "n": 1,
+     "observed_up_rate": 0.0,
+     "sharpness_std": 0.0
+    }
+   }
   }
  },
  "note": "Descriptive until decision_n matured forecasts; no efficacy claim before then.",
