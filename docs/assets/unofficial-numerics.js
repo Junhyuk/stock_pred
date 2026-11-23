@@ -11,9 +11,14 @@
     .then(response => { if (!response.ok) throw new Error(); return response.json(); })
     .then(data => {
       if (data?.schema_version !== 'unofficial_numerics_v1' || !Array.isArray(data.series)) throw new Error();
+      const shownWithPrices = new Set([
+        'usdkrw', 'dxy', 'btc', 'eth', 'wti', 'brent', 'us10y',
+        'us_1y', 'us_3y', 'us_5y', 'us_10y', 'kr_1y', 'kr_3y', 'kr_5y', 'kr_10y',
+        'jp_1y', 'jp_3y', 'jp_5y', 'jp_10y',
+      ]);
       body.replaceChildren();
       for (const row of data.series) {
-        if (!row || typeof row.label !== 'string' || typeof row.display !== 'string'
+        if (!row || shownWithPrices.has(row.id) || typeof row.label !== 'string' || typeof row.display !== 'string'
             || !/^\d{4}-\d{2}-\d{2}$/.test(row.date || '')) continue;
         const tr = body.insertRow();
         const change = Number.isFinite(row.change_pct)

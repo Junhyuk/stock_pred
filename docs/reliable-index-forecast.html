@@ -158,11 +158,13 @@
       font-weight: 700;
     }
     .economic-table { overflow-x: auto; margin: 8px 0 12px; }
-    #market-indicators table, #extra-numerics table, #economic-calendar table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+    #market-indicators table, #extra-numerics table, #cross-assets table, #economic-calendar table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
     #economic-calendar table { min-width: 520px; }
-    #extra-numerics table, #market-indicators table { min-width: 420px; }
-    #market-indicators th, #market-indicators td, #extra-numerics th, #extra-numerics td, #economic-calendar th, #economic-calendar td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: middle; }
+    #extra-numerics table, #cross-assets table, #market-indicators table { min-width: 420px; }
+    #market-indicators th, #market-indicators td, #extra-numerics th, #extra-numerics td, #cross-assets th, #cross-assets td, #economic-calendar th, #economic-calendar td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: middle; }
     #extra-numerics th:nth-child(n+2), #extra-numerics td:nth-child(n+2),
+    #cross-assets th, #cross-assets td { word-break: keep-all; white-space: nowrap; }
+    #cross-assets th:nth-child(n+2), #cross-assets td:nth-child(n+2),
     #market-indicators th:nth-child(2), #market-indicators td:nth-child(2) { text-align: right; white-space: nowrap; }
   </style>
 </head>
@@ -179,6 +181,7 @@
     <a href="dashboard.html">일일 대시보드</a>
     <a href="#model-a">모델 A</a>
     <a href="#model-b">모델 B</a>
+    <a href="#cross-assets">환율·금리·원유</a>
     <a href="#extra-numerics">추가 수치</a>
     <a href="#margin-credit">신용융자 잔고</a>
     <a href="#market-indicators">시장 지표</a>
@@ -197,6 +200,14 @@
     <h2 id="model-b-title">모델 B</h2>
     <p id="model-b-status" role="status">모델 B를 불러오는 중입니다.</p>
     <div id="model-b-cards" class="forecast-grid"></div>
+  </section>
+  <section id="cross-assets" class="notice" aria-labelledby="cross-assets-title">
+    <h2 id="cross-assets-title">환율·금리·원유</h2>
+    <p id="cross-assets-status" role="status">환율·금리·원유를 불러오는 중입니다.</p>
+    <div class="economic-table"><table>
+      <thead><tr><th scope="col">수치</th><th scope="col">값</th><th scope="col">전일 대비</th><th scope="col">기준일</th></tr></thead>
+      <tbody id="cross-assets-rows"></tbody>
+    </table></div>
   </section>
   <section id="extra-numerics" class="notice" aria-labelledby="extra-numerics-title">
     <h2 id="extra-numerics-title">이번 예측과 함께 받은 수치</h2>
@@ -482,7 +493,7 @@ Promise.all([
 }).catch(error => {
   document.getElementById('status').textContent = error.message;
 }).finally(() => {
-  if (['#model-a', '#model-b', '#margin-credit', '#market-indicators', '#extra-numerics'].includes(location.hash)) document.querySelector(location.hash)?.scrollIntoView();
+  if (['#model-a', '#model-b', '#cross-assets', '#margin-credit', '#market-indicators', '#extra-numerics'].includes(location.hash)) document.querySelector(location.hash)?.scrollIntoView();
 });
 </script>
 <script>
@@ -494,7 +505,8 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) refr
 <script src="assets/economic-calendar.js"></script>
 <script src="assets/margin-credit.js"></script>
 <script src="assets/market-indicators.js"></script>
-<script src="assets/unofficial-numerics.js"></script>
+<script src="assets/cross-assets.js?v=20261123"></script>
+<script src="assets/unofficial-numerics.js?v=20261123"></script>
 <script src="assets/model-b.js"></script>
 </body>
 </html>
