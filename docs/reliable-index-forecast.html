@@ -16,7 +16,8 @@
       font-size: 14px;
       color: var(--ink);
     }
-    h1, .notice > h2, .market-region h2, .forecast-card h3, .card-dates, .detail-line { word-break: keep-all; }
+    h1, .notice > h2, #model-a > h2, .market-region h2, .forecast-card h3, .card-dates, .detail-line { word-break: keep-all; }
+    #model-a > h2 { font-size: 18px; margin: 8px 0; }
     .notice > h2 { font-size: 18px; margin: 0 0 8px; }
     #economic-calendar h3 { font-size: 16px; margin: 16px 0 8px; }
     #status {
@@ -176,6 +177,7 @@
   <nav class="quick-nav" aria-label="예측 페이지 메뉴">
     <a href="index-forecast.html">1D/2D 리포트</a>
     <a href="dashboard.html">일일 대시보드</a>
+    <a href="#model-a">모델 A</a>
     <a href="#model-b">모델 B</a>
     <a href="#extra-numerics">추가 수치</a>
     <a href="#margin-credit">신용융자 잔고</a>
@@ -186,8 +188,11 @@
     <h2 id="market-closes-title">최근 확인한 한국 지수 종가</h2>
     <div id="market-closes">종가 확인 중</div>
   </section>
-  <div id="status" role="status">로컬 연구 결과를 읽는 중입니다.</div>
-  <div id="content"></div>
+  <section id="model-a" aria-labelledby="model-a-title">
+    <h2 id="model-a-title">모델 A</h2>
+    <div id="status" role="status">로컬 연구 결과를 읽는 중입니다.</div>
+    <div id="content"></div>
+  </section>
   <section id="model-b" class="notice" aria-labelledby="model-b-title">
     <h2 id="model-b-title">모델 B</h2>
     <p id="model-b-status" role="status">모델 B를 불러오는 중입니다.</p>
@@ -477,7 +482,7 @@ Promise.all([
 }).catch(error => {
   document.getElementById('status').textContent = error.message;
 }).finally(() => {
-  if (['#margin-credit', '#market-indicators', '#extra-numerics'].includes(location.hash)) document.querySelector(location.hash)?.scrollIntoView();
+  if (['#model-a', '#model-b', '#margin-credit', '#market-indicators', '#extra-numerics'].includes(location.hash)) document.querySelector(location.hash)?.scrollIntoView();
 });
 </script>
 <script>

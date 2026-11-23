@@ -174,3 +174,10 @@ console.log(formatKstClock(now));
     lines = run_ui(program).splitlines()
     assert lines[:4] == ['한국 시각 · 개장 확인 불가 · 종료 확인 불가'] * 4
     assert lines[4] == '2026-11-16 12:00'
+
+
+def test_existing_forecast_section_is_named_model_a():
+    html = HTML.read_text()
+    assert 'href="#model-a">모델 A</a>' in html
+    assert html.index('id="model-a"') < html.index('id="content"') < html.index('id="model-b"')
+    assert 'id="model-a-title">모델 A</h2>' in html
