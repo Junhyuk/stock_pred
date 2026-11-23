@@ -1,0 +1,118 @@
+{
+  "created_at": "2026-11-23T12:34:39.349295+00:00",
+  "architecture": "series_token_transformer",
+  "config": {
+    "patch_len": 16,
+    "stride": 16,
+    "d_model": 512,
+    "n_heads": 8,
+    "num_layers": 12,
+    "dropout": 0.1
+  },
+  "lookback": 96,
+  "protocol": "train_before_2026_score_2026",
+  "production_weight": 0.0,
+  "gpu": "NVIDIA GeForce RTX 3090",
+  "markets": [
+    {
+      "market": "KOSPI",
+      "features": [
+        "return_1d",
+        "return_5d",
+        "return_20d",
+        "volatility_5d",
+        "volatility_20d",
+        "ma_gap_5d",
+        "ma_gap_20d",
+        "dxy_return_1d",
+        "btc_return_1d",
+        "eth_return_1d",
+        "oil_return_1d",
+        "usdkrw_return_1d",
+        "us_treasury_1y",
+        "us_treasury_3y",
+        "us_treasury_5y",
+        "us_treasury_10y",
+        "jp_jgb_1y",
+        "jp_jgb_3y",
+        "jp_jgb_5y",
+        "jp_jgb_10y",
+        "kr_ktb_1y",
+        "kr_ktb_3y",
+        "kr_ktb_5y",
+        "kr_ktb_10y"
+      ],
+      "feature_count": 24,
+      "tokens_per_series": 6,
+      "train_end": "2025-12-30",
+      "test_start": "2026-01-02",
+      "test_end": "2026-11-20",
+      "parameters": 37985793,
+      "model": {
+        "n": 217,
+        "brier": 0.2426,
+        "direction_hit": 0.5945,
+        "mean_p_up": 0.5546,
+        "up_rate": 0.5945
+      },
+      "constant_up_rate": {
+        "n": 217,
+        "brier": 0.2453,
+        "direction_hit": 0.5945,
+        "mean_p_up": 0.5293,
+        "up_rate": 0.5945
+      },
+      "production_weight": 0.0
+    },
+    {
+      "market": "KOSDAQ",
+      "features": [
+        "return_1d",
+        "return_5d",
+        "return_20d",
+        "volatility_5d",
+        "volatility_20d",
+        "ma_gap_5d",
+        "ma_gap_20d",
+        "dxy_return_1d",
+        "btc_return_1d",
+        "eth_return_1d",
+        "oil_return_1d",
+        "usdkrw_return_1d",
+        "us_treasury_1y",
+        "us_treasury_3y",
+        "us_treasury_5y",
+        "us_treasury_10y",
+        "jp_jgb_1y",
+        "jp_jgb_3y",
+        "jp_jgb_5y",
+        "jp_jgb_10y",
+        "kr_ktb_1y",
+        "kr_ktb_3y",
+        "kr_ktb_5y",
+        "kr_ktb_10y"
+      ],
+      "feature_count": 24,
+      "tokens_per_series": 6,
+      "train_end": "2025-12-30",
+      "test_start": "2026-01-02",
+      "test_end": "2026-11-20",
+      "parameters": 37985793,
+      "model": {
+        "n": 217,
+        "brier": 0.25,
+        "direction_hit": 0.5161,
+        "mean_p_up": 0.5311,
+        "up_rate": 0.5161
+      },
+      "constant_up_rate": {
+        "n": 217,
+        "brier": 0.2499,
+        "direction_hit": 0.5161,
+        "mean_p_up": 0.5293,
+        "up_rate": 0.5161
+      },
+      "production_weight": 0.0
+    }
+  ]
+}
