@@ -4,7 +4,7 @@
   "architecture": "8층 트랜스포머",
   "trigger": "manual_gpu",
   "production_weight": 0.0,
-  "generated_at": "2026-11-23T11:57:40.567929+00:00",
+  "generated_at": "2026-11-23T14:44:41.769094+00:00",
   "gpu": "NVIDIA GeForce RTX 3090",
   "markets": [
     {
@@ -12,18 +12,23 @@
       "asof_date": "2026-11-23",
       "target_date": "2026-11-24",
       "close": 4708.54,
-      "p_up": 0.5306,
-      "p_down": 0.4694,
-      "trained_through": "2026-11-20"
+      "p_up": 0.4685,
+      "p_down": 0.5315,
+      "trained_through": "2026-11-20",
+      "variant": "8층 미세조정",
+      "expected_return": -0.006639638915657997,
+      "expected_index": 4677.276994580067
     },
     {
       "market": "KOSDAQ",
       "asof_date": "2026-11-23",
       "target_date": "2026-11-24",
       "close": 635.45,
-      "p_up": 0.5258,
-      "p_down": 0.4742,
-      "trained_through": "2026-11-20"
+      "p_up": 0.5214,
+      "p_down": 0.4786,
+      "trained_through": "2026-11-20",
+      "expected_return": 0.0028702327981591225,
+      "expected_index": 637.2738894315903
     }
   ]
 }

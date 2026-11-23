@@ -179,5 +179,6 @@ console.log(formatKstClock(now));
 def test_existing_forecast_section_is_named_model_a():
     html = HTML.read_text()
     assert 'href="#model-a">모델 A</a>' in html
-    assert html.index('id="model-a"') < html.index('id="content"') < html.index('id="model-b"')
-    assert 'id="model-a-title">모델 A</h2>' in html
+    assert html.index('id="model-compare"') < html.index('id="content"') < html.index('id="model-b"')
+    assert '모델 A · 모델 B' in html
+    assert '수동 예측' in (HTML.parent / 'assets/model-b.js').read_text()

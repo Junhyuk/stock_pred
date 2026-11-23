@@ -1,0 +1,41 @@
+#kospi-flow-status { margin: 8px 0 14px; color: var(--muted); font-size: 13px; }
+#kospi-flow .credit-intro { margin: 0 0 12px; }
+.flow-market h3 { margin: 0 0 4px; font-size: 16px; }
+.flow-chart { margin-top: 14px; }
+.flow-chart h4 { margin: 0; font-size: 15px; text-align: center; }
+.flow-figure { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: end; }
+.flow-box {
+  border: 1px dashed #24518b;
+  color: #24518b;
+  background: #fff;
+  min-width: 132px;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
+}
+.flow-box p { margin: 0; white-space: nowrap; }
+.flow-legend { display: flex; gap: 14px; justify-content: center; margin: 4px 0 0; font-size: 12px; font-weight: 700; }
+.flow-legend span::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 6px; vertical-align: -1px; }
+.flow-foreign { color: #24518b; }
+.flow-institution { color: #0f766e; }
+.flow-personal { color: #a3201b; }
+.flow-ma { color: #6d28d9; }
+.flow-legend .flow-foreign::before { background: #24518b; }
+.flow-legend .flow-institution::before { background: #0f766e; }
+.flow-legend .flow-personal::before { background: #a3201b; }
+.flow-legend .flow-ma::before { width: 16px; height: 2px; background: #6d28d9; vertical-align: middle; }
+.credit-chart .flow-foreign { stroke: #24518b; fill: #24518b; }
+.credit-chart .flow-institution { stroke: #0f766e; fill: #0f766e; }
+.credit-chart .flow-personal { stroke: #a3201b; fill: #a3201b; }
+.credit-chart path.flow-cum,
+.credit-chart path.flow-ma { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.credit-chart path.flow-cum { stroke-width: 2.2; }
+.credit-chart path.flow-ma { stroke: #6d28d9; stroke-width: 1.15; }
+.credit-chart .flow-marker { stroke: none; }
+.credit-chart .flow-frame { fill: none; stroke: #c5ced6; stroke-width: 1; }
+.credit-chart .flow-zero { stroke: #8b95a1; stroke-width: 1; stroke-dasharray: 3 3; }
+.credit-chart text.flow-tick { font-size: 11px; }
+#kospi-flow .credit-latest { font-size: 18px; line-height: 1.35; word-break: keep-all; }
+@media (max-width: 800px) { .flow-figure { grid-template-columns: minmax(0, 1fr); } }

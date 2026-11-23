@@ -1,0 +1,64 @@
+{
+  "schema_version": "model_c_forecast_v1",
+  "model_name": "모델 C",
+  "architecture": "8층 미세조정 복사",
+  "trigger": "manual_gpu",
+  "production_weight": 0.0,
+  "generated_at": "2026-11-23T14:41:55Z",
+  "gpu": "NVIDIA GeForce RTX 3090",
+  "threshold": 0.03,
+  "scope": "급등·급락 전용",
+  "counting_rule": "다음 세션 종가 수익률의 절대값이 3% 이상이고 다음 종가가 있는 날만 학습하고 채점한다.",
+  "markets": [
+    {
+      "market": "KOSPI",
+      "asof_date": "2026-11-23",
+      "target_date": "2026-11-24",
+      "close": 4708.54,
+      "p_up": 0.3206,
+      "p_down": 0.6794,
+      "expected_return": -0.016211,
+      "expected_index": 4632.21,
+      "trained_through": "2026-11-20",
+      "examined": {
+        "pre_2026": {
+          "n": 18,
+          "direction_hit": 0.4444,
+          "brier": 0.2626,
+          "close_mae": 116.29
+        },
+        "year_2026": {
+          "n": 79,
+          "direction_hit": 0.5696,
+          "brier": 0.2543,
+          "close_mae": 361.9
+        }
+      }
+    },
+    {
+      "market": "KOSDAQ",
+      "asof_date": "2026-11-23",
+      "target_date": "2026-11-24",
+      "close": 635.45,
+      "p_up": 0.6195,
+      "p_down": 0.3805,
+      "expected_return": 0.013443,
+      "expected_index": 643.99,
+      "trained_through": "2026-11-19",
+      "examined": {
+        "pre_2026": {
+          "n": 47,
+          "direction_hit": 0.7234,
+          "brier": 0.2159,
+          "close_mae": 27.11
+        },
+        "year_2026": {
+          "n": 67,
+          "direction_hit": 0.5522,
+          "brier": 0.2769,
+          "close_mae": 45.97
+        }
+      }
+    }
+  ]
+}

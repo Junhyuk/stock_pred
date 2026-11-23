@@ -1,0 +1,3213 @@
+{
+  "schema_version": "kospi_investor_flow_chart_v1",
+  "unit": "억원",
+  "source": "index_forecast.sqlite:investor_flow",
+  "source_url": "https://stock.naver.com/market/stock/kr/trend/trader",
+  "snapshot_received_at": "2026-11-23T14:12:32.729660+00:00",
+  "production_weight": 0.0,
+  "window_start": "2025-10-23",
+  "window_label": "1년 1개월",
+  "average_sessions": 20,
+  "markets": {
+    "KOSPI": {
+      "sessions": [
+        {
+          "date": "2025-10-23",
+          "foreign_eok": -4071.4,
+          "institution_eok": -3971.6,
+          "personal_eok": 7504.7
+        },
+        {
+          "date": "2025-10-24",
+          "foreign_eok": 5755.8,
+          "institution_eok": 14054.2,
+          "personal_eok": -20004.7
+        },
+        {
+          "date": "2025-10-27",
+          "foreign_eok": 6470.8,
+          "institution_eok": 2343.1,
+          "personal_eok": -7968.5
+        },
+        {
+          "date": "2025-10-28",
+          "foreign_eok": -16379.1,
+          "institution_eok": 925.2,
+          "personal_eok": 15728.1
+        },
+        {
+          "date": "2025-10-29",
+          "foreign_eok": -1066.1,
+          "institution_eok": 5196.4,
+          "personal_eok": -3583.4
+        },
+        {
+          "date": "2025-10-30",
+          "foreign_eok": -1172.6,
+          "institution_eok": -8379.1,
+          "personal_eok": 9363.2
+        },
+        {
+          "date": "2025-10-31",
+          "foreign_eok": 13211.7,
+          "institution_eok": -11063.5,
+          "personal_eok": -2017.6
+        },
+        {
+          "date": "2025-11-03",
+          "foreign_eok": -7949.0,
+          "institution_eok": 1840.7,
+          "personal_eok": 6255.6
+        },
+        {
+          "date": "2025-11-04",
+          "foreign_eok": -22282.0,
+          "institution_eok": -4988.7,
+          "personal_eok": 27008.8
+        },
+        {
+          "date": "2025-11-05",
+          "foreign_eok": -20695.3,
+          "institution_eok": -1876.8,
+          "personal_eok": 25538.1
+        },
+        {
+          "date": "2025-11-06",
+          "foreign_eok": -16950.0,
+          "institution_eok": 8301.0,
+          "personal_eok": 8839.5
+        },
+        {
+          "date": "2025-11-07",
+          "foreign_eok": -4550.1,
+          "institution_eok": -2446.0,
+          "personal_eok": 6790.6
+        },
+        {
+          "date": "2025-11-10",
+          "foreign_eok": -1510.2,
+          "institution_eok": 13065.6,
+          "personal_eok": -11607.0
+        },
+        {
+          "date": "2025-11-11",
+          "foreign_eok": 770.1,
+          "institution_eok": 2247.4,
+          "personal_eok": -2830.5
+        },
+        {
+          "date": "2025-11-12",
+          "foreign_eok": -4265.1,
+          "institution_eok": 9093.0,
+          "personal_eok": -4423.3
+        },
+        {
+          "date": "2025-11-13",
+          "foreign_eok": 9989.5,
+          "institution_eok": -7178.6,
+          "personal_eok": -2342.6
+        },
+        {
+          "date": "2025-11-14",
+          "foreign_eok": -23575.4,
+          "institution_eok": -9005.2,
+          "personal_eok": 32346.1
+        },
+        {
+          "date": "2025-11-17",
+          "foreign_eok": 5188.6,
+          "institution_eok": -245.1,
+          "personal_eok": -4999.8
+        },
+        {
+          "date": "2025-11-18",
+          "foreign_eok": -5499.9,
+          "institution_eok": -6788.4,
+          "personal_eok": 12382.0
+        },
+        {
+          "date": "2025-11-19",
+          "foreign_eok": -10495.2,
+          "institution_eok": 6256.0,
+          "personal_eok": 4450.3
+        },
+        {
+          "date": "2025-11-20",
+          "foreign_eok": 7405.6,
+          "institution_eok": 7566.1,
+          "personal_eok": -13817.2
+        },
+        {
+          "date": "2025-11-21",
+          "foreign_eok": -28229.0,
+          "institution_eok": 4935.4,
+          "personal_eok": 22695.0
+        },
+        {
+          "date": "2025-11-24",
+          "foreign_eok": -7992.6,
+          "institution_eok": 12718.7,
+          "personal_eok": -4619.3
+        },
+        {
+          "date": "2025-11-25",
+          "foreign_eok": 49.2,
+          "institution_eok": 315.4,
+          "personal_eok": -275.6
+        },
+        {
+          "date": "2025-11-26",
+          "foreign_eok": 5157.6,
+          "institution_eok": 12279.8,
+          "personal_eok": -18048.2
+        },
+        {
+          "date": "2025-11-27",
+          "foreign_eok": 1545.6,
+          "institution_eok": 4325.7,
+          "personal_eok": -6152.1
+        },
+        {
+          "date": "2025-11-28",
+          "foreign_eok": -20368.7,
+          "institution_eok": 4587.0,
+          "personal_eok": 15684.5
+        },
+        {
+          "date": "2025-12-01",
+          "foreign_eok": 2234.9,
+          "institution_eok": -2332.7,
+          "personal_eok": 528.5
+        },
+        {
+          "date": "2025-12-02",
+          "foreign_eok": 12146.9,
+          "institution_eok": 3928.8,
+          "personal_eok": -15762.6
+        },
+        {
+          "date": "2025-12-03",
+          "foreign_eok": 2816.4,
+          "institution_eok": 7364.1,
+          "personal_eok": -8984.4
+        },
+        {
+          "date": "2025-12-04",
+          "foreign_eok": -6960.1,
+          "institution_eok": 1318.3,
+          "personal_eok": 5585.4
+        },
+        {
+          "date": "2025-12-05",
+          "foreign_eok": 9933.8,
+          "institution_eok": 11527.9,
+          "personal_eok": -21156.5
+        },
+        {
+          "date": "2025-12-08",
+          "foreign_eok": 3211.0,
+          "institution_eok": -307.5,
+          "personal_eok": -3449.2
+        },
+        {
+          "date": "2025-12-09",
+          "foreign_eok": -889.3,
+          "institution_eok": 494.1,
+          "personal_eok": -133.2
+        },
+        {
+          "date": "2025-12-10",
+          "foreign_eok": 3739.2,
+          "institution_eok": -3002.9,
+          "personal_eok": -889.2
+        },
+        {
+          "date": "2025-12-11",
+          "foreign_eok": 3656.3,
+          "institution_eok": -7753.0,
+          "personal_eok": 3922.5
+        },
+        {
+          "date": "2025-12-12",
+          "foreign_eok": 414.4,
+          "institution_eok": 14184.0,
+          "personal_eok": -14624.9
+        },
+        {
+          "date": "2025-12-15",
+          "foreign_eok": -9568.6,
+          "institution_eok": -4802.9,
+          "personal_eok": 14210.5
+        },
+        {
+          "date": "2025-12-16",
+          "foreign_eok": -10305.1,
+          "institution_eok": -2309.0,
+          "personal_eok": 12410.2
+        },
+        {
+          "date": "2025-12-17",
+          "foreign_eok": -322.0,
+          "institution_eok": 3352.9,
+          "personal_eok": -3374.2
+        },
+        {
+          "date": "2025-12-18",
+          "foreign_eok": -3459.4,
+          "institution_eok": -1005.8,
+          "personal_eok": 4129.5
+        },
+        {
+          "date": "2025-12-19",
+          "foreign_eok": -7572.5,
+          "institution_eok": 8540.9,
+          "personal_eok": -1412.5
+        },
+        {
+          "date": "2025-12-22",
+          "foreign_eok": 11017.0,
+          "institution_eok": 16054.7,
+          "personal_eok": -26714.4
+        },
+        {
+          "date": "2025-12-23",
+          "foreign_eok": 9551.1,
+          "institution_eok": 3527.0,
+          "personal_eok": -12853.0
+        },
+        {
+          "date": "2025-12-24",
+          "foreign_eok": 5225.0,
+          "institution_eok": 2038.9,
+          "personal_eok": -7170.7
+        },
+        {
+          "date": "2025-12-26",
+          "foreign_eok": 17790.5,
+          "institution_eok": 4435.5,
+          "personal_eok": -23264.7
+        },
+        {
+          "date": "2025-12-29",
+          "foreign_eok": 3336.6,
+          "institution_eok": -3132.8,
+          "personal_eok": 661.1
+        },
+        {
+          "date": "2025-12-30",
+          "foreign_eok": -4768.3,
+          "institution_eok": -3763.2,
+          "personal_eok": 8448.1
+        },
+        {
+          "date": "2026-01-02",
+          "foreign_eok": 6309.3,
+          "institution_eok": -2476.6,
+          "personal_eok": -4251.9
+        },
+        {
+          "date": "2026-01-05",
+          "foreign_eok": 21726.3,
+          "institution_eok": -7045.6,
+          "personal_eok": -15141.3
+        },
+        {
+          "date": "2026-01-06",
+          "foreign_eok": -6184.2,
+          "institution_eok": -664.4,
+          "personal_eok": 5963.1
+        },
+        {
+          "date": "2026-01-07",
+          "foreign_eok": 12547.7,
+          "institution_eok": -9397.2,
+          "personal_eok": -2943.7
+        },
+        {
+          "date": "2026-01-08",
+          "foreign_eok": -978.6,
+          "institution_eok": -14014.1,
+          "personal_eok": 12539.6
+        },
+        {
+          "date": "2026-01-09",
+          "foreign_eok": -16068.3,
+          "institution_eok": 12045.9,
+          "personal_eok": 1339.2
+        },
+        {
+          "date": "2026-01-12",
+          "foreign_eok": -3512.2,
+          "institution_eok": 2100.7,
+          "personal_eok": -1013.2
+        },
+        {
+          "date": "2026-01-13",
+          "foreign_eok": -2792.8,
+          "institution_eok": 7881.3,
+          "personal_eok": -7125.1
+        },
+        {
+          "date": "2026-01-14",
+          "foreign_eok": -3760.1,
+          "institution_eok": 5887.1,
+          "personal_eok": -4377.3
+        },
+        {
+          "date": "2026-01-15",
+          "foreign_eok": 3449.6,
+          "institution_eok": 12905.5,
+          "personal_eok": -18235.1
+        },
+        {
+          "date": "2026-01-16",
+          "foreign_eok": 4350.0,
+          "institution_eok": 3083.5,
+          "personal_eok": -9382.5
+        },
+        {
+          "date": "2026-01-19",
+          "foreign_eok": 5532.2,
+          "institution_eok": -256.4,
+          "personal_eok": -7512.8
+        },
+        {
+          "date": "2026-01-20",
+          "foreign_eok": 1231.8,
+          "institution_eok": -6499.7,
+          "personal_eok": 3524.4
+        },
+        {
+          "date": "2026-01-21",
+          "foreign_eok": 4394.0,
+          "institution_eok": 3216.8,
+          "personal_eok": -9965.4
+        },
+        {
+          "date": "2026-01-22",
+          "foreign_eok": -2431.7,
+          "institution_eok": -1568.3,
+          "personal_eok": 1555.4
+        },
+        {
+          "date": "2026-01-23",
+          "foreign_eok": 1438.2,
+          "institution_eok": 4789.6,
+          "personal_eok": -7239.4
+        },
+        {
+          "date": "2026-01-26",
+          "foreign_eok": -1588.1,
+          "institution_eok": -15414.2,
+          "personal_eok": 17156.6
+        },
+        {
+          "date": "2026-01-27",
+          "foreign_eok": 8448.1,
+          "institution_eok": 2474.0,
+          "personal_eok": -10197.0
+        },
+        {
+          "date": "2026-01-28",
+          "foreign_eok": 4007.9,
+          "institution_eok": -14021.0,
+          "personal_eok": 12130.8
+        },
+        {
+          "date": "2026-01-29",
+          "foreign_eok": -14896.6,
+          "institution_eok": -1673.1,
+          "personal_eok": 16172.8
+        },
+        {
+          "date": "2026-01-30",
+          "foreign_eok": -19728.9,
+          "institution_eok": -4241.0,
+          "personal_eok": 22979.3
+        },
+        {
+          "date": "2026-02-02",
+          "foreign_eok": -25167.8,
+          "institution_eok": -22125.5,
+          "personal_eok": 45874.2
+        },
+        {
+          "date": "2026-02-03",
+          "foreign_eok": 7038.0,
+          "institution_eok": 21707.9,
+          "personal_eok": -29422.7
+        },
+        {
+          "date": "2026-02-04",
+          "foreign_eok": -9412.7,
+          "institution_eok": 17836.2,
+          "personal_eok": -10118.7
+        },
+        {
+          "date": "2026-02-05",
+          "foreign_eok": -50107.7,
+          "institution_eok": -20692.7,
+          "personal_eok": 67790.7
+        },
+        {
+          "date": "2026-02-06",
+          "foreign_eok": -33232.6,
+          "institution_eok": 9413.7,
+          "personal_eok": 21736.0
+        },
+        {
+          "date": "2026-02-09",
+          "foreign_eok": 4320.1,
+          "institution_eok": 27123.4,
+          "personal_eok": -32947.0
+        },
+        {
+          "date": "2026-02-10",
+          "foreign_eok": 1474.0,
+          "institution_eok": 5643.1,
+          "personal_eok": -8779.8
+        },
+        {
+          "date": "2026-02-11",
+          "foreign_eok": 8461.2,
+          "institution_eok": 6926.6,
+          "personal_eok": -17148.9
+        },
+        {
+          "date": "2026-02-12",
+          "foreign_eok": 29954.0,
+          "institution_eok": 13800.0,
+          "personal_eok": -44546.9
+        },
+        {
+          "date": "2026-02-13",
+          "foreign_eok": -9220.3,
+          "institution_eok": 830.6,
+          "personal_eok": 7141.2
+        },
+        {
+          "date": "2026-02-19",
+          "foreign_eok": -9395.7,
+          "institution_eok": 16542.2,
+          "personal_eok": -8609.2
+        },
+        {
+          "date": "2026-02-20",
+          "foreign_eok": -7420.2,
+          "institution_eok": 16149.5,
+          "personal_eok": -9872.5
+        },
+        {
+          "date": "2026-02-23",
+          "foreign_eok": -11131.6,
+          "institution_eok": -1271.2,
+          "personal_eok": 10815.1
+        },
+        {
+          "date": "2026-02-24",
+          "foreign_eok": -2013.5,
+          "institution_eok": 23772.8,
+          "personal_eok": -22861.2
+        },
+        {
+          "date": "2026-02-25",
+          "foreign_eok": -13082.4,
+          "institution_eok": 14701.2,
+          "personal_eok": 2307.1
+        },
+        {
+          "date": "2026-02-26",
+          "foreign_eok": -21134.8,
+          "institution_eok": 12569.1,
+          "personal_eok": 6497.5
+        },
+        {
+          "date": "2026-02-27",
+          "foreign_eok": -70527.6,
+          "institution_eok": 5666.2,
+          "personal_eok": 62495.7
+        },
+        {
+          "date": "2026-03-03",
+          "foreign_eok": -51487.0,
+          "institution_eok": -8859.2,
+          "personal_eok": 57974.3
+        },
+        {
+          "date": "2026-03-04",
+          "foreign_eok": 2302.6,
+          "institution_eok": -5978.3,
+          "personal_eok": 795.8
+        },
+        {
+          "date": "2026-03-05",
+          "foreign_eok": -1445.7,
+          "institution_eok": -17185.6,
+          "personal_eok": 18228.1
+        },
+        {
+          "date": "2026-03-06",
+          "foreign_eok": -19418.2,
+          "institution_eok": -11141.6,
+          "personal_eok": 29487.9
+        },
+        {
+          "date": "2026-03-09",
+          "foreign_eok": -31735.4,
+          "institution_eok": -15440.6,
+          "personal_eok": 46242.1
+        },
+        {
+          "date": "2026-03-10",
+          "foreign_eok": 10282.5,
+          "institution_eok": 9164.1,
+          "personal_eok": -18339.5
+        },
+        {
+          "date": "2026-03-11",
+          "foreign_eok": -2562.6,
+          "institution_eok": 7821.4,
+          "personal_eok": -5086.2
+        },
+        {
+          "date": "2026-03-12",
+          "foreign_eok": -23831.0,
+          "institution_eok": 775.3,
+          "personal_eok": 22291.5
+        },
+        {
+          "date": "2026-03-13",
+          "foreign_eok": -14501.5,
+          "institution_eok": -10434.0,
+          "personal_eok": 24511.7
+        },
+        {
+          "date": "2026-03-16",
+          "foreign_eok": -8485.5,
+          "institution_eok": 910.7,
+          "personal_eok": 7163.6
+        },
+        {
+          "date": "2026-03-17",
+          "foreign_eok": -1740.5,
+          "institution_eok": 7340.6,
+          "personal_eok": -5752.1
+        },
+        {
+          "date": "2026-03-18",
+          "foreign_eok": 8801.8,
+          "institution_eok": 31092.6,
+          "personal_eok": -38716.7
+        },
+        {
+          "date": "2026-03-19",
+          "foreign_eok": -18760.4,
+          "institution_eok": -6649.0,
+          "personal_eok": 24115.7
+        },
+        {
+          "date": "2026-03-20",
+          "foreign_eok": -12401.6,
+          "institution_eok": -10260.1,
+          "personal_eok": 22338.4
+        },
+        {
+          "date": "2026-03-23",
+          "foreign_eok": -36750.7,
+          "institution_eok": -38173.0,
+          "personal_eok": 70028.7
+        },
+        {
+          "date": "2026-03-24",
+          "foreign_eok": -19862.7,
+          "institution_eok": 9683.1,
+          "personal_eok": 7269.6
+        },
+        {
+          "date": "2026-03-25",
+          "foreign_eok": -12894.8,
+          "institution_eok": 23229.6,
+          "personal_eok": -13402.3
+        },
+        {
+          "date": "2026-03-26",
+          "foreign_eok": -29370.2,
+          "institution_eok": -2999.2,
+          "personal_eok": 30598.0
+        },
+        {
+          "date": "2026-03-27",
+          "foreign_eok": -34286.0,
+          "institution_eok": 7784.7,
+          "personal_eok": 22596.1
+        },
+        {
+          "date": "2026-03-30",
+          "foreign_eok": -20945.1,
+          "institution_eok": 8449.6,
+          "personal_eok": 8945.2
+        },
+        {
+          "date": "2026-03-31",
+          "foreign_eok": -38385.6,
+          "institution_eok": 10250.6,
+          "personal_eok": 24399.8
+        },
+        {
+          "date": "2026-04-01",
+          "foreign_eok": -6410.5,
+          "institution_eok": 40418.7,
+          "personal_eok": -37628.4
+        },
+        {
+          "date": "2026-04-02",
+          "foreign_eok": -1368.1,
+          "institution_eok": -14517.1,
+          "personal_eok": 12097.5
+        },
+        {
+          "date": "2026-04-03",
+          "foreign_eok": 8035.3,
+          "institution_eok": 7389.6,
+          "personal_eok": -20952.3
+        },
+        {
+          "date": "2026-04-06",
+          "foreign_eok": -1595.7,
+          "institution_eok": 8371.5,
+          "personal_eok": -10501.8
+        },
+        {
+          "date": "2026-04-07",
+          "foreign_eok": 3703.7,
+          "institution_eok": -4000.8,
+          "personal_eok": -3429.3
+        },
+        {
+          "date": "2026-04-08",
+          "foreign_eok": 19088.8,
+          "institution_eok": 27267.7,
+          "personal_eok": -54161.2
+        },
+        {
+          "date": "2026-04-09",
+          "foreign_eok": 18476.5,
+          "institution_eok": -25124.9,
+          "personal_eok": 2950.0
+        },
+        {
+          "date": "2026-04-10",
+          "foreign_eok": 10641.3,
+          "institution_eok": -2031.1,
+          "personal_eok": -12280.4
+        },
+        {
+          "date": "2026-04-13",
+          "foreign_eok": -4579.0,
+          "institution_eok": -6698.4,
+          "personal_eok": 7173.4
+        },
+        {
+          "date": "2026-04-14",
+          "foreign_eok": 8276.4,
+          "institution_eok": 12544.6,
+          "personal_eok": -23918.8
+        },
+        {
+          "date": "2026-04-15",
+          "foreign_eok": 4973.4,
+          "institution_eok": 368.1,
+          "personal_eok": -9400.3
+        },
+        {
+          "date": "2026-04-16",
+          "foreign_eok": 4813.9,
+          "institution_eok": 10783.1,
+          "personal_eok": -18049.8
+        },
+        {
+          "date": "2026-04-17",
+          "foreign_eok": -19974.3,
+          "institution_eok": 1501.1,
+          "personal_eok": 14464.1
+        },
+        {
+          "date": "2026-04-20",
+          "foreign_eok": -2337.9,
+          "institution_eok": 2937.9,
+          "personal_eok": -3158.3
+        },
+        {
+          "date": "2026-04-21",
+          "foreign_eok": 11564.6,
+          "institution_eok": 9180.7,
+          "personal_eok": -19204.3
+        },
+        {
+          "date": "2026-04-22",
+          "foreign_eok": -6762.0,
+          "institution_eok": -4045.9,
+          "personal_eok": 11983.7
+        },
+        {
+          "date": "2026-04-23",
+          "foreign_eok": -820.3,
+          "institution_eok": -2965.5,
+          "personal_eok": 4513.6
+        },
+        {
+          "date": "2026-04-24",
+          "foreign_eok": -19496.3,
+          "institution_eok": 8053.1,
+          "personal_eok": 11832.5
+        },
+        {
+          "date": "2026-04-27",
+          "foreign_eok": 8563.1,
+          "institution_eok": 11349.3,
+          "personal_eok": -19757.5
+        },
+        {
+          "date": "2026-04-28",
+          "foreign_eok": -1843.5,
+          "institution_eok": 3532.0,
+          "personal_eok": -1305.6
+        },
+        {
+          "date": "2026-04-29",
+          "foreign_eok": -6070.7,
+          "institution_eok": 4770.7,
+          "personal_eok": 1681.3
+        },
+        {
+          "date": "2026-04-30",
+          "foreign_eok": -14559.3,
+          "institution_eok": 2837.9,
+          "personal_eok": 11824.4
+        },
+        {
+          "date": "2026-05-04",
+          "foreign_eok": 29307.8,
+          "institution_eok": 20097.8,
+          "personal_eok": -47935.5
+        },
+        {
+          "date": "2026-05-06",
+          "foreign_eok": 31085.0,
+          "institution_eok": -22894.2,
+          "personal_eok": -5714.6
+        },
+        {
+          "date": "2026-05-07",
+          "foreign_eok": -66986.8,
+          "institution_eok": 8917.0,
+          "personal_eok": 59924.6
+        },
+        {
+          "date": "2026-05-08",
+          "foreign_eok": -52966.7,
+          "institution_eok": 12542.4,
+          "personal_eok": 39706.7
+        },
+        {
+          "date": "2026-05-11",
+          "foreign_eok": -28147.3,
+          "institution_eok": -458.1,
+          "personal_eok": 28668.6
+        },
+        {
+          "date": "2026-05-12",
+          "foreign_eok": -56089.7,
+          "institution_eok": -12138.0,
+          "personal_eok": 66818.3
+        },
+        {
+          "date": "2026-05-13",
+          "foreign_eok": -37226.5,
+          "institution_eok": 16876.0,
+          "personal_eok": 18868.4
+        },
+        {
+          "date": "2026-05-14",
+          "foreign_eok": -21450.0,
+          "institution_eok": 1927.2,
+          "personal_eok": 18499.2
+        },
+        {
+          "date": "2026-05-15",
+          "foreign_eok": -56039.5,
+          "institution_eok": -17347.2,
+          "personal_eok": 72307.8
+        },
+        {
+          "date": "2026-05-18",
+          "foreign_eok": -36491.8,
+          "institution_eok": 13903.8,
+          "personal_eok": 22094.3
+        },
+        {
+          "date": "2026-05-19",
+          "foreign_eok": -57242.4,
+          "institution_eok": 1574.8,
+          "personal_eok": 56289.5
+        },
+        {
+          "date": "2026-05-20",
+          "foreign_eok": -29309.5,
+          "institution_eok": 11069.6,
+          "personal_eok": 17104.4
+        },
+        {
+          "date": "2026-05-21",
+          "foreign_eok": -2211.9,
+          "institution_eok": 29008.3,
+          "personal_eok": -26753.6
+        },
+        {
+          "date": "2026-05-22",
+          "foreign_eok": -19221.4,
+          "institution_eok": 7583.2,
+          "personal_eok": 10654.6
+        },
+        {
+          "date": "2026-05-26",
+          "foreign_eok": -1320.6,
+          "institution_eok": 8167.7,
+          "personal_eok": -5745.4
+        },
+        {
+          "date": "2026-05-27",
+          "foreign_eok": -2492.8,
+          "institution_eok": -125.5,
+          "personal_eok": 4064.4
+        },
+        {
+          "date": "2026-05-28",
+          "foreign_eok": -27414.2,
+          "institution_eok": -10421.6,
+          "personal_eok": 36145.8
+        },
+        {
+          "date": "2026-05-29",
+          "foreign_eok": -10420.6,
+          "institution_eok": 23687.8,
+          "personal_eok": -14054.1
+        },
+        {
+          "date": "2026-06-01",
+          "foreign_eok": -28219.2,
+          "institution_eok": 24427.3,
+          "personal_eok": 3862.3
+        },
+        {
+          "date": "2026-06-02",
+          "foreign_eok": -63035.3,
+          "institution_eok": -545.8,
+          "personal_eok": 63537.5
+        },
+        {
+          "date": "2026-06-04",
+          "foreign_eok": -66662.6,
+          "institution_eok": 15254.5,
+          "personal_eok": 50134.9
+        },
+        {
+          "date": "2026-06-05",
+          "foreign_eok": -27637.9,
+          "institution_eok": -13808.6,
+          "personal_eok": 42240.0
+        },
+        {
+          "date": "2026-06-08",
+          "foreign_eok": -2644.3,
+          "institution_eok": -17164.2,
+          "personal_eok": 17627.6
+        },
+        {
+          "date": "2026-06-09",
+          "foreign_eok": -20063.9,
+          "institution_eok": 25048.2,
+          "personal_eok": -6166.9
+        },
+        {
+          "date": "2026-06-10",
+          "foreign_eok": -27753.9,
+          "institution_eok": -22665.2,
+          "personal_eok": 48642.9
+        },
+        {
+          "date": "2026-06-11",
+          "foreign_eok": -14640.2,
+          "institution_eok": -7561.4,
+          "personal_eok": 20802.5
+        },
+        {
+          "date": "2026-06-12",
+          "foreign_eok": 22040.9,
+          "institution_eok": 22869.8,
+          "personal_eok": -43174.5
+        },
+        {
+          "date": "2026-06-15",
+          "foreign_eok": 10774.4,
+          "institution_eok": 4461.5,
+          "personal_eok": -15123.5
+        },
+        {
+          "date": "2026-06-16",
+          "foreign_eok": 15353.1,
+          "institution_eok": 7076.4,
+          "personal_eok": -21841.5
+        },
+        {
+          "date": "2026-06-17",
+          "foreign_eok": -9951.7,
+          "institution_eok": 5956.6,
+          "personal_eok": 5254.1
+        },
+        {
+          "date": "2026-06-18",
+          "foreign_eok": 12776.2,
+          "institution_eok": -7682.2,
+          "personal_eok": -4156.2
+        },
+        {
+          "date": "2026-06-19",
+          "foreign_eok": -3555.1,
+          "institution_eok": -12244.3,
+          "personal_eok": 16478.4
+        },
+        {
+          "date": "2026-06-22",
+          "foreign_eok": -25465.5,
+          "institution_eok": 3033.9,
+          "personal_eok": 21505.9
+        },
+        {
+          "date": "2026-06-23",
+          "foreign_eok": -42047.4,
+          "institution_eok": -44760.1,
+          "personal_eok": 85909.6
+        },
+        {
+          "date": "2026-06-24",
+          "foreign_eok": -46545.8,
+          "institution_eok": 19095.5,
+          "personal_eok": 26312.5
+        },
+        {
+          "date": "2026-06-25",
+          "foreign_eok": -8753.6,
+          "institution_eok": 33244.2,
+          "personal_eok": -24136.3
+        },
+        {
+          "date": "2026-06-26",
+          "foreign_eok": -42905.8,
+          "institution_eok": -41223.8,
+          "personal_eok": 81919.1
+        },
+        {
+          "date": "2026-06-29",
+          "foreign_eok": -77331.7,
+          "institution_eok": 29326.7,
+          "personal_eok": 45975.2
+        },
+        {
+          "date": "2026-06-30",
+          "foreign_eok": -37992.0,
+          "institution_eok": 29332.0,
+          "personal_eok": 8401.5
+        },
+        {
+          "date": "2026-07-01",
+          "foreign_eok": -17028.5,
+          "institution_eok": -699.9,
+          "personal_eok": 17369.6
+        },
+        {
+          "date": "2026-07-02",
+          "foreign_eok": -43705.7,
+          "institution_eok": -20825.3,
+          "personal_eok": 62412.8
+        },
+        {
+          "date": "2026-07-03",
+          "foreign_eok": -21750.2,
+          "institution_eok": 44078.8,
+          "personal_eok": -22942.5
+        },
+        {
+          "date": "2026-07-06",
+          "foreign_eok": -13143.7,
+          "institution_eok": -14618.4,
+          "personal_eok": 26829.1
+        },
+        {
+          "date": "2026-07-07",
+          "foreign_eok": -29172.3,
+          "institution_eok": -3107.6,
+          "personal_eok": 31358.7
+        },
+        {
+          "date": "2026-07-08",
+          "foreign_eok": 3436.8,
+          "institution_eok": -3552.2,
+          "personal_eok": -357.8
+        },
+        {
+          "date": "2026-07-09",
+          "foreign_eok": 1343.1,
+          "institution_eok": 12884.5,
+          "personal_eok": -13277.6
+        },
+        {
+          "date": "2026-07-10",
+          "foreign_eok": -3227.7,
+          "institution_eok": 11313.9,
+          "personal_eok": -7804.6
+        },
+        {
+          "date": "2026-07-13",
+          "foreign_eok": -16705.5,
+          "institution_eok": -22338.2,
+          "personal_eok": 38868.8
+        },
+        {
+          "date": "2026-07-14",
+          "foreign_eok": 9565.1,
+          "institution_eok": 32116.8,
+          "personal_eok": -41410.9
+        },
+        {
+          "date": "2026-07-15",
+          "foreign_eok": 23031.5,
+          "institution_eok": 1992.1,
+          "personal_eok": -24666.2
+        },
+        {
+          "date": "2026-07-16",
+          "foreign_eok": -13665.1,
+          "institution_eok": -23831.0,
+          "personal_eok": 36646.7
+        },
+        {
+          "date": "2026-07-20",
+          "foreign_eok": 5198.2,
+          "institution_eok": -9234.9,
+          "personal_eok": 3490.1
+        },
+        {
+          "date": "2026-07-21",
+          "foreign_eok": 2951.6,
+          "institution_eok": 13744.4,
+          "personal_eok": -16420.5
+        },
+        {
+          "date": "2026-07-22",
+          "foreign_eok": 26210.9,
+          "institution_eok": -13963.0,
+          "personal_eok": -12176.1
+        },
+        {
+          "date": "2026-07-23",
+          "foreign_eok": 21358.9,
+          "institution_eok": 975.5,
+          "personal_eok": -22077.1
+        },
+        {
+          "date": "2026-07-24",
+          "foreign_eok": -32683.4,
+          "institution_eok": -19514.4,
+          "personal_eok": 51782.3
+        },
+        {
+          "date": "2026-07-27",
+          "foreign_eok": -28811.1,
+          "institution_eok": 8595.4,
+          "personal_eok": 19788.4
+        },
+        {
+          "date": "2026-07-28",
+          "foreign_eok": -45008.8,
+          "institution_eok": 1830.3,
+          "personal_eok": 43152.0
+        },
+        {
+          "date": "2026-07-29",
+          "foreign_eok": -12502.2,
+          "institution_eok": 31769.4,
+          "personal_eok": -19701.0
+        },
+        {
+          "date": "2026-07-30",
+          "foreign_eok": 13280.1,
+          "institution_eok": 805.2,
+          "personal_eok": -14308.8
+        },
+        {
+          "date": "2026-07-31",
+          "foreign_eok": 72409.8,
+          "institution_eok": 11502.9,
+          "personal_eok": -82840.0
+        },
+        {
+          "date": "2026-08-03",
+          "foreign_eok": -28220.2,
+          "institution_eok": -19516.3,
+          "personal_eok": 46523.1
+        },
+        {
+          "date": "2026-08-04",
+          "foreign_eok": -3716.1,
+          "institution_eok": -5384.6,
+          "personal_eok": 8186.6
+        },
+        {
+          "date": "2026-08-05",
+          "foreign_eok": 14463.7,
+          "institution_eok": -2837.6,
+          "personal_eok": -11844.0
+        },
+        {
+          "date": "2026-08-06",
+          "foreign_eok": -32892.7,
+          "institution_eok": -1214.3,
+          "personal_eok": 33367.0
+        },
+        {
+          "date": "2026-08-07",
+          "foreign_eok": -8651.0,
+          "institution_eok": 5853.7,
+          "personal_eok": 2675.3
+        },
+        {
+          "date": "2026-08-10",
+          "foreign_eok": -14908.7,
+          "institution_eok": 5691.5,
+          "personal_eok": 9002.5
+        },
+        {
+          "date": "2026-08-11",
+          "foreign_eok": 535.2,
+          "institution_eok": 212.5,
+          "personal_eok": -707.6
+        },
+        {
+          "date": "2026-08-12",
+          "foreign_eok": 28353.9,
+          "institution_eok": 5279.0,
+          "personal_eok": -31910.8
+        },
+        {
+          "date": "2026-08-13",
+          "foreign_eok": 21102.1,
+          "institution_eok": 6834.1,
+          "personal_eok": -27410.3
+        },
+        {
+          "date": "2026-08-14",
+          "foreign_eok": 30387.1,
+          "institution_eok": -10298.2,
+          "personal_eok": -19820.3
+        },
+        {
+          "date": "2026-08-18",
+          "foreign_eok": 914.0,
+          "institution_eok": -7951.4,
+          "personal_eok": 7420.0
+        },
+        {
+          "date": "2026-08-19",
+          "foreign_eok": -34726.0,
+          "institution_eok": -13389.5,
+          "personal_eok": 46356.7
+        },
+        {
+          "date": "2026-08-20",
+          "foreign_eok": 17068.4,
+          "institution_eok": -4895.1,
+          "personal_eok": -22712.4
+        },
+        {
+          "date": "2026-08-21",
+          "foreign_eok": -1759.6,
+          "institution_eok": 2480.8,
+          "personal_eok": -11652.4
+        },
+        {
+          "date": "2026-08-24",
+          "foreign_eok": -36690.9,
+          "institution_eok": -12901.2,
+          "personal_eok": 33217.4
+        },
+        {
+          "date": "2026-08-25",
+          "foreign_eok": -38139.9,
+          "institution_eok": 11710.8,
+          "personal_eok": 10509.1
+        },
+        {
+          "date": "2026-08-26",
+          "foreign_eok": -1148.3,
+          "institution_eok": 7615.1,
+          "personal_eok": -22460.9
+        },
+        {
+          "date": "2026-08-27",
+          "foreign_eok": 1332.8,
+          "institution_eok": 1835.3,
+          "personal_eok": -19115.8
+        },
+        {
+          "date": "2026-08-28",
+          "foreign_eok": -8524.5,
+          "institution_eok": -11875.5,
+          "personal_eok": 4193.8
+        },
+        {
+          "date": "2026-08-31",
+          "foreign_eok": -6434.4,
+          "institution_eok": -7891.4,
+          "personal_eok": -1464.1
+        },
+        {
+          "date": "2026-09-01",
+          "foreign_eok": -4968.4,
+          "institution_eok": -6286.1,
+          "personal_eok": -5402.0
+        },
+        {
+          "date": "2026-09-02",
+          "foreign_eok": -19172.5,
+          "institution_eok": -20361.4,
+          "personal_eok": 23028.6
+        },
+        {
+          "date": "2026-09-03",
+          "foreign_eok": 414.4,
+          "institution_eok": 9143.5,
+          "personal_eok": -9551.7
+        },
+        {
+          "date": "2026-09-04",
+          "foreign_eok": 4796.1,
+          "institution_eok": 16694.1,
+          "personal_eok": -37229.4
+        },
+        {
+          "date": "2026-09-07",
+          "foreign_eok": 25531.6,
+          "institution_eok": 26490.7,
+          "personal_eok": -68373.8
+        },
+        {
+          "date": "2026-09-08",
+          "foreign_eok": 6316.3,
+          "institution_eok": 6426.9,
+          "personal_eok": -30329.0
+        },
+        {
+          "date": "2026-09-09",
+          "foreign_eok": -4348.1,
+          "institution_eok": 9422.3,
+          "personal_eok": -22878.6
+        },
+        {
+          "date": "2026-09-10",
+          "foreign_eok": -26216.6,
+          "institution_eok": 5743.6,
+          "personal_eok": 3801.9
+        },
+        {
+          "date": "2026-09-11",
+          "foreign_eok": -22984.1,
+          "institution_eok": -12183.9,
+          "personal_eok": 18675.5
+        },
+        {
+          "date": "2026-09-14",
+          "foreign_eok": -33362.6,
+          "institution_eok": -11868.6,
+          "personal_eok": 30351.1
+        },
+        {
+          "date": "2026-09-15",
+          "foreign_eok": -15457.6,
+          "institution_eok": -9585.2,
+          "personal_eok": 8595.5
+        },
+        {
+          "date": "2026-09-16",
+          "foreign_eok": -16725.8,
+          "institution_eok": 12251.1,
+          "personal_eok": -12061.3
+        },
+        {
+          "date": "2026-09-17",
+          "foreign_eok": -22546.3,
+          "institution_eok": 2480.0,
+          "personal_eok": 3019.9
+        },
+        {
+          "date": "2026-09-18",
+          "foreign_eok": 4486.3,
+          "institution_eok": 15321.7,
+          "personal_eok": -36359.2
+        },
+        {
+          "date": "2026-09-21",
+          "foreign_eok": 116.7,
+          "institution_eok": 15161.6,
+          "personal_eok": -31850.4
+        },
+        {
+          "date": "2026-09-22",
+          "foreign_eok": 494.0,
+          "institution_eok": -1294.7,
+          "personal_eok": -15642.7
+        },
+        {
+          "date": "2026-09-23",
+          "foreign_eok": -4942.2,
+          "institution_eok": 3188.6,
+          "personal_eok": -14649.0
+        },
+        {
+          "date": "2026-09-28",
+          "foreign_eok": -32682.0,
+          "institution_eok": -10168.8,
+          "personal_eok": 26466.7
+        },
+        {
+          "date": "2026-09-29",
+          "foreign_eok": -29922.0,
+          "institution_eok": 1041.5,
+          "personal_eok": 12446.6
+        },
+        {
+          "date": "2026-09-30",
+          "foreign_eok": -20645.6,
+          "institution_eok": -7992.5,
+          "personal_eok": 12109.0
+        },
+        {
+          "date": "2026-10-01",
+          "foreign_eok": -5558.3,
+          "institution_eok": 3239.2,
+          "personal_eok": -14102.5
+        },
+        {
+          "date": "2026-10-02",
+          "foreign_eok": -1080.2,
+          "institution_eok": 4155.2,
+          "personal_eok": -17897.2
+        },
+        {
+          "date": "2026-10-06",
+          "foreign_eok": -17575.2,
+          "institution_eok": -38.6,
+          "personal_eok": 7440.6
+        },
+        {
+          "date": "2026-10-07",
+          "foreign_eok": -26187.6,
+          "institution_eok": -7100.8,
+          "personal_eok": 26183.4
+        },
+        {
+          "date": "2026-10-08",
+          "foreign_eok": -20703.6,
+          "institution_eok": -16789.2,
+          "personal_eok": 29972.2
+        },
+        {
+          "date": "2026-10-12",
+          "foreign_eok": -20102.7,
+          "institution_eok": -1345.1,
+          "personal_eok": 14857.4
+        },
+        {
+          "date": "2026-10-13",
+          "foreign_eok": -45789.2,
+          "institution_eok": 16685.1,
+          "personal_eok": 23169.3
+        },
+        {
+          "date": "2026-10-14",
+          "foreign_eok": -11614.2,
+          "institution_eok": 7875.6,
+          "personal_eok": -3202.9
+        },
+        {
+          "date": "2026-10-15",
+          "foreign_eok": -37637.3,
+          "institution_eok": 17175.6,
+          "personal_eok": 13967.3
+        },
+        {
+          "date": "2026-10-16",
+          "foreign_eok": 3637.2,
+          "institution_eok": -6815.4,
+          "personal_eok": -5125.9
+        },
+        {
+          "date": "2026-10-19",
+          "foreign_eok": 947.3,
+          "institution_eok": 5301.7,
+          "personal_eok": -11766.9
+        },
+        {
+          "date": "2026-10-20",
+          "foreign_eok": -4884.3,
+          "institution_eok": -9901.4,
+          "personal_eok": 8475.4
+        },
+        {
+          "date": "2026-10-21",
+          "foreign_eok": 6461.7,
+          "institution_eok": -780.8,
+          "personal_eok": -11158.6
+        },
+        {
+          "date": "2026-10-22",
+          "foreign_eok": 504.6,
+          "institution_eok": -4598.9,
+          "personal_eok": 3666.5
+        },
+        {
+          "date": "2026-10-23",
+          "foreign_eok": -9811.4,
+          "institution_eok": 8681.6,
+          "personal_eok": 422.1
+        },
+        {
+          "date": "2026-10-26",
+          "foreign_eok": -6826.5,
+          "institution_eok": 6131.1,
+          "personal_eok": 331.3
+        },
+        {
+          "date": "2026-10-27",
+          "foreign_eok": 5826.4,
+          "institution_eok": 2823.5,
+          "personal_eok": -9406.6
+        },
+        {
+          "date": "2026-10-28",
+          "foreign_eok": 7676.5,
+          "institution_eok": 9130.9,
+          "personal_eok": -17037.3
+        },
+        {
+          "date": "2026-10-29",
+          "foreign_eok": 1220.8,
+          "institution_eok": -4132.2,
+          "personal_eok": -428.9
+        },
+        {
+          "date": "2026-10-30",
+          "foreign_eok": -16148.5,
+          "institution_eok": 7539.8,
+          "personal_eok": 6027.9
+        },
+        {
+          "date": "2026-11-02",
+          "foreign_eok": -3844.8,
+          "institution_eok": 12257.3,
+          "personal_eok": -13302.6
+        },
+        {
+          "date": "2026-11-03",
+          "foreign_eok": -15085.7,
+          "institution_eok": -4940.8,
+          "personal_eok": 16388.0
+        },
+        {
+          "date": "2026-11-04",
+          "foreign_eok": -24528.3,
+          "institution_eok": 11333.5,
+          "personal_eok": 9629.3
+        },
+        {
+          "date": "2026-11-05",
+          "foreign_eok": -33733.0,
+          "institution_eok": 8818.9,
+          "personal_eok": 22087.0
+        },
+        {
+          "date": "2026-11-06",
+          "foreign_eok": -26891.6,
+          "institution_eok": 17091.7,
+          "personal_eok": 5207.2
+        },
+        {
+          "date": "2026-11-09",
+          "foreign_eok": -5255.5,
+          "institution_eok": 7535.1,
+          "personal_eok": -6886.4
+        },
+        {
+          "date": "2026-11-10",
+          "foreign_eok": 4439.1,
+          "institution_eok": 4641.5,
+          "personal_eok": -13947.1
+        },
+        {
+          "date": "2026-11-11",
+          "foreign_eok": 6729.2,
+          "institution_eok": -5034.1,
+          "personal_eok": -7144.9
+        },
+        {
+          "date": "2026-11-12",
+          "foreign_eok": 4123.0,
+          "institution_eok": -6624.1,
+          "personal_eok": -2689.0
+        },
+        {
+          "date": "2026-11-13",
+          "foreign_eok": -5419.2,
+          "institution_eok": -59.1,
+          "personal_eok": 145.0
+        },
+        {
+          "date": "2026-11-16",
+          "foreign_eok": -13287.0,
+          "institution_eok": -4561.8,
+          "personal_eok": 12903.8
+        },
+        {
+          "date": "2026-11-17",
+          "foreign_eok": -14189.9,
+          "institution_eok": 5133.9,
+          "personal_eok": 4309.7
+        },
+        {
+          "date": "2026-11-18",
+          "foreign_eok": -3404.8,
+          "institution_eok": 4926.0,
+          "personal_eok": -6168.8
+        },
+        {
+          "date": "2026-11-19",
+          "foreign_eok": -4085.6,
+          "institution_eok": 119.8,
+          "personal_eok": -560.5
+        },
+        {
+          "date": "2026-11-20",
+          "foreign_eok": -10956.0,
+          "institution_eok": -9330.2,
+          "personal_eok": 15381.4
+        },
+        {
+          "date": "2026-11-23",
+          "foreign_eok": -2560.2,
+          "institution_eok": 1758.4,
+          "personal_eok": -3532.4
+        }
+      ]
+    },
+    "KOSDAQ": {
+      "sessions": [
+        {
+          "date": "2025-10-23",
+          "foreign_eok": -1174.3,
+          "institution_eok": -134.2,
+          "personal_eok": 1649.9
+        },
+        {
+          "date": "2025-10-24",
+          "foreign_eok": 353.2,
+          "institution_eok": 1620.1,
+          "personal_eok": -1120.4
+        },
+        {
+          "date": "2025-10-27",
+          "foreign_eok": 2376.4,
+          "institution_eok": 1875.9,
+          "personal_eok": -2946.0
+        },
+        {
+          "date": "2025-10-28",
+          "foreign_eok": -1578.5,
+          "institution_eok": 251.5,
+          "personal_eok": 1497.9
+        },
+        {
+          "date": "2025-10-29",
+          "foreign_eok": 383.2,
+          "institution_eok": -566.5,
+          "personal_eok": 636.1
+        },
+        {
+          "date": "2025-10-30",
+          "foreign_eok": 1845.8,
+          "institution_eok": -354.8,
+          "personal_eok": -983.0
+        },
+        {
+          "date": "2025-10-31",
+          "foreign_eok": 1954.3,
+          "institution_eok": 1443.3,
+          "personal_eok": -3357.1
+        },
+        {
+          "date": "2025-11-03",
+          "foreign_eok": 3830.1,
+          "institution_eok": 33.4,
+          "personal_eok": -3423.9
+        },
+        {
+          "date": "2025-11-04",
+          "foreign_eok": 2283.0,
+          "institution_eok": 1662.8,
+          "personal_eok": -3653.0
+        },
+        {
+          "date": "2025-11-05",
+          "foreign_eok": -5983.1,
+          "institution_eok": 468.3,
+          "personal_eok": 5650.4
+        },
+        {
+          "date": "2025-11-06",
+          "foreign_eok": -1156.4,
+          "institution_eok": 60.6,
+          "personal_eok": 1301.6
+        },
+        {
+          "date": "2025-11-07",
+          "foreign_eok": 580.5,
+          "institution_eok": -1050.9,
+          "personal_eok": 829.7
+        },
+        {
+          "date": "2025-11-10",
+          "foreign_eok": -147.6,
+          "institution_eok": 517.5,
+          "personal_eok": -411.5
+        },
+        {
+          "date": "2025-11-11",
+          "foreign_eok": 166.4,
+          "institution_eok": -822.4,
+          "personal_eok": 769.4
+        },
+        {
+          "date": "2025-11-12",
+          "foreign_eok": 2528.9,
+          "institution_eok": 1147.9,
+          "personal_eok": -3630.5
+        },
+        {
+          "date": "2025-11-13",
+          "foreign_eok": -784.2,
+          "institution_eok": 937.7,
+          "personal_eok": 358.3
+        },
+        {
+          "date": "2025-11-14",
+          "foreign_eok": -3194.4,
+          "institution_eok": -294.6,
+          "personal_eok": 3818.2
+        },
+        {
+          "date": "2025-11-17",
+          "foreign_eok": -426.6,
+          "institution_eok": 540.9,
+          "personal_eok": 569.7
+        },
+        {
+          "date": "2025-11-18",
+          "foreign_eok": -1745.8,
+          "institution_eok": -1145.3,
+          "personal_eok": 3761.4
+        },
+        {
+          "date": "2025-11-19",
+          "foreign_eok": -620.4,
+          "institution_eok": 734.7,
+          "personal_eok": 38.2
+        },
+        {
+          "date": "2025-11-20",
+          "foreign_eok": 1911.4,
+          "institution_eok": 157.8,
+          "personal_eok": -1298.2
+        },
+        {
+          "date": "2025-11-21",
+          "foreign_eok": -1270.6,
+          "institution_eok": -775.4,
+          "personal_eok": 2201.1
+        },
+        {
+          "date": "2025-11-24",
+          "foreign_eok": -392.7,
+          "institution_eok": -308.3,
+          "personal_eok": 635.1
+        },
+        {
+          "date": "2025-11-25",
+          "foreign_eok": 1107.5,
+          "institution_eok": -26.7,
+          "personal_eok": -722.2
+        },
+        {
+          "date": "2025-11-26",
+          "foreign_eok": 2096.4,
+          "institution_eok": 868.3,
+          "personal_eok": -2732.7
+        },
+        {
+          "date": "2025-11-27",
+          "foreign_eok": -868.1,
+          "institution_eok": -425.4,
+          "personal_eok": 1581.5
+        },
+        {
+          "date": "2025-11-28",
+          "foreign_eok": 4884.6,
+          "institution_eok": 6030.0,
+          "personal_eok": -10443.8
+        },
+        {
+          "date": "2025-12-01",
+          "foreign_eok": -1499.8,
+          "institution_eok": 3519.8,
+          "personal_eok": -1751.8
+        },
+        {
+          "date": "2025-12-02",
+          "foreign_eok": -1252.6,
+          "institution_eok": 1371.5,
+          "personal_eok": 307.2
+        },
+        {
+          "date": "2025-12-03",
+          "foreign_eok": -177.1,
+          "institution_eok": -146.8,
+          "personal_eok": 1123.2
+        },
+        {
+          "date": "2025-12-04",
+          "foreign_eok": 781.0,
+          "institution_eok": 809.4,
+          "personal_eok": -699.4
+        },
+        {
+          "date": "2025-12-05",
+          "foreign_eok": -1300.6,
+          "institution_eok": -1864.3,
+          "personal_eok": 3198.3
+        },
+        {
+          "date": "2025-12-08",
+          "foreign_eok": 3830.2,
+          "institution_eok": -1864.2,
+          "personal_eok": -1515.4
+        },
+        {
+          "date": "2025-12-09",
+          "foreign_eok": -581.1,
+          "institution_eok": -1067.6,
+          "personal_eok": 2135.0
+        },
+        {
+          "date": "2025-12-10",
+          "foreign_eok": 972.5,
+          "institution_eok": -30.6,
+          "personal_eok": -517.2
+        },
+        {
+          "date": "2025-12-11",
+          "foreign_eok": 514.3,
+          "institution_eok": -342.4,
+          "personal_eok": 465.8
+        },
+        {
+          "date": "2025-12-12",
+          "foreign_eok": 1963.8,
+          "institution_eok": 318.6,
+          "personal_eok": -1505.0
+        },
+        {
+          "date": "2025-12-15",
+          "foreign_eok": -184.8,
+          "institution_eok": -1322.9,
+          "personal_eok": 1813.4
+        },
+        {
+          "date": "2025-12-16",
+          "foreign_eok": -3523.2,
+          "institution_eok": 11.0,
+          "personal_eok": 3984.2
+        },
+        {
+          "date": "2025-12-17",
+          "foreign_eok": -2219.3,
+          "institution_eok": 122.4,
+          "personal_eok": 2645.9
+        },
+        {
+          "date": "2025-12-18",
+          "foreign_eok": -901.0,
+          "institution_eok": -84.8,
+          "personal_eok": 990.0
+        },
+        {
+          "date": "2025-12-19",
+          "foreign_eok": 1067.4,
+          "institution_eok": 1993.1,
+          "personal_eok": -2824.8
+        },
+        {
+          "date": "2025-12-22",
+          "foreign_eok": -331.7,
+          "institution_eok": 619.3,
+          "personal_eok": 1062.2
+        },
+        {
+          "date": "2025-12-23",
+          "foreign_eok": -1497.1,
+          "institution_eok": 453.2,
+          "personal_eok": 1799.3
+        },
+        {
+          "date": "2025-12-24",
+          "foreign_eok": -357.9,
+          "institution_eok": 768.7,
+          "personal_eok": -88.9
+        },
+        {
+          "date": "2025-12-26",
+          "foreign_eok": 971.5,
+          "institution_eok": 3583.0,
+          "personal_eok": -4596.2
+        },
+        {
+          "date": "2025-12-29",
+          "foreign_eok": 854.3,
+          "institution_eok": -1784.0,
+          "personal_eok": 1877.1
+        },
+        {
+          "date": "2025-12-30",
+          "foreign_eok": -3266.4,
+          "institution_eok": -1687.1,
+          "personal_eok": 5392.3
+        },
+        {
+          "date": "2026-01-02",
+          "foreign_eok": 1043.8,
+          "institution_eok": 844.9,
+          "personal_eok": -1825.4
+        },
+        {
+          "date": "2026-01-05",
+          "foreign_eok": -1119.7,
+          "institution_eok": 242.9,
+          "personal_eok": 996.5
+        },
+        {
+          "date": "2026-01-06",
+          "foreign_eok": -3349.1,
+          "institution_eok": -300.8,
+          "personal_eok": 3813.4
+        },
+        {
+          "date": "2026-01-07",
+          "foreign_eok": 2573.4,
+          "institution_eok": -1002.6,
+          "personal_eok": 1833.3
+        },
+        {
+          "date": "2026-01-08",
+          "foreign_eok": -914.7,
+          "institution_eok": 272.4,
+          "personal_eok": 673.3
+        },
+        {
+          "date": "2026-01-09",
+          "foreign_eok": -1699.6,
+          "institution_eok": 761.7,
+          "personal_eok": 1063.8
+        },
+        {
+          "date": "2026-01-12",
+          "foreign_eok": -74.2,
+          "institution_eok": -685.6,
+          "personal_eok": 999.5
+        },
+        {
+          "date": "2026-01-13",
+          "foreign_eok": -1810.5,
+          "institution_eok": -1456.6,
+          "personal_eok": 3369.7
+        },
+        {
+          "date": "2026-01-14",
+          "foreign_eok": -2631.9,
+          "institution_eok": -1568.3,
+          "personal_eok": 4194.1
+        },
+        {
+          "date": "2026-01-15",
+          "foreign_eok": 3148.2,
+          "institution_eok": -287.6,
+          "personal_eok": -2562.0
+        },
+        {
+          "date": "2026-01-16",
+          "foreign_eok": -839.5,
+          "institution_eok": 397.2,
+          "personal_eok": 567.1
+        },
+        {
+          "date": "2026-01-19",
+          "foreign_eok": 2264.4,
+          "institution_eok": -385.8,
+          "personal_eok": -1395.5
+        },
+        {
+          "date": "2026-01-20",
+          "foreign_eok": 240.4,
+          "institution_eok": 2758.8,
+          "personal_eok": -3079.8
+        },
+        {
+          "date": "2026-01-21",
+          "foreign_eok": -2611.8,
+          "institution_eok": -6611.3,
+          "personal_eok": 9553.1
+        },
+        {
+          "date": "2026-01-22",
+          "foreign_eok": 832.9,
+          "institution_eok": -1376.8,
+          "personal_eok": 898.7
+        },
+        {
+          "date": "2026-01-23",
+          "foreign_eok": 1052.4,
+          "institution_eok": 9735.2,
+          "personal_eok": -10359.6
+        },
+        {
+          "date": "2026-01-26",
+          "foreign_eok": 4497.0,
+          "institution_eok": 26216.6,
+          "personal_eok": -29138.0
+        },
+        {
+          "date": "2026-01-27",
+          "foreign_eok": -1132.6,
+          "institution_eok": 16527.8,
+          "personal_eok": -14540.4
+        },
+        {
+          "date": "2026-01-28",
+          "foreign_eok": 4866.4,
+          "institution_eok": 23021.7,
+          "personal_eok": -26462.0
+        },
+        {
+          "date": "2026-01-29",
+          "foreign_eok": 2163.2,
+          "institution_eok": 20427.3,
+          "personal_eok": -21296.9
+        },
+        {
+          "date": "2026-01-30",
+          "foreign_eok": -1658.4,
+          "institution_eok": 13350.7,
+          "personal_eok": -9830.0
+        },
+        {
+          "date": "2026-02-02",
+          "foreign_eok": 4107.7,
+          "institution_eok": -5484.4,
+          "personal_eok": 2126.6
+        },
+        {
+          "date": "2026-02-03",
+          "foreign_eok": -896.5,
+          "institution_eok": 8633.4,
+          "personal_eok": -7085.0
+        },
+        {
+          "date": "2026-02-04",
+          "foreign_eok": 49.0,
+          "institution_eok": -1514.8,
+          "personal_eok": 2399.0
+        },
+        {
+          "date": "2026-02-05",
+          "foreign_eok": -2756.3,
+          "institution_eok": -5385.4,
+          "personal_eok": 9062.9
+        },
+        {
+          "date": "2026-02-06",
+          "foreign_eok": 728.2,
+          "institution_eok": -1642.6,
+          "personal_eok": 1484.2
+        },
+        {
+          "date": "2026-02-09",
+          "foreign_eok": 2316.8,
+          "institution_eok": 4876.8,
+          "personal_eok": -6236.0
+        },
+        {
+          "date": "2026-02-10",
+          "foreign_eok": -1955.5,
+          "institution_eok": -808.4,
+          "personal_eok": 3239.4
+        },
+        {
+          "date": "2026-02-11",
+          "foreign_eok": 190.6,
+          "institution_eok": 608.2,
+          "personal_eok": -513.5
+        },
+        {
+          "date": "2026-02-12",
+          "foreign_eok": -1065.6,
+          "institution_eok": 997.0,
+          "personal_eok": 860.4
+        },
+        {
+          "date": "2026-02-13",
+          "foreign_eok": -2414.1,
+          "institution_eok": -3381.1,
+          "personal_eok": 6220.1
+        },
+        {
+          "date": "2026-02-19",
+          "foreign_eok": 8540.1,
+          "institution_eok": 10541.3,
+          "personal_eok": -18300.8
+        },
+        {
+          "date": "2026-02-20",
+          "foreign_eok": -2073.4,
+          "institution_eok": 231.2,
+          "personal_eok": 2317.6
+        },
+        {
+          "date": "2026-02-23",
+          "foreign_eok": 1805.0,
+          "institution_eok": -3623.9,
+          "personal_eok": 2178.8
+        },
+        {
+          "date": "2026-02-24",
+          "foreign_eok": 2790.1,
+          "institution_eok": -1467.8,
+          "personal_eok": 2285.7
+        },
+        {
+          "date": "2026-02-25",
+          "foreign_eok": -2159.4,
+          "institution_eok": -1276.5,
+          "personal_eok": 3906.4
+        },
+        {
+          "date": "2026-02-26",
+          "foreign_eok": 4246.6,
+          "institution_eok": 1901.0,
+          "personal_eok": -5458.7
+        },
+        {
+          "date": "2026-02-27",
+          "foreign_eok": 622.5,
+          "institution_eok": 4460.0,
+          "personal_eok": -4724.5
+        },
+        {
+          "date": "2026-03-03",
+          "foreign_eok": 5933.7,
+          "institution_eok": 2388.3,
+          "personal_eok": -7614.5
+        },
+        {
+          "date": "2026-03-04",
+          "foreign_eok": 11702.9,
+          "institution_eok": 322.8,
+          "personal_eok": -12030.1
+        },
+        {
+          "date": "2026-03-05",
+          "foreign_eok": 8322.5,
+          "institution_eok": 7392.6,
+          "personal_eok": -15513.7
+        },
+        {
+          "date": "2026-03-06",
+          "foreign_eok": -3862.3,
+          "institution_eok": 4761.3,
+          "personal_eok": -799.8
+        },
+        {
+          "date": "2026-03-09",
+          "foreign_eok": -5388.9,
+          "institution_eok": 446.9,
+          "personal_eok": 5065.3
+        },
+        {
+          "date": "2026-03-10",
+          "foreign_eok": -4020.6,
+          "institution_eok": 4298.4,
+          "personal_eok": 136.0
+        },
+        {
+          "date": "2026-03-11",
+          "foreign_eok": -811.9,
+          "institution_eok": -1266.7,
+          "personal_eok": 2542.2
+        },
+        {
+          "date": "2026-03-12",
+          "foreign_eok": -6867.1,
+          "institution_eok": 2531.0,
+          "personal_eok": 5064.2
+        },
+        {
+          "date": "2026-03-13",
+          "foreign_eok": -828.6,
+          "institution_eok": 2526.2,
+          "personal_eok": -1324.8
+        },
+        {
+          "date": "2026-03-16",
+          "foreign_eok": -5012.3,
+          "institution_eok": -1696.4,
+          "personal_eok": 7104.0
+        },
+        {
+          "date": "2026-03-17",
+          "foreign_eok": -585.0,
+          "institution_eok": -359.0,
+          "personal_eok": 1379.7
+        },
+        {
+          "date": "2026-03-18",
+          "foreign_eok": 4923.7,
+          "institution_eok": -253.1,
+          "personal_eok": -3927.8
+        },
+        {
+          "date": "2026-03-19",
+          "foreign_eok": -2003.5,
+          "institution_eok": -2611.6,
+          "personal_eok": 5017.9
+        },
+        {
+          "date": "2026-03-20",
+          "foreign_eok": 2346.9,
+          "institution_eok": -941.9,
+          "personal_eok": -1170.6
+        },
+        {
+          "date": "2026-03-23",
+          "foreign_eok": -2591.6,
+          "institution_eok": -1997.7,
+          "personal_eok": 4647.0
+        },
+        {
+          "date": "2026-03-24",
+          "foreign_eok": 1732.7,
+          "institution_eok": 158.2,
+          "personal_eok": -2113.1
+        },
+        {
+          "date": "2026-03-25",
+          "foreign_eok": 3732.5,
+          "institution_eok": 223.7,
+          "personal_eok": -3820.5
+        },
+        {
+          "date": "2026-03-26",
+          "foreign_eok": -2962.8,
+          "institution_eok": -1336.8,
+          "personal_eok": 4845.5
+        },
+        {
+          "date": "2026-03-27",
+          "foreign_eok": -2337.2,
+          "institution_eok": 507.4,
+          "personal_eok": 1703.0
+        },
+        {
+          "date": "2026-03-30",
+          "foreign_eok": -1313.7,
+          "institution_eok": -1179.1,
+          "personal_eok": 3040.6
+        },
+        {
+          "date": "2026-03-31",
+          "foreign_eok": 1187.7,
+          "institution_eok": -686.9,
+          "personal_eok": 497.3
+        },
+        {
+          "date": "2026-04-01",
+          "foreign_eok": 4385.0,
+          "institution_eok": 4608.7,
+          "personal_eok": -9010.6
+        },
+        {
+          "date": "2026-04-02",
+          "foreign_eok": -862.7,
+          "institution_eok": -5054.8,
+          "personal_eok": 6157.1
+        },
+        {
+          "date": "2026-04-03",
+          "foreign_eok": -1965.5,
+          "institution_eok": -2173.2,
+          "personal_eok": 4067.3
+        },
+        {
+          "date": "2026-04-06",
+          "foreign_eok": 868.1,
+          "institution_eok": -3591.6,
+          "personal_eok": 4265.7
+        },
+        {
+          "date": "2026-04-07",
+          "foreign_eok": 1797.7,
+          "institution_eok": -1200.3,
+          "personal_eok": -322.1
+        },
+        {
+          "date": "2026-04-08",
+          "foreign_eok": 2397.0,
+          "institution_eok": 3729.2,
+          "personal_eok": -5833.4
+        },
+        {
+          "date": "2026-04-09",
+          "foreign_eok": -4249.2,
+          "institution_eok": -5079.7,
+          "personal_eok": 9281.0
+        },
+        {
+          "date": "2026-04-10",
+          "foreign_eok": -19.2,
+          "institution_eok": 931.4,
+          "personal_eok": -823.6
+        },
+        {
+          "date": "2026-04-13",
+          "foreign_eok": -1491.3,
+          "institution_eok": -922.9,
+          "personal_eok": 2619.6
+        },
+        {
+          "date": "2026-04-14",
+          "foreign_eok": -63.6,
+          "institution_eok": -1287.8,
+          "personal_eok": 1160.2
+        },
+        {
+          "date": "2026-04-15",
+          "foreign_eok": 2209.0,
+          "institution_eok": 1767.0,
+          "personal_eok": -2561.3
+        },
+        {
+          "date": "2026-04-16",
+          "foreign_eok": -2462.6,
+          "institution_eok": -640.2,
+          "personal_eok": 3605.2
+        },
+        {
+          "date": "2026-04-17",
+          "foreign_eok": 132.8,
+          "institution_eok": 137.6,
+          "personal_eok": 14.2
+        },
+        {
+          "date": "2026-04-20",
+          "foreign_eok": 215.6,
+          "institution_eok": -1604.3,
+          "personal_eok": 1621.9
+        },
+        {
+          "date": "2026-04-21",
+          "foreign_eok": -2829.5,
+          "institution_eok": -1202.5,
+          "personal_eok": 4908.8
+        },
+        {
+          "date": "2026-04-22",
+          "foreign_eok": 1620.8,
+          "institution_eok": -3691.1,
+          "personal_eok": 2968.6
+        },
+        {
+          "date": "2026-04-23",
+          "foreign_eok": -1461.7,
+          "institution_eok": -1495.0,
+          "personal_eok": 3248.9
+        },
+        {
+          "date": "2026-04-24",
+          "foreign_eok": 7325.1,
+          "institution_eok": 1887.2,
+          "personal_eok": -8990.3
+        },
+        {
+          "date": "2026-04-27",
+          "foreign_eok": -1722.2,
+          "institution_eok": 849.2,
+          "personal_eok": 1417.6
+        },
+        {
+          "date": "2026-04-28",
+          "foreign_eok": -4948.9,
+          "institution_eok": -2542.8,
+          "personal_eok": 7962.3
+        },
+        {
+          "date": "2026-04-29",
+          "foreign_eok": -20.7,
+          "institution_eok": -728.5,
+          "personal_eok": 1378.9
+        },
+        {
+          "date": "2026-04-30",
+          "foreign_eok": -2112.1,
+          "institution_eok": -3045.0,
+          "personal_eok": 5532.1
+        },
+        {
+          "date": "2026-05-04",
+          "foreign_eok": 5548.0,
+          "institution_eok": -729.0,
+          "personal_eok": -4422.4
+        },
+        {
+          "date": "2026-05-06",
+          "foreign_eok": -614.6,
+          "institution_eok": -5435.0,
+          "personal_eok": 6105.1
+        },
+        {
+          "date": "2026-05-07",
+          "foreign_eok": 1746.6,
+          "institution_eok": -1323.4,
+          "personal_eok": -176.7
+        },
+        {
+          "date": "2026-05-08",
+          "foreign_eok": 4045.8,
+          "institution_eok": 803.3,
+          "personal_eok": -4694.5
+        },
+        {
+          "date": "2026-05-11",
+          "foreign_eok": 1159.8,
+          "institution_eok": -1630.1,
+          "personal_eok": 847.1
+        },
+        {
+          "date": "2026-05-12",
+          "foreign_eok": 5215.9,
+          "institution_eok": -2583.6,
+          "personal_eok": -2233.7
+        },
+        {
+          "date": "2026-05-13",
+          "foreign_eok": -6016.2,
+          "institution_eok": 38.7,
+          "personal_eok": 5899.4
+        },
+        {
+          "date": "2026-05-14",
+          "foreign_eok": -1348.8,
+          "institution_eok": 595.2,
+          "personal_eok": 911.3
+        },
+        {
+          "date": "2026-05-15",
+          "foreign_eok": 4080.7,
+          "institution_eok": -1673.2,
+          "personal_eok": -1448.4
+        },
+        {
+          "date": "2026-05-18",
+          "foreign_eok": 2368.7,
+          "institution_eok": -2539.8,
+          "personal_eok": -83.6
+        },
+        {
+          "date": "2026-05-19",
+          "foreign_eok": 1306.8,
+          "institution_eok": -658.9,
+          "personal_eok": 1032.4
+        },
+        {
+          "date": "2026-05-20",
+          "foreign_eok": 2009.1,
+          "institution_eok": -1367.4,
+          "personal_eok": -579.9
+        },
+        {
+          "date": "2026-05-21",
+          "foreign_eok": 1366.1,
+          "institution_eok": 1390.7,
+          "personal_eok": -2508.9
+        },
+        {
+          "date": "2026-05-22",
+          "foreign_eok": 5974.9,
+          "institution_eok": 3009.8,
+          "personal_eok": -8793.0
+        },
+        {
+          "date": "2026-05-26",
+          "foreign_eok": -1031.5,
+          "institution_eok": -256.4,
+          "personal_eok": 2305.8
+        },
+        {
+          "date": "2026-05-27",
+          "foreign_eok": -847.4,
+          "institution_eok": -5411.4,
+          "personal_eok": 6315.3
+        },
+        {
+          "date": "2026-05-28",
+          "foreign_eok": 3821.2,
+          "institution_eok": -4010.6,
+          "personal_eok": 381.1
+        },
+        {
+          "date": "2026-05-29",
+          "foreign_eok": 114.8,
+          "institution_eok": -3139.8,
+          "personal_eok": 3093.6
+        },
+        {
+          "date": "2026-06-01",
+          "foreign_eok": 8063.6,
+          "institution_eok": -2912.0,
+          "personal_eok": -4915.6
+        },
+        {
+          "date": "2026-06-02",
+          "foreign_eok": 3400.6,
+          "institution_eok": 1326.9,
+          "personal_eok": -4090.0
+        },
+        {
+          "date": "2026-06-04",
+          "foreign_eok": -424.2,
+          "institution_eok": 2066.4,
+          "personal_eok": -1633.3
+        },
+        {
+          "date": "2026-06-05",
+          "foreign_eok": -1877.7,
+          "institution_eok": 1507.8,
+          "personal_eok": 336.9
+        },
+        {
+          "date": "2026-06-08",
+          "foreign_eok": 2976.5,
+          "institution_eok": -1465.7,
+          "personal_eok": -1245.3
+        },
+        {
+          "date": "2026-06-09",
+          "foreign_eok": 3126.1,
+          "institution_eok": 1995.7,
+          "personal_eok": -5112.5
+        },
+        {
+          "date": "2026-06-10",
+          "foreign_eok": 1419.8,
+          "institution_eok": -1124.9,
+          "personal_eok": 1167.2
+        },
+        {
+          "date": "2026-06-11",
+          "foreign_eok": -3601.2,
+          "institution_eok": 7148.6,
+          "personal_eok": -3633.8
+        },
+        {
+          "date": "2026-06-12",
+          "foreign_eok": 2769.1,
+          "institution_eok": 6315.0,
+          "personal_eok": -9415.6
+        },
+        {
+          "date": "2026-06-15",
+          "foreign_eok": -8163.9,
+          "institution_eok": 2165.7,
+          "personal_eok": 6162.2
+        },
+        {
+          "date": "2026-06-16",
+          "foreign_eok": -3094.6,
+          "institution_eok": -4629.5,
+          "personal_eok": 7906.9
+        },
+        {
+          "date": "2026-06-17",
+          "foreign_eok": 400.2,
+          "institution_eok": -101.2,
+          "personal_eok": -334.6
+        },
+        {
+          "date": "2026-06-18",
+          "foreign_eok": -1235.0,
+          "institution_eok": -2659.1,
+          "personal_eok": 3841.6
+        },
+        {
+          "date": "2026-06-19",
+          "foreign_eok": 4976.6,
+          "institution_eok": -5838.3,
+          "personal_eok": 749.7
+        },
+        {
+          "date": "2026-06-22",
+          "foreign_eok": 3152.0,
+          "institution_eok": 1456.0,
+          "personal_eok": -4634.2
+        },
+        {
+          "date": "2026-06-23",
+          "foreign_eok": 2746.2,
+          "institution_eok": 1329.1,
+          "personal_eok": -3979.1
+        },
+        {
+          "date": "2026-06-24",
+          "foreign_eok": -320.5,
+          "institution_eok": 3362.8,
+          "personal_eok": -3183.5
+        },
+        {
+          "date": "2026-06-25",
+          "foreign_eok": 212.4,
+          "institution_eok": -1707.1,
+          "personal_eok": 1452.0
+        },
+        {
+          "date": "2026-06-26",
+          "foreign_eok": 3509.6,
+          "institution_eok": 3083.8,
+          "personal_eok": -6688.2
+        },
+        {
+          "date": "2026-06-29",
+          "foreign_eok": 266.1,
+          "institution_eok": 5042.8,
+          "personal_eok": -5271.9
+        },
+        {
+          "date": "2026-06-30",
+          "foreign_eok": -2463.6,
+          "institution_eok": -1428.5,
+          "personal_eok": 3909.3
+        },
+        {
+          "date": "2026-07-01",
+          "foreign_eok": 2471.8,
+          "institution_eok": -1255.4,
+          "personal_eok": -1082.0
+        },
+        {
+          "date": "2026-07-02",
+          "foreign_eok": -1941.9,
+          "institution_eok": -3091.0,
+          "personal_eok": 4859.4
+        },
+        {
+          "date": "2026-07-03",
+          "foreign_eok": -202.3,
+          "institution_eok": -1037.0,
+          "personal_eok": 1075.3
+        },
+        {
+          "date": "2026-07-06",
+          "foreign_eok": -447.0,
+          "institution_eok": -2243.8,
+          "personal_eok": 2590.8
+        },
+        {
+          "date": "2026-07-07",
+          "foreign_eok": 3742.3,
+          "institution_eok": -99.8,
+          "personal_eok": -3615.8
+        },
+        {
+          "date": "2026-07-08",
+          "foreign_eok": 3375.7,
+          "institution_eok": -1452.5,
+          "personal_eok": -1959.2
+        },
+        {
+          "date": "2026-07-09",
+          "foreign_eok": 221.4,
+          "institution_eok": 3081.3,
+          "personal_eok": -3217.1
+        },
+        {
+          "date": "2026-07-10",
+          "foreign_eok": -1562.9,
+          "institution_eok": 5825.0,
+          "personal_eok": -4213.1
+        },
+        {
+          "date": "2026-07-13",
+          "foreign_eok": -3878.3,
+          "institution_eok": 1843.0,
+          "personal_eok": 1832.6
+        },
+        {
+          "date": "2026-07-14",
+          "foreign_eok": -2471.0,
+          "institution_eok": 1587.2,
+          "personal_eok": 697.9
+        },
+        {
+          "date": "2026-07-15",
+          "foreign_eok": 230.5,
+          "institution_eok": 1085.7,
+          "personal_eok": -1541.9
+        },
+        {
+          "date": "2026-07-16",
+          "foreign_eok": -2918.9,
+          "institution_eok": -1552.8,
+          "personal_eok": 4184.4
+        },
+        {
+          "date": "2026-07-20",
+          "foreign_eok": -518.1,
+          "institution_eok": -1329.9,
+          "personal_eok": 1907.4
+        },
+        {
+          "date": "2026-07-21",
+          "foreign_eok": -1359.7,
+          "institution_eok": -128.6,
+          "personal_eok": 1473.8
+        },
+        {
+          "date": "2026-07-22",
+          "foreign_eok": -815.2,
+          "institution_eok": -1913.7,
+          "personal_eok": 2636.2
+        },
+        {
+          "date": "2026-07-23",
+          "foreign_eok": 1674.9,
+          "institution_eok": 642.9,
+          "personal_eok": -2373.1
+        },
+        {
+          "date": "2026-07-24",
+          "foreign_eok": -1315.0,
+          "institution_eok": -3580.4,
+          "personal_eok": 4881.4
+        },
+        {
+          "date": "2026-07-27",
+          "foreign_eok": -1422.0,
+          "institution_eok": 2731.2,
+          "personal_eok": -1549.9
+        },
+        {
+          "date": "2026-07-28",
+          "foreign_eok": 859.9,
+          "institution_eok": -1345.3,
+          "personal_eok": 480.3
+        },
+        {
+          "date": "2026-07-29",
+          "foreign_eok": 3081.9,
+          "institution_eok": 1474.0,
+          "personal_eok": -4579.4
+        },
+        {
+          "date": "2026-07-30",
+          "foreign_eok": 2483.4,
+          "institution_eok": -1435.5,
+          "personal_eok": -1107.8
+        },
+        {
+          "date": "2026-07-31",
+          "foreign_eok": 1696.7,
+          "institution_eok": 2985.1,
+          "personal_eok": -4715.2
+        },
+        {
+          "date": "2026-08-03",
+          "foreign_eok": -2091.5,
+          "institution_eok": 1668.7,
+          "personal_eok": 301.9
+        },
+        {
+          "date": "2026-08-04",
+          "foreign_eok": -2774.8,
+          "institution_eok": 5437.7,
+          "personal_eok": -2587.0
+        },
+        {
+          "date": "2026-08-05",
+          "foreign_eok": -2978.8,
+          "institution_eok": -1100.7,
+          "personal_eok": 3941.4
+        },
+        {
+          "date": "2026-08-06",
+          "foreign_eok": -2481.2,
+          "institution_eok": 1614.8,
+          "personal_eok": 862.5
+        },
+        {
+          "date": "2026-08-07",
+          "foreign_eok": -2522.3,
+          "institution_eok": -1044.5,
+          "personal_eok": 3401.6
+        },
+        {
+          "date": "2026-08-10",
+          "foreign_eok": 1026.9,
+          "institution_eok": 5666.9,
+          "personal_eok": -6729.3
+        },
+        {
+          "date": "2026-08-11",
+          "foreign_eok": -3561.8,
+          "institution_eok": -954.5,
+          "personal_eok": 4351.4
+        },
+        {
+          "date": "2026-08-12",
+          "foreign_eok": -1622.6,
+          "institution_eok": -1458.9,
+          "personal_eok": 3127.4
+        },
+        {
+          "date": "2026-08-13",
+          "foreign_eok": -1362.1,
+          "institution_eok": -1132.4,
+          "personal_eok": 2565.4
+        },
+        {
+          "date": "2026-08-14",
+          "foreign_eok": -658.6,
+          "institution_eok": -2524.2,
+          "personal_eok": 3144.8
+        },
+        {
+          "date": "2026-08-18",
+          "foreign_eok": 366.2,
+          "institution_eok": -4175.7,
+          "personal_eok": 3904.6
+        },
+        {
+          "date": "2026-08-19",
+          "foreign_eok": 147.3,
+          "institution_eok": 499.5,
+          "personal_eok": -663.6
+        },
+        {
+          "date": "2026-08-20",
+          "foreign_eok": -1327.9,
+          "institution_eok": 1194.0,
+          "personal_eok": 16.0
+        },
+        {
+          "date": "2026-08-21",
+          "foreign_eok": -2836.6,
+          "institution_eok": -3462.2,
+          "personal_eok": 6236.1
+        },
+        {
+          "date": "2026-08-24",
+          "foreign_eok": 2416.5,
+          "institution_eok": 249.0,
+          "personal_eok": -2604.5
+        },
+        {
+          "date": "2026-08-25",
+          "foreign_eok": 1327.3,
+          "institution_eok": 155.9,
+          "personal_eok": -1374.5
+        },
+        {
+          "date": "2026-08-26",
+          "foreign_eok": -917.8,
+          "institution_eok": -1054.2,
+          "personal_eok": 1930.8
+        },
+        {
+          "date": "2026-08-27",
+          "foreign_eok": 2955.1,
+          "institution_eok": -1191.9,
+          "personal_eok": -1751.8
+        },
+        {
+          "date": "2026-08-28",
+          "foreign_eok": -941.8,
+          "institution_eok": -29.7,
+          "personal_eok": 978.6
+        },
+        {
+          "date": "2026-08-31",
+          "foreign_eok": -551.6,
+          "institution_eok": -2004.9,
+          "personal_eok": 2530.2
+        },
+        {
+          "date": "2026-09-01",
+          "foreign_eok": -1530.9,
+          "institution_eok": -2786.9,
+          "personal_eok": 4389.3
+        },
+        {
+          "date": "2026-09-02",
+          "foreign_eok": 618.4,
+          "institution_eok": -2321.6,
+          "personal_eok": 1727.3
+        },
+        {
+          "date": "2026-09-03",
+          "foreign_eok": -1082.4,
+          "institution_eok": -1837.6,
+          "personal_eok": 2949.7
+        },
+        {
+          "date": "2026-09-04",
+          "foreign_eok": 2598.5,
+          "institution_eok": 1609.3,
+          "personal_eok": -4125.1
+        },
+        {
+          "date": "2026-09-07",
+          "foreign_eok": -716.8,
+          "institution_eok": -1292.5,
+          "personal_eok": 1895.7
+        },
+        {
+          "date": "2026-09-08",
+          "foreign_eok": 1583.1,
+          "institution_eok": -2134.8,
+          "personal_eok": 479.4
+        },
+        {
+          "date": "2026-09-09",
+          "foreign_eok": 2646.0,
+          "institution_eok": -190.1,
+          "personal_eok": -2548.2
+        },
+        {
+          "date": "2026-09-10",
+          "foreign_eok": -11253.4,
+          "institution_eok": 13995.9,
+          "personal_eok": -2698.1
+        },
+        {
+          "date": "2026-09-11",
+          "foreign_eok": -3123.4,
+          "institution_eok": -2158.5,
+          "personal_eok": 5120.5
+        },
+        {
+          "date": "2026-09-14",
+          "foreign_eok": -923.5,
+          "institution_eok": -237.8,
+          "personal_eok": 1028.9
+        },
+        {
+          "date": "2026-09-15",
+          "foreign_eok": 271.5,
+          "institution_eok": 1148.6,
+          "personal_eok": -1478.2
+        },
+        {
+          "date": "2026-09-16",
+          "foreign_eok": -272.1,
+          "institution_eok": 222.2,
+          "personal_eok": 62.4
+        },
+        {
+          "date": "2026-09-17",
+          "foreign_eok": -329.4,
+          "institution_eok": 454.6,
+          "personal_eok": -250.0
+        },
+        {
+          "date": "2026-09-18",
+          "foreign_eok": -511.0,
+          "institution_eok": 249.9,
+          "personal_eok": 162.1
+        },
+        {
+          "date": "2026-09-21",
+          "foreign_eok": -995.4,
+          "institution_eok": -284.8,
+          "personal_eok": 1415.9
+        },
+        {
+          "date": "2026-09-22",
+          "foreign_eok": -545.3,
+          "institution_eok": -952.8,
+          "personal_eok": 1548.0
+        },
+        {
+          "date": "2026-09-23",
+          "foreign_eok": -461.8,
+          "institution_eok": 75.9,
+          "personal_eok": 275.0
+        },
+        {
+          "date": "2026-09-28",
+          "foreign_eok": 468.6,
+          "institution_eok": -747.0,
+          "personal_eok": 222.6
+        },
+        {
+          "date": "2026-09-29",
+          "foreign_eok": -1305.1,
+          "institution_eok": 66.3,
+          "personal_eok": 1468.8
+        },
+        {
+          "date": "2026-09-30",
+          "foreign_eok": -713.1,
+          "institution_eok": 481.6,
+          "personal_eok": 188.1
+        },
+        {
+          "date": "2026-10-01",
+          "foreign_eok": 2280.3,
+          "institution_eok": 5684.2,
+          "personal_eok": -7769.7
+        },
+        {
+          "date": "2026-10-02",
+          "foreign_eok": -1766.9,
+          "institution_eok": 936.0,
+          "personal_eok": 840.6
+        },
+        {
+          "date": "2026-10-06",
+          "foreign_eok": 1073.3,
+          "institution_eok": 1046.9,
+          "personal_eok": -2110.9
+        },
+        {
+          "date": "2026-10-07",
+          "foreign_eok": -2495.4,
+          "institution_eok": -2101.6,
+          "personal_eok": 4871.2
+        },
+        {
+          "date": "2026-10-08",
+          "foreign_eok": 625.2,
+          "institution_eok": -1075.4,
+          "personal_eok": 482.8
+        },
+        {
+          "date": "2026-10-12",
+          "foreign_eok": -130.1,
+          "institution_eok": -2196.5,
+          "personal_eok": 2316.5
+        },
+        {
+          "date": "2026-10-13",
+          "foreign_eok": 1339.1,
+          "institution_eok": 458.6,
+          "personal_eok": -1907.9
+        },
+        {
+          "date": "2026-10-14",
+          "foreign_eok": -2127.6,
+          "institution_eok": -1787.0,
+          "personal_eok": 3834.8
+        },
+        {
+          "date": "2026-10-15",
+          "foreign_eok": 2228.3,
+          "institution_eok": -1614.3,
+          "personal_eok": -748.3
+        },
+        {
+          "date": "2026-10-16",
+          "foreign_eok": -945.4,
+          "institution_eok": 1689.2,
+          "personal_eok": -908.3
+        },
+        {
+          "date": "2026-10-19",
+          "foreign_eok": -1618.2,
+          "institution_eok": 686.0,
+          "personal_eok": 783.0
+        },
+        {
+          "date": "2026-10-20",
+          "foreign_eok": -1696.8,
+          "institution_eok": -1086.7,
+          "personal_eok": 2778.1
+        },
+        {
+          "date": "2026-10-21",
+          "foreign_eok": -1752.0,
+          "institution_eok": 1050.9,
+          "personal_eok": 553.3
+        },
+        {
+          "date": "2026-10-22",
+          "foreign_eok": -1124.1,
+          "institution_eok": -957.1,
+          "personal_eok": 2081.4
+        },
+        {
+          "date": "2026-10-23",
+          "foreign_eok": -401.2,
+          "institution_eok": -292.2,
+          "personal_eok": 658.8
+        },
+        {
+          "date": "2026-10-26",
+          "foreign_eok": 441.7,
+          "institution_eok": -1267.9,
+          "personal_eok": 800.7
+        },
+        {
+          "date": "2026-10-27",
+          "foreign_eok": 257.0,
+          "institution_eok": 1507.3,
+          "personal_eok": -1723.0
+        },
+        {
+          "date": "2026-10-28",
+          "foreign_eok": -1904.2,
+          "institution_eok": 2245.8,
+          "personal_eok": -273.1
+        },
+        {
+          "date": "2026-10-29",
+          "foreign_eok": -1209.8,
+          "institution_eok": -739.7,
+          "personal_eok": 2057.9
+        },
+        {
+          "date": "2026-10-30",
+          "foreign_eok": -211.1,
+          "institution_eok": -1390.7,
+          "personal_eok": 1648.6
+        },
+        {
+          "date": "2026-11-02",
+          "foreign_eok": -366.5,
+          "institution_eok": 627.4,
+          "personal_eok": -223.2
+        },
+        {
+          "date": "2026-11-03",
+          "foreign_eok": -713.3,
+          "institution_eok": -2359.0,
+          "personal_eok": 3179.9
+        },
+        {
+          "date": "2026-11-04",
+          "foreign_eok": 113.5,
+          "institution_eok": 704.1,
+          "personal_eok": -706.0
+        },
+        {
+          "date": "2026-11-05",
+          "foreign_eok": -584.6,
+          "institution_eok": -1024.2,
+          "personal_eok": 1568.2
+        },
+        {
+          "date": "2026-11-06",
+          "foreign_eok": -896.0,
+          "institution_eok": 2068.7,
+          "personal_eok": -1222.2
+        },
+        {
+          "date": "2026-11-09",
+          "foreign_eok": -580.4,
+          "institution_eok": 1118.6,
+          "personal_eok": -606.0
+        },
+        {
+          "date": "2026-11-10",
+          "foreign_eok": -1479.4,
+          "institution_eok": 2147.1,
+          "personal_eok": -556.0
+        },
+        {
+          "date": "2026-11-11",
+          "foreign_eok": -1354.4,
+          "institution_eok": 3130.1,
+          "personal_eok": -1838.1
+        },
+        {
+          "date": "2026-11-12",
+          "foreign_eok": -3547.1,
+          "institution_eok": 419.6,
+          "personal_eok": 3112.4
+        },
+        {
+          "date": "2026-11-13",
+          "foreign_eok": -806.4,
+          "institution_eok": 1259.5,
+          "personal_eok": -511.8
+        },
+        {
+          "date": "2026-11-16",
+          "foreign_eok": -2005.5,
+          "institution_eok": -1535.0,
+          "personal_eok": 3673.7
+        },
+        {
+          "date": "2026-11-17",
+          "foreign_eok": -882.1,
+          "institution_eok": -264.8,
+          "personal_eok": 1081.3
+        },
+        {
+          "date": "2026-11-18",
+          "foreign_eok": -497.1,
+          "institution_eok": 1794.5,
+          "personal_eok": -1215.2
+        },
+        {
+          "date": "2026-11-19",
+          "foreign_eok": -2162.4,
+          "institution_eok": 2257.3,
+          "personal_eok": -64.2
+        },
+        {
+          "date": "2026-11-20",
+          "foreign_eok": -1615.1,
+          "institution_eok": -1064.6,
+          "personal_eok": 2802.6
+        },
+        {
+          "date": "2026-11-23",
+          "foreign_eok": -375.7,
+          "institution_eok": 1949.8,
+          "personal_eok": -1694.2
+        }
+      ]
+    }
+  }
+}

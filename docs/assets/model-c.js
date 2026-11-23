@@ -1,0 +1,101 @@
+(() => {
+  'use strict';
+  const status = document.getElementById('model-c-status');
+  const cards = document.getElementById('model-c-cards');
+  const names = { KOSPI: '코스피', KOSDAQ: '코스닥' };
+
+  const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, ch => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[ch]));
+  const day = value => /^\d{4}-\d{2}-\d{2}$/.test(value || '') ? value : '';
+  const kstStamp = value => {
+    if (typeof value !== 'string' || !/(?:Z|[+-]\d{2}:\d{2})$/.test(value)) return '';
+    const date = new Date(value);
+    if (Number.isNaN(date.valueOf())) return '';
+    return new Intl.DateTimeFormat('sv-SE', {
+      timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+    }).format(date);
+  };
+  const level = value => Number.isFinite(value)
+    ? Number(value).toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : '확인 불가';
+  const probability = value => Number.isFinite(value) ? `${(value * 100).toFixed(2)}%` : '확인 불가';
+  const signedReturn = value => {
+    if (!Number.isFinite(value)) return '확인 불가';
+    const text = `${(value * 100).toFixed(2)}%`;
+    return value > 0 ? `+${text}` : text;
+  };
+  const thresholdText = value => {
+    if (!Number.isFinite(value)) return '3%';
+    const text = (value * 100).toFixed(1).replace(/\.0$/, '');
+    return `${text}%`;
+  };
+
+  const poolLine = (title, pool) => {
+    if (!pool || !pool.n) {
+      return `<div class="detail-line"><span>${title} </span><strong>표본 없음</strong></div>`;
+    }
+    const hit = Number.isFinite(pool.direction_hit) ? `${(pool.direction_hit * 100).toFixed(1)}%` : '확인 불가';
+    const brier = Number.isFinite(pool.brier) ? Number(pool.brier).toFixed(4) : '확인 불가';
+    const mae = Number.isFinite(pool.close_mae) ? level(pool.close_mae) : '확인 불가';
+    return `<div class="detail-line"><span>${title} </span><strong>${pool.n}일 · 적중 ${hit} · Brier ${brier} · 종가 오차 ${mae}</strong></div>`;
+  };
+
+  const renderCard = (row, threshold) => {
+    const label = names[row.market] || row.market;
+    return `<article class="forecast-card">
+      <h3>${escapeHtml(label)}</h3>
+      <div class="card-status warn">급등·급락 전용. 절대 수익률 ${escapeHtml(threshold)} 이상인 날만 성적에 넣습니다. 평범한 날은 성공도 실패도 아닙니다.</div>
+      <div class="card-dates session-dates">
+        <div><strong>기준 종가일</strong> ${escapeHtml(day(row.asof_date) || '확인 불가')}</div>
+        <div><strong>다음 거래일</strong> ${escapeHtml(day(row.target_date) || '확인 불가')}</div>
+      </div>
+      <div class="hero-metrics">
+        <div class="hero-metric"><span>기준 종가</span><strong>${escapeHtml(level(row.close))}</strong></div>
+        <div class="hero-metric"><span>예상 지수</span><strong>${escapeHtml(level(row.expected_index))}</strong></div>
+      </div>
+      <div class="prob-row">
+        <div class="prob-box up"><span>상승 확률</span><strong>${escapeHtml(probability(row.p_up))}</strong></div>
+        <div class="prob-box down"><span>하락 확률</span><strong>${escapeHtml(probability(row.p_down))}</strong></div>
+      </div>
+      <div class="detail-line"><span>예상 수익률 </span><strong>${escapeHtml(signedReturn(row.expected_return))}</strong></div>
+      <div class="detail-line"><span>급등·급락 학습 마지막 </span><strong>${escapeHtml(day(row.trained_through) || '확인 불가')}</strong></div>
+      ${poolLine('2026년 이전', row.examined?.pre_2026)}
+      ${poolLine('이미 확인한 2026년', row.examined?.year_2026)}
+      <div class="detail-line"><span>내일 수익률 </span><strong>아직 없으므로 예측은 그대로 표시</strong></div>
+    </article>`;
+  };
+
+  const render = data => {
+    const threshold = thresholdText(data.threshold);
+    const generated = kstStamp(data.generated_at);
+    const when = generated ? `생성 ${generated} KST` : '생성 시각 확인 불가';
+    if (status) {
+      status.textContent = `수동 GPU 예측 · ${data.architecture || '8층 미세조정 복사'} · ${when} · ${data.gpu || 'GPU 확인 불가'} · 운영 반영 비중 0. 급등·급락 전용이며 절대 수익률 ${threshold} 이상인 날만 적중과 오차에 넣습니다. 매매 지시가 아닙니다.`;
+    }
+    if (!cards) return;
+    const byMarket = new Map((data.markets || []).filter(row => row && names[row.market]).map(row => [row.market, row]));
+    cards.className = 'compare-row';
+    cards.replaceChildren();
+    for (const market of Object.keys(names)) {
+      const row = byMarket.get(market);
+      const holder = document.createElement('div');
+      holder.className = 'compare-side';
+      holder.innerHTML = row && Number.isFinite(row.p_up) && Number.isFinite(row.close) && Number.isFinite(row.expected_index)
+        ? renderCard(row, threshold)
+        : '<p>모델 C 결과가 없습니다.</p>';
+      cards.appendChild(holder);
+    }
+  };
+
+  fetch('data/model_c_forecast.json', { cache: 'no-store' })
+    .then(response => { if (!response.ok) throw new Error(); return response.json(); })
+    .then(data => {
+      if (data?.schema_version !== 'model_c_forecast_v1' || !Array.isArray(data.markets) || data.production_weight !== 0) {
+        throw new Error();
+      }
+      render(data);
+    })
+    .catch(() => { if (status) status.textContent = '모델 C 결과를 확인하지 못했습니다.'; });
+})();

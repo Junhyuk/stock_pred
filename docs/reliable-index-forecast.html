@@ -6,6 +6,7 @@
   <title>한국·미국 다음 거래일 확률·예측구간</title>
   <link rel="stylesheet" href="assets/site.css" />
   <link rel="stylesheet" href="assets/margin-credit.css" />
+  <link rel="stylesheet" href="assets/kospi-flow.css" />
   <style>
     .notice {
       padding: 16px;
@@ -16,8 +17,12 @@
       font-size: 14px;
       color: var(--ink);
     }
-    h1, .notice > h2, #model-a > h2, .market-region h2, .forecast-card h3, .card-dates, .detail-line { word-break: keep-all; }
-    #model-a > h2 { font-size: 18px; margin: 8px 0; }
+    h1, .notice > h2, #model-a > h2, #model-b > h2, .market-region h2, .forecast-card h3, .card-dates, .detail-line { word-break: keep-all; }
+    #model-a > h2, #model-b > h2 { font-size: 18px; margin: 8px 0; }
+    .compare-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 0 0 16px; }
+    .compare-side h2 { font-size: 18px; margin: 0 0 8px; }
+    #model-b-status, .model-run-note { color: var(--muted); font-size: 13px; margin: 0 0 12px; }
+    @media (max-width: 800px) { .compare-row { grid-template-columns: minmax(0, 1fr); } }
     .notice > h2 { font-size: 18px; margin: 0 0 8px; }
     #economic-calendar h3 { font-size: 16px; margin: 16px 0 8px; }
     #status {
@@ -183,6 +188,7 @@
     <a href="#model-b">모델 B</a>
     <a href="#cross-assets">환율·금리·원유</a>
     <a href="#extra-numerics">추가 수치</a>
+    <a href="#kospi-flow">누적 순매수</a>
     <a href="#margin-credit">신용융자 잔고</a>
     <a href="#market-indicators">시장 지표</a>
   </nav>
@@ -191,16 +197,22 @@
     <h2 id="market-closes-title">최근 확인한 한국 지수 종가</h2>
     <div id="market-closes">종가 확인 중</div>
   </section>
+  <section id="model-compare" aria-labelledby="model-compare-title">
+    <h2 id="model-compare-title">모델 A · 모델 B</h2>
+    <p id="model-b-status" role="status">수동 예측 날짜를 확인하는 중입니다.</p>
+    <div id="paired-forecast"></div>
+  </section>
+  <section id="model-c" class="notice" aria-labelledby="model-c-title">
+    <h2 id="model-c-title">모델 C · 급등·급락 전용</h2>
+    <p id="model-c-status" class="model-run-note" role="status">급등·급락 전용 예측을 확인하는 중입니다.</p>
+    <div id="model-c-cards"></div>
+  </section>
   <section id="model-a" aria-labelledby="model-a-title">
-    <h2 id="model-a-title">모델 A</h2>
+    <h2 id="model-a-title">모델 A · 미국</h2>
     <div id="status" role="status">로컬 연구 결과를 읽는 중입니다.</div>
     <div id="content"></div>
   </section>
-  <section id="model-b" class="notice" aria-labelledby="model-b-title">
-    <h2 id="model-b-title">모델 B</h2>
-    <p id="model-b-status" role="status">모델 B를 불러오는 중입니다.</p>
-    <div id="model-b-cards" class="forecast-grid"></div>
-  </section>
+  <section id="model-b" hidden></section>
   <section id="cross-assets" class="notice" aria-labelledby="cross-assets-title">
     <h2 id="cross-assets-title">환율·금리·원유</h2>
     <p id="cross-assets-status" role="status">환율·금리·원유를 불러오는 중입니다.</p>
@@ -216,6 +228,13 @@
       <thead><tr><th scope="col">수치</th><th scope="col">값</th><th scope="col">전일 대비</th><th scope="col">기준일</th></tr></thead>
       <tbody id="extra-numerics-rows"></tbody>
     </table></div>
+  </section>
+  <section id="kospi-flow" class="notice" aria-labelledby="kospi-flow-title">
+    <h2 id="kospi-flow-title">코스피·코스닥 투자자 누적 순매수 · 1년 1개월</h2>
+    <p class="credit-intro">각 투자자의 누적 순매수와, 그 누적선을 저장된 20거래일(4주)로 평균한 가는 선입니다. 상자는 누적·오늘·전일 순매수금액을 1조 원으로 나눈 값입니다.</p>
+    <p id="kospi-flow-status" role="status">누적 순매수 그래프를 불러오는 중입니다.</p>
+    <div id="kospi-flow-content"></div>
+    <p class="credit-source">출처 <a href="https://stock.naver.com/market/stock/kr/trend/trader">네이버 증권 투자자별 매매동향</a></p>
   </section>
   <section id="margin-credit" class="notice" aria-labelledby="margin-credit-title">
     <h2 id="margin-credit-title">시장별 신용융자 잔고</h2>
@@ -437,8 +456,8 @@ function renderAutomationStatus(data) {
   return `자동 확인 ${checked} (한국 시각) · ${decision} ${summary('한국', data.korea)} · ${summary('미국', data.us)}. KST 월~금 18:00 장 마감 후 수집·검증하며 실제 공개 시각은 각 카드에서 확인하세요. 외부 데이터 지연·누락 시 준비 미완료로 남습니다.`;
 }
 
-function renderForecastGrid(markets, now = Date.now()) {
-  const groups = [
+function renderForecastGrid(markets, now = Date.now(), groups = null) {
+  groups = groups || [
     { label: '한국', order: ['KOSPI', 'KOSDAQ'] },
     { label: '미국', order: ['US_SPX', 'US_NASDAQ'] },
   ];
@@ -488,12 +507,20 @@ Promise.all([
     return;
   }
 
-  content.innerHTML = renderForecastGrid(markets);
+  window.__forecastCards = markets;
+  document.dispatchEvent(new Event('forecast-cards-ready'));
+  const unitedStates = markets.filter(({item}) => String(item.market).startsWith('US_'))
+    .sort((a, b) => ['US_SPX', 'US_NASDAQ'].indexOf(a.item.market) - ['US_SPX', 'US_NASDAQ'].indexOf(b.item.market));
+  content.innerHTML = unitedStates.length
+    ? `<div class="forecast-grid">${unitedStates.map(({item, runStatus}) => renderCard(item, runStatus)).join('')}</div>`
+    : '<p class="empty-state">표시할 미국 결과가 없습니다.</p>';
   refreshKstLabels();
 }).catch(error => {
   document.getElementById('status').textContent = error.message;
+  window.__forecastCards = window.__forecastCards || [];
+  document.dispatchEvent(new Event('forecast-cards-ready'));
 }).finally(() => {
-  if (['#model-a', '#model-b', '#cross-assets', '#margin-credit', '#market-indicators', '#extra-numerics'].includes(location.hash)) document.querySelector(location.hash)?.scrollIntoView();
+  if (['#model-a', '#model-b', '#cross-assets', '#kospi-flow', '#margin-credit', '#market-indicators', '#extra-numerics'].includes(location.hash)) document.querySelector(location.hash)?.scrollIntoView();
 });
 </script>
 <script>
@@ -503,10 +530,12 @@ window.addEventListener('focus', () => refreshKstLabels());
 document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshKstLabels(); });
 </script>
 <script src="assets/economic-calendar.js"></script>
+<script src="assets/kospi-flow.js"></script>
 <script src="assets/margin-credit.js"></script>
 <script src="assets/market-indicators.js"></script>
 <script src="assets/cross-assets.js?v=20261123"></script>
 <script src="assets/unofficial-numerics.js?v=20261123"></script>
 <script src="assets/model-b.js"></script>
+<script src="assets/model-c.js"></script>
 </body>
 </html>
