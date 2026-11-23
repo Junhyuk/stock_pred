@@ -101,6 +101,11 @@ jobs:
           with open(os.environ['GITHUB_OUTPUT'], 'a') as stream:
               stream.write(f"sqlite={data['sqlite']}\nus_csv={data['us_csv']}\n")
           PY
+      - name: Collect applied model inputs
+        if: steps.operation.outputs.collect == 'true' && steps.refresh.outcome == 'success'
+        timeout-minutes: 6
+        continue-on-error: true
+        run: python scripts/collect_applied_model_inputs.py --sqlite "${{ steps.refresh.outputs.sqlite }}"
       - name: Freeze actual preparation inputs
         id: freeze
         if: steps.operation.outputs.collect == 'true' && (steps.operation.outputs.mode != 'postclose' || steps.cache_open.outputs.cache_ready == 'true')

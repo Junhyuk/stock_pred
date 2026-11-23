@@ -19,6 +19,8 @@ def test_daily_runner_does_not_train_model_b():
     workflow = (ROOT / ".github/workflows/premarket-research-forecast.yml").read_text()
     assert "run_incremental_index_learner.py" not in workflow
     assert "run_reliable_index_forecast.py" in workflow
+    assert "scripts/collect_applied_model_inputs.py" in workflow
+    assert workflow.index("Collect applied model inputs") < workflow.index("Freeze actual preparation inputs")
 
 
 def test_block_score_reports_probability_error():

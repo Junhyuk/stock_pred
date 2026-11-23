@@ -12,7 +12,7 @@ import json
 import sqlite3
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from xml.etree import ElementTree
 from zoneinfo import ZoneInfo
@@ -40,10 +40,10 @@ def fetch(url: str, timeout: int = 40) -> bytes:
         return response.read()
 
 
-def yahoo_levels(symbol: str) -> list[tuple[str, float]]:
+def yahoo_levels(symbol: str, span: str = "10y") -> list[tuple[str, float]]:
     payload = json.loads(fetch(
         "https://query1.finance.yahoo.com/v8/finance/chart/"
-        + urllib.request.quote(symbol, safe="") + "?interval=1d&range=10y"))
+        + urllib.request.quote(symbol, safe="") + f"?interval=1d&range={span}"))
     result = payload["chart"]["result"][0]
     zone = ZoneInfo(result["meta"].get("exchangeTimezoneName") or "UTC")
     quote = result["indicators"]["quote"][0]
@@ -105,12 +105,13 @@ def naver_index_bars(market: str) -> dict[str, dict]:
     return bars
 
 
-def treasury_yields() -> dict[str, list[tuple[str, float]]]:
+def treasury_yields(start_year: int | None = None) -> dict[str, list[tuple[str, float]]]:
     ns = {"a": "http://www.w3.org/2005/Atom",
           "m": "http://schemas.microsoft.com/ado/2007/08/dataservices/metadata",
           "d": "http://schemas.microsoft.com/ado/2007/08/dataservices"}
     rows = {tenor: [] for tenor in (1, 3, 5, 10)}
-    for year in range(2021, datetime.now(UTC).year + 1):
+    first_year = start_year or 2021
+    for year in range(first_year, datetime.now(UTC).year + 1):
         root = ElementTree.fromstring(fetch(
             "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/"
             f"pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value={year}"))
@@ -140,19 +141,22 @@ def japan_yields() -> dict[str, list[tuple[str, float]]]:
     return output
 
 
-def korea_yields() -> dict[str, list[tuple[str, float]]]:
+def korea_yields(start: str | None = None, end: str | None = None) -> dict[str, list[tuple[str, float]]]:
+    start = start or "20210104"
+    end = end or datetime.now(UTC).strftime("%Y%m%d")
+
     def one(item):
         code, ecos = item
-        rows, start, total = [], 1, None
-        while total is None or start <= total:
+        rows, offset, total = [], 1, None
+        while total is None or offset <= total:
             url = ("https://ecos.bok.or.kr/api/StatisticSearch/sample/json/kr/"
-                   f"{start}/{start + 9}/817Y002/D/20210104/20261120/{ecos}")
+                   f"{offset}/{offset + 9}/817Y002/D/{start}/{end}/{ecos}")
             block = json.loads(fetch(url))["StatisticSearch"]
             total = int(block["list_total_count"])
             batch = block["row"]
             batch = batch if isinstance(batch, list) else [batch]
             rows.extend((datetime.strptime(row["TIME"], "%Y%m%d").date().isoformat(), float(row["DATA_VALUE"])) for row in batch)
-            start += 10
+            offset += 10
         return code, rows
 
     with ThreadPoolExecutor(max_workers=4) as pool:
@@ -207,17 +211,50 @@ def insert_index_bars(conn, ingested_at: str) -> int:
     return added
 
 
+def _latest(conn, code: str) -> str | None:
+    try:
+        row = conn.execute("SELECT MAX(observation_date) FROM macro_series WHERE series_code = ?", (code,)).fetchone()
+    except sqlite3.OperationalError:
+        return None
+    return row[0] if row and row[0] else None
+
+
+def _ensure_tables(conn) -> None:
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS macro_series (
+            series_code TEXT NOT NULL, observation_date TEXT NOT NULL, value REAL,
+            published_at TEXT, revision_no INTEGER DEFAULT 0, source TEXT NOT NULL,
+            ingested_at TEXT NOT NULL, PRIMARY KEY(series_code, observation_date, revision_no))
+        """)
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS index_eod (
+            index_code TEXT NOT NULL, session_date TEXT NOT NULL, open REAL, high REAL,
+            low REAL, close REAL, volume REAL, turnover REAL, source TEXT NOT NULL,
+            published_at TEXT, ingested_at TEXT NOT NULL, PRIMARY KEY(index_code, session_date))
+        """)
+
+
 def collect(sqlite_path: Path) -> dict:
     ingested_at = datetime.now(UTC).isoformat()
     conn = sqlite3.connect(sqlite_path)
     try:
+        _ensure_tables(conn)
+        yahoo_span = "3mo" if _latest(conn, "YAHOO_DXY") else "10y"
+        treasury_start = datetime.now(UTC).year if _latest(conn, "US_TREASURY_10Y") else 2021
+        korea_start = "20210104"
+        latest_korea = _latest(conn, "KR_KTB_3Y")
+        if latest_korea:
+            korea_start = (datetime.strptime(latest_korea, "%Y-%m-%d") - timedelta(days=21)).strftime("%Y%m%d")
         counts = {
             "index_bars": insert_index_bars(conn, ingested_at),
-            "yahoo_levels": insert_macro(conn, {code: yahoo_levels(symbol) for code, symbol in YAHOO.items()},
-                                         "yahoo_chart_unofficial", ingested_at),
-            "us_yields": insert_macro(conn, treasury_yields(), "us_treasury_daily_par_yield_curve", ingested_at),
+            "yahoo_levels": insert_macro(
+                conn, {code: yahoo_levels(symbol, yahoo_span) for code, symbol in YAHOO.items()},
+                "yahoo_chart_unofficial", ingested_at),
+            "us_yields": insert_macro(conn, treasury_yields(treasury_start), "us_treasury_daily_par_yield_curve", ingested_at),
             "jp_yields": insert_macro(conn, japan_yields(), "mof_jgb_historical", ingested_at),
-            "kr_yields": insert_macro(conn, korea_yields(), "bok_ecos_817Y002_sample", ingested_at),
+            "kr_yields": insert_macro(conn, korea_yields(korea_start), "bok_ecos_817Y002_sample", ingested_at),
         }
         conn.commit()
     finally:
