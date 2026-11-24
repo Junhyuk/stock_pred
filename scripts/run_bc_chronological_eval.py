@@ -217,14 +217,14 @@ def close_head_fold(torch, device, data, model, mean, std, train_end, block_end,
     model.train()  # embed_windows switched to eval; the backbone schedule continues in train mode
 
 
-def fit_transformers(torch, device, data, log) -> dict:
+def fit_transformers(torch, device, data, log, seeds=SEEDS) -> dict:
     market = data["market"]
     n = len(data["y"])
     sched = schedule_for(market)
     all_valid = np.ones(n, dtype=bool)
     out = {}
     checked = {"seen": True}
-    for seed in SEEDS:
+    for seed in seeds:
         c_p = np.full(n, np.nan)
         c_ret = np.full(n, np.nan)
         close_ret = np.full(n, np.nan)
@@ -253,7 +253,7 @@ def fit_transformers(torch, device, data, log) -> dict:
     # against logs/retrain_20261124. KOSDAQ's published schedule sets no seed, so it
     # cannot be reproduced bit for bit and is not rerun here.
     out["B0pub_s44"] = np.full(n, np.nan)
-    if market == "KOSPI":
+    if market == "KOSPI" and 44 in seeds:
         first_2024 = next(i for i, d in enumerate(data["dates"]) if d >= "2024-01-01")
         out["B0pub_s44"] = run_backbone(torch, device, data, x=data["x"], valid=all_valid, schedule=sched,
                                         seed=44, weighted=False, first=first_2024)
@@ -365,9 +365,76 @@ def compare_mae(pred_ret, comps: dict, r, close, mask, block=10) -> dict:
     return res
 
 
+def prepared(conn, market: str, args, out_dir: Path) -> dict:
+    """prepare() once per market; later processes reuse the cached arrays."""
+    cache = out_dir / f"{market.lower()}_prepared.npz"
+    keys = {"sqlite_sha256": sha256(Path(args.sqlite)), "us_csv_sha256": sha256(Path(args.us_csv)), "receipt": args.us_receipt}
+    if cache.is_file():
+        z = np.load(cache, allow_pickle=False)
+        meta = json.loads(str(z["meta"]))
+        if meta["keys"] == keys:
+            return {"market": market, "x": z["x"], "x_pre": z["x_pre"], "valid_us": z["valid_us"], "y": z["y"],
+                    "r": z["r"], "close": z["close"], "dates": [str(d) for d in z["dates"]],
+                    "features": [str(f) for f in z["features"]], "us_report": meta["us_report"]}
+    data = prepare(conn, market, Path(args.us_csv), args.us_receipt)
+    report = {k: data["us_report"].get(k) for k in ("status", "eligible_rows", "reporting_cutoff", "limitations")}
+    np.savez_compressed(cache, x=data["x"], x_pre=data["x_pre"], valid_us=data["valid_us"], y=data["y"], r=data["r"],
+                        close=data["close"], dates=np.array(data["dates"]), features=np.array(data["features"]),
+                        meta=json.dumps({"keys": keys, "us_report": report}))
+    data["us_report"] = report
+    return data
+
+
+def fit_in_parts(args, conn, out_dir: Path, log) -> int:
+    """One seed per process with its arrays saved at once; ``merge`` adds the linear models."""
+    if args.stage == "fit-seed":
+        import torch
+
+        if args.seed not in SEEDS:
+            raise SystemExit(f"seed must be one of {SEEDS}")
+        device, gpu = model_c.require_cuda(torch)
+        for market in args.markets:
+            data = prepared(conn, market, args, out_dir)
+            preds = fit_transformers(torch, device, data, log, seeds=(args.seed,))
+            np.savez_compressed(out_dir / f"{market.lower()}_part_s{args.seed}.npz", **preds)
+            (out_dir / f"{market.lower()}_part_s{args.seed}.json").write_text(json.dumps(
+                {"gpu": gpu, "torch": torch.__version__, "seed": args.seed, "finished_at": datetime.now(UTC).isoformat(),
+                 "code_sha256": sha256(Path(__file__))},
+                default=str) + "\n")
+            log(f"{market} seed {args.seed} part saved")
+        return 0
+    manifest = {"stage": "merge", "sqlite_sha256": sha256(Path(args.sqlite)), "us_csv_sha256": sha256(Path(args.us_csv)),
+                "code_sha256": sha256(Path(__file__)), "seeds": list(SEEDS), "first_window": FIRST, "block": BLOCK,
+                "production_weight": 0, "parts": {}}
+    for market in args.markets:
+        data = prepared(conn, market, args, out_dir)
+        arrays = {}
+        for seed in SEEDS:
+            part = out_dir / f"{market.lower()}_part_s{seed}.npz"
+            if not part.is_file():
+                raise SystemExit(f"missing {part.name}; run --stage fit-seed --seed {seed}")
+            z = np.load(part)
+            arrays.update({key: z[key] for key in z.files})
+            manifest["parts"][part.name] = sha256(part)
+        if "B0pub_s44" not in arrays:
+            arrays["B0pub_s44"] = np.full(len(data["y"]), np.nan)
+        linear = fit_linear(data)
+        manifest[f"{market}_ridge_alphas"] = linear.pop("_ridge_alphas")
+        manifest[f"{market}_features"] = data["features"] + US6
+        manifest[f"{market}_us_report"] = data["us_report"]
+        arrays.update(linear)
+        np.savez_compressed(out_dir / f"{market.lower()}_predictions.npz", dates=np.array(data["dates"]),
+                            y=data["y"], r=data["r"], close=data["close"], valid_us=data["valid_us"],
+                            x_last=data["x_pre"][:, -1, :], features=np.array(data["features"]), **arrays)
+        log(f"{market} merged {len(arrays)} arrays")
+    (out_dir / "merge_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2, default=str) + "\n")
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--stage", choices=("fit", "score"), required=True)
+    parser.add_argument("--stage", choices=("fit", "fit-seed", "merge", "score"), required=True)
+    parser.add_argument("--seed", type=int, help="fit-seed: one seed per process (GPU stability)")
     parser.add_argument("--sqlite", required=True)
     parser.add_argument("--us-csv", required=True)
     parser.add_argument("--us-receipt", required=True, help="UTC receipt time of the US CSV (reporting cutoff)")
@@ -384,6 +451,8 @@ def main() -> int:
         log_lines.append(line)
 
     conn = sqlite3.connect(f"file:{Path(args.sqlite).resolve()}?mode=ro", uri=True)
+    if args.stage in ("fit-seed", "merge"):
+        return fit_in_parts(args, conn, out_dir, log)
     if args.stage == "fit":
         import torch
 
