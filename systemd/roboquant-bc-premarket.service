@@ -1,0 +1,11 @@
+[Unit]
+Description=RoboQuant local Model B/C premarket forecast (US session before 08:00 KST, research only)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=__PROJECT_ROOT__
+Environment=PYTHONUNBUFFERED=1
+TimeoutStartSec=1800
+ExecStart=__PYTHON__ scripts/run_local_bc_pipeline.py --stage premarket

@@ -1,0 +1,11 @@
+[Unit]
+Description=RoboQuant local Model B/C evening retrain and forecast (RTX 3090, research only)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=__PROJECT_ROOT__
+Environment=PYTHONUNBUFFERED=1
+TimeoutStartSec=7200
+ExecStart=__PYTHON__ scripts/run_local_bc_pipeline.py --stage evening

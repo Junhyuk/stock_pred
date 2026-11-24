@@ -1,0 +1,13 @@
+[Unit]
+Description=Run the local Model B/C evening stage after the KRX inputs are final
+
+[Timer]
+OnCalendar=Mon..Fri *-*-* 22:00:00
+Timezone=Asia/Seoul
+# A missed evening run is not replayed at boot: a late run would read
+# next-morning FX quotes and blur the evening information time.
+Persistent=false
+Unit=roboquant-bc-evening.service
+
+[Install]
+WantedBy=timers.target

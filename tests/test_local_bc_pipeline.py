@@ -160,3 +160,17 @@ def test_no_workflow_references_the_local_pipeline():
         text = path.read_text(encoding="utf-8")
         for name in ("run_local_bc_pipeline", "run_bc_chronological_eval", "bc_premarket", "install_local_bc_timers"):
             assert name not in text, f"{path.name} references {name}"
+
+
+def test_timer_installer_prints_by_default_and_installs_nothing(tmp_path):
+    import subprocess
+    import sys
+
+    env = {"HOME": str(tmp_path), "PATH": "/usr/bin:/bin"}
+    out = subprocess.run([sys.executable, "scripts/install_local_bc_timers.py"], cwd=ROOT, env=env,
+                         capture_output=True, text=True, check=True).stdout
+    assert "OnCalendar=Mon..Fri *-*-* 22:00:00" in out and "OnCalendar=Mon..Fri *-*-* 07:40:00" in out
+    assert "scripts/run_local_bc_pipeline.py --stage evening" in out
+    assert "scripts/run_local_bc_pipeline.py --stage premarket" in out
+    assert "__PROJECT_ROOT__" not in out and "__PYTHON__" not in out
+    assert not (tmp_path / ".config").exists()

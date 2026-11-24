@@ -1,0 +1,13 @@
+[Unit]
+Description=Run the local Model B/C premarket stage before the KRX open (PC must be on)
+
+[Timer]
+OnCalendar=Mon..Fri *-*-* 07:40:00
+Timezone=Asia/Seoul
+# The stage refuses to issue at or after the 09:00 KST open, so a boot-time
+# replay would only log "missed"; keep it off.
+Persistent=false
+Unit=roboquant-bc-premarket.service
+
+[Install]
+WantedBy=timers.target
