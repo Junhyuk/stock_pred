@@ -10,6 +10,8 @@ from roboquant.models.model_b_close import expected_index, next_close_returns, p
 ROOT = Path(__file__).resolve().parents[1]
 MODEL_B_JS = ROOT / "docs" / "assets" / "model-b.js"
 FORECAST = ROOT / "docs" / "data" / "model_b_forecast.json"
+# Pinned copy: the published file is rewritten by every manual Model B run.
+PINNED_FORECAST = ROOT / "tests" / "fixtures" / "model_b_forecast_sample.json"
 
 
 def test_expected_index_equals_close_times_one_plus_return():
@@ -109,15 +111,12 @@ setTimeout(() => {
     assert "8층 미세조정" in rendered
 
 
-def test_published_model_b_forecast_matches_return_formula():
-    payload = json.loads(FORECAST.read_text())
+def check_return_formula(payload):
     assert payload["schema_version"] == "model_b_forecast_v1"
     assert payload["model_name"] == "모델 B"
     assert payload["production_weight"] == 0
     markets = {row["market"]: row for row in payload["markets"]}
     assert set(markets) == {"KOSPI", "KOSDAQ"}
-    assert markets["KOSPI"]["variant"] == "8층 미세조정"
-    assert "variant" not in markets["KOSDAQ"]
     for row in markets.values():
         trained = date.fromisoformat(row["trained_through"])
         asof = date.fromisoformat(row["asof_date"])
@@ -127,3 +126,16 @@ def test_published_model_b_forecast_matches_return_formula():
         assert row["expected_index"] == pytest.approx(
             expected_index(row["close"], row["expected_return"]), abs=1e-6
         )
+    return markets
+
+
+def test_published_model_b_forecast_matches_return_formula():
+    # Hermetic: reads the pinned copy, so a newer manual Model B run cannot change the outcome.
+    markets = check_return_formula(json.loads(PINNED_FORECAST.read_text()))
+    assert markets["KOSPI"]["variant"] == "8층 미세조정"
+    assert "variant" not in markets["KOSDAQ"]
+
+
+def test_live_model_b_forecast_keeps_the_published_contract():
+    # Only invariants that hold for every Model B run; run-specific values live in the pinned copy.
+    check_return_formula(json.loads(FORECAST.read_text()))
