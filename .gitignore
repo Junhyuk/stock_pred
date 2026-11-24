@@ -1,5 +1,8 @@
 .env
 .venv/
+.venv-forecast/
+.worktrees/
+.superpowers/
 __pycache__/
 .pytest_cache/
 .ruff_cache/
@@ -13,6 +16,22 @@ models/*
 reports/*
 logs/
 llm_models/
+# Local environment variants and database snapshots must stay out of Git,
+# including when they are created below the repository root.
+**/.env
+**/.env.*
+!**/.env.example
+*.sqlite
+*.sqlite-*
+*.duckdb
+*.duckdb-*
+*.db
+*.db-*
+*.bak
+*.backup
+# Private identifier mappings are not project templates.
+sub_project/Smart_Money_Position_Analyzer/data/cusip_map.csv
+sub_project/Smart_Money_Position_Analyzer/data/private_identifier_mapping.csv
 !data/raw/.gitkeep
 !data/interim/.gitkeep
 !data/processed/.gitkeep
@@ -20,3 +39,10 @@ llm_models/
 !reports/.gitkeep
 .forecast-cache/
 _site/
+
+# Workflow artifacts and editor settings are never published from the repository.
+docs/data/archive/
+docs/data/us/archive/
+docs/data/publications/
+docs/data/us/publications/
+.vscode/
