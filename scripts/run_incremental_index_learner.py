@@ -34,6 +34,16 @@ SAME_DAY_YIELDS = [f"JP_JGB_{tenor}Y" for tenor in (1, 3, 5, 10)] + [f"KR_KTB_{t
 LOOKBACK = 96
 BLOCK_SIZE = 60
 MODEL_CONFIG = {"patch_len": 8, "stride": 4, "d_model": 384, "n_heads": 8, "num_layers": 8, "dropout": 0.2}
+# Chosen only on walk-forward blocks ending before 2026. Not retuned on 2026.
+KOSPI_FINETUNE = {
+    "seed": 44,
+    "initial_epochs": 6,
+    "initial_lr": 2e-4,
+    "update_epochs": 1,
+    "update_lr": 5e-5,
+    "block_size": 60,
+    "variant": "8층 미세조정",
+}
 
 
 def load_series(conn, code: str) -> pd.DataFrame:
@@ -144,23 +154,34 @@ def predict(torch, model, x, device):
     return torch.sigmoid(logit).float().cpu().numpy()
 
 
-def learn_market(torch, conn, market: str, device, checkpoint: Path) -> dict:
+def learn_market(torch, conn, market: str, device, checkpoint: Path, schedule: dict | None = None) -> dict:
+    schedule = schedule or {
+        "initial_epochs": 6, "initial_lr": 2e-4, "update_epochs": 2, "update_lr": 2e-4, "block_size": BLOCK_SIZE,
+    }
     frame, _latest, features = market_frame(conn, market)
     x, y, dates, features = make_windows(frame, features)
     first_test = next(index for index, day in enumerate(dates) if day >= "2024-01-01")
     if first_test < 200:
         raise ValueError(f"{market} does not have enough history before 2024")
+    if schedule.get("seed") is not None:
+        torch.manual_seed(schedule["seed"])
+        if device.type == "cuda":
+            torch.cuda.manual_seed_all(schedule["seed"])
     model = create_large_index_model(len(features), MODEL_CONFIG).to(device)
     initial_mean, initial_std = scale_fit(x[:first_test])
-    train_epochs(torch, model, apply_scale(x[:first_test], initial_mean, initial_std), y[:first_test], device, 6, 2e-4)
+    train_epochs(
+        torch, model, apply_scale(x[:first_test], initial_mean, initial_std), y[:first_test], device,
+        schedule["initial_epochs"], schedule["initial_lr"])
     curve = []
-    for train_end, block_end in iter_learning_blocks(len(x), first_test, BLOCK_SIZE):
+    for train_end, block_end in iter_learning_blocks(len(x), first_test, schedule["block_size"]):
         mean, std = scale_fit(x[:train_end])
         probability = predict(torch, model, apply_scale(x[train_end:block_end], mean, std), device)
         scored = block_score(y[train_end:block_end] > 0.5, probability)
         scored.update(start=dates[train_end], end=dates[block_end - 1], train_end=dates[train_end - 1])
         curve.append(scored)
-        train_epochs(torch, model, apply_scale(x[:block_end], mean, std), y[:block_end], device, 2, 2e-4)
+        train_epochs(
+            torch, model, apply_scale(x[:block_end], mean, std), y[:block_end], device,
+            schedule["update_epochs"], schedule["update_lr"])
         print(market, scored["start"], scored["end"], "brier", scored["brier"], "hit", scored["direction_hit"], flush=True)
     checkpoint.parent.mkdir(parents=True, exist_ok=True)
     mean, std = scale_fit(x)
@@ -172,6 +193,8 @@ def learn_market(torch, conn, market: str, device, checkpoint: Path) -> dict:
         "config": MODEL_CONFIG,
         "last_session": dates[-1],
         "market": market,
+        "schedule": schedule,
+        "variant": schedule.get("variant"),
         "production_weight": 0.0,
     }, checkpoint)
     return {"market": market, "blocks": curve, "checkpoint": str(checkpoint), "last_session": dates[-1]}
@@ -200,7 +223,7 @@ def predict_market(torch, conn, market: str, device) -> dict:
     model.load_state_dict(checkpoint["state_dict"])
     probability = float(predict(torch, model, scaled, device)[0])
     asof = latest["session_date"].iloc[-1].strftime("%Y-%m-%d")
-    return {
+    row = {
         "market": market,
         "asof_date": asof,
         "target_date": next_session(asof),
@@ -209,12 +232,16 @@ def predict_market(torch, conn, market: str, device) -> dict:
         "p_down": round(1 - probability, 4),
         "trained_through": checkpoint.get("last_session"),
     }
+    if checkpoint.get("variant"):
+        row["variant"] = checkpoint["variant"]
+    return row
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--sqlite", default="data/processed/index_forecast.sqlite")
     parser.add_argument("--output", default="models/dnn/incremental_learning_curve.json")
+    parser.add_argument("--market", action="append", choices=("KOSPI", "KOSDAQ"), help="Train one market. Repeatable.")
     parser.add_argument("--predict", action="store_true", help="Score the latest session only. Does not train.")
     parser.add_argument("--forecast-json", default="docs/data/model_b_forecast.json")
     args = parser.parse_args()
@@ -242,9 +269,10 @@ def main() -> int:
         return 0
     conn = sqlite3.connect(args.sqlite)
     markets = []
-    for market in ("KOSPI", "KOSDAQ"):
+    for market in (args.market or ["KOSPI", "KOSDAQ"]):
+        schedule = KOSPI_FINETUNE if market == "KOSPI" else None
         markets.append(learn_market(
-            torch, conn, market, device, Path("models/dnn") / f"incremental_{market.lower()}.pt"))
+            torch, conn, market, device, Path("models/dnn") / f"incremental_{market.lower()}.pt", schedule))
     payload = {
         "created_at": datetime.now(UTC).isoformat(),
         "method": "expanding_window_time_series_update",
