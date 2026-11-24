@@ -1,6 +1,8 @@
 import json
 import sqlite3
+from datetime import UTC, datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from roboquant.index_forecast.automation_state import public_payload_paths
 from roboquant.index_forecast.official_credit import CreditSourceError
@@ -10,7 +12,9 @@ ROOT = Path(__file__).resolve().parents[1]
 RECEIVED = "2026-11-19T12:45:00+00:00"
 
 
-def observation(series, value, source, *, market="GLOBAL", day="2026-11-18", unit="percent"):
+def observation(
+    series, value, source, *, market="GLOBAL", day="2026-11-18", unit="percent", received=RECEIVED
+):
     return {
         "series": series,
         "market": market,
@@ -18,7 +22,7 @@ def observation(series, value, source, *, market="GLOBAL", day="2026-11-18", uni
         "unit": unit,
         "source": source,
         "observation_date": day,
-        "received_at": RECEIVED,
+        "received_at": received,
         "published_at": None,
         "is_final": None,
         "availability_policy": "observed",
@@ -45,6 +49,11 @@ def test_credit_failure_does_not_discard_successful_yield_collection(monkeypatch
 
 def test_partial_run_keeps_market_chart_and_appends_keyless_source(monkeypatch, tmp_path):
     seed, output, db = ROOT / "docs/data", tmp_path / "public", tmp_path / "private.sqlite"
+    # The seed is the live public data and advances every day, so the injected rows must be
+    # the newest ones: today's observation date with a receipt time that is not in the future.
+    now = datetime.now(UTC)
+    fresh = {"day": now.astimezone(ZoneInfo("Asia/Seoul")).date().isoformat(),
+             "received": now.isoformat()}
     monkeypatch.setattr(
         tracker,
         "collect_credit_balances",
@@ -54,13 +63,16 @@ def test_partial_run_keeps_market_chart_and_appends_keyless_source(monkeypatch, 
                 26_266_366_000_000,
                 "kofia_freesis_margin_credit",
                 unit="KRW",
+                **fresh,
             )
         ],
     )
     monkeypatch.setattr(
         tracker,
         "collect_us_yields",
-        lambda **_: [observation("US_YIELD_1Y", 4.62, "us_treasury_daily_par_yield_curve")],
+        lambda **_: [
+            observation("US_YIELD_1Y", 4.62, "us_treasury_daily_par_yield_curve", **fresh)
+        ],
     )
     report = tracker.collect_indicators(
         sqlite=db, output=output, seed=seed, ecos_key="", fsc_key=""

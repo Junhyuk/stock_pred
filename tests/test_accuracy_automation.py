@@ -105,7 +105,8 @@ def test_workflow_has_one_weekday_schedule_validation_and_encrypted_only_cache()
         if isinstance(cap, str):
             import re
             limits = [int(value) for pair in re.findall(r'&& (\d+)|\|\| (\d+)', cap) for value in pair if value]
-            assert sorted(limits) == [6, 10, 25]
+            # 4 is the bounded indicators-only validation; 6/10/25 are prepare, validate and the rest.
+            assert sorted(limits) == [4, 6, 10, 25]
             assert "inputs.mode == 'prepare'" in cap and "inputs.mode == 'validate'" in cap
         else:
             assert cap <= 25
