@@ -17,10 +17,13 @@ sys.path.insert(0, str(ROOT / "src"))
 from roboquant.config import ensure_project_dirs, get_database_path, load_config
 from roboquant.data.freshness import expected_latest_trading_day, price_freshness_report
 from roboquant.db import connect_database
+from roboquant.universe.providers.errors import ProviderConfigurationError
+from roboquant.universe.providers.factory import get_market_data_provider
 
 EXECUTION_MODEL = "5.5"
 EXECUTION_QUALITY = "high"
 EXECUTION_SPEED = "default"
+APPROVED_PRICE_PROVIDERS = frozenset({"krx_openapi", "broker", "kis"})
 
 
 @dataclass(frozen=True)
@@ -36,6 +39,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--config", default="configs/top50_normal.yaml")
     parser.add_argument("--universe-config", default="configs/universe_top50.yaml")
     parser.add_argument("--provider", default="fdr_poc")
+    parser.add_argument(
+        "--require-approved-price-source",
+        action="store_true",
+        help="Block before any DB write unless --provider is a configured KRX/KIS approved provider.",
+    )
     parser.add_argument("--target-date", default="latest")
     parser.add_argument("--flow-lookback-days", type=int, default=90)
     parser.add_argument("--restart-web", action="store_true")
@@ -52,6 +60,24 @@ def main() -> None:
     args = parse_args()
     _load_dotenv(ROOT / ".env")
     target_date = _resolve_target_date(args.target_date)
+    if args.require_approved_price_source:
+        try:
+            approved_provider = validate_approved_price_provider(args.provider)
+        except RuntimeError as exc:
+            print(
+                json.dumps(
+                    {
+                        "status": "blocked_missing_approved_price_source",
+                        "target_date": target_date.isoformat(),
+                        "provider": str(args.provider),
+                        "message": str(exc),
+                        "steps": [],
+                    },
+                    ensure_ascii=False,
+                )
+            )
+            return
+        print(f"approved_price_source: {approved_provider}", flush=True)
     config = load_config(args.config)
     ensure_project_dirs(config)
 
@@ -108,6 +134,8 @@ def main() -> None:
 def build_steps(args: argparse.Namespace, *, include_training: bool = True) -> list[Step]:
     target_date = _resolve_target_date(args.target_date)
     steps: list[Step] = []
+    if getattr(args, "require_approved_price_source", False):
+        steps.append(Step("approved_price_source_preflight", [], internal=True))
     if getattr(args, "restart_web", False):
         steps.append(Step("stop_web", [], internal=True))
     steps.extend(build_collection_steps(args, target_date))
@@ -471,6 +499,20 @@ def check_price_freshness(config_path: str, target_date: date):
         return price_freshness_report(conn, expected_date=target_date)
     finally:
         conn.close()
+
+
+def validate_approved_price_provider(provider_name: str) -> str:
+    normalized = str(provider_name or "").strip().lower()
+    if normalized not in APPROVED_PRICE_PROVIDERS:
+        raise RuntimeError(
+            "승인 시세 소스가 필요합니다. --provider krx_openapi 또는 --provider broker를 설정하고 "
+            "fdr_poc/yfinance fallback은 사용하지 않습니다."
+        )
+    try:
+        provider = get_market_data_provider(normalized)
+    except ProviderConfigurationError as exc:
+        raise RuntimeError(f"승인 시세 소스 설정이 완료되지 않았습니다: {exc}") from exc
+    return str(provider.provider_name)
 
 
 def _run_step(step: Step) -> dict:

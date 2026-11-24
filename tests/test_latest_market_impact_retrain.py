@@ -7,6 +7,7 @@ from datetime import date, datetime
 from pathlib import Path
 
 import pandas as pd
+import pytest
 
 from roboquant.data.freshness import KST, expected_latest_trading_day, price_freshness_report
 from roboquant.db import append_dedup_table, connect_database
@@ -89,6 +90,19 @@ def test_latest_market_impact_runner_partial_plan_skips_training() -> None:
     assert "freshness_check" in names
     assert not any(name.startswith("train_") for name in names)
     assert names[-2:] == ["market_move_explanations_stale_snapshot", "today_context_refresh"]
+
+
+def test_approved_price_preflight_rejects_poc_provider() -> None:
+    with pytest.raises(RuntimeError, match="승인 시세 소스"):
+        runner.validate_approved_price_provider("fdr_poc")
+
+
+def test_approved_price_preflight_requires_krx_credentials(monkeypatch) -> None:
+    monkeypatch.delenv("KRX_OPENAPI_KEY", raising=False)
+    monkeypatch.delenv("KRX_OPENAPI_SERVICE_ID", raising=False)
+
+    with pytest.raises(RuntimeError, match="KRX_OPENAPI_KEY"):
+        runner.validate_approved_price_provider("krx_openapi")
 
 
 def test_price_freshness_report_marks_stale_prices(tmp_path) -> None:
