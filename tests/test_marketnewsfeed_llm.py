@@ -11,6 +11,7 @@ from roboquant.db import connect_database
 from roboquant.marketnewsfeed_llm_shadow import build_market_range_shadow, evaluate_shadow_gate
 from roboquant.signals.marketnewsfeed_llm import (
     LocalOllamaClient,
+    _parse_structured_content,
     attach_marketnewsfeed_llm_features,
     build_marketnewsfeed_llm_signal_daily,
     summarize_marketnewsfeed_headlines,
@@ -88,6 +89,10 @@ def _seed_headline(conn, *, headline_id: str = "h-1", published_at: str = "2026-
 def test_local_ollama_refuses_non_loopback_host() -> None:
     with pytest.raises(ValueError):
         LocalOllamaClient("https://example.com")
+
+
+def test_structured_content_discards_prose_wrapper_without_retaining_reasoning() -> None:
+    assert _parse_structured_content('analysis omitted {"items": []} trailing text') == {"items": []}
 
 
 def test_assessment_cache_token_caps_and_no_reasoning_trace(tmp_path) -> None:

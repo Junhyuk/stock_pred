@@ -3,8 +3,11 @@ from __future__ import annotations
 import json
 from datetime import datetime
 
+import pandas as pd
+
 from roboquant.dashboard.local_llm_news_service import get_local_llm_news_status
 from roboquant.db import connect_database
+from roboquant.signals import local_llm_news as local_llm_module
 from roboquant.signals.local_llm_news import (
     _thinking_chunks,
     _validated_themes,
@@ -140,6 +143,30 @@ def test_local_llm_queue_cache_cutoff_and_aggregate_privacy(tmp_path) -> None:
     assert "summary_ko" not in json.dumps(aggregate, ensure_ascii=False)
     assert "items" not in aggregate
     assert "brief" not in aggregate
+    conn.close()
+
+
+def test_local_llm_queue_deduplicates_same_source_document_before_upsert(tmp_path, monkeypatch) -> None:
+    conn = connect_database(tmp_path / "local_llm_duplicate_queue.duckdb")
+    duplicated_source = pd.DataFrame(
+        [
+            {
+                "source_document_id": "same-source-id",
+                "title": "KOSPI 급락 경계",
+                "summary": None,
+                "source_url": "https://example.test/marketnewsfeed",
+                "published_at": "2026-07-09 22:00:00",
+                "collected_at": "2026-07-09 22:01:00",
+                "source_tags_json": "{}",
+            }
+        ]
+    )
+    monkeypatch.setattr(local_llm_module, "_source_frames", lambda *_args: [("fixture", pd.concat([duplicated_source, duplicated_source]))])
+
+    queued = refresh_local_llm_documents(conn, _config())
+
+    assert queued["status"] == "ready"
+    assert conn.execute("SELECT COUNT(*) FROM local_llm_news_documents").fetchone()[0] == queued["rows"]
     conn.close()
 
 

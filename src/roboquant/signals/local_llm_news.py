@@ -26,7 +26,7 @@ from zoneinfo import ZoneInfo
 import pandas as pd
 
 from roboquant.config import load_config
-from roboquant.db import append_dedup_table, table_exists
+from roboquant.db import append_dedup_table, append_immutable_table, table_exists
 from roboquant.signals.marketnewsfeed_llm import (
     ALLOWED_DIRECTIONS,
     ALLOWED_EVENT_TYPES,
@@ -163,14 +163,15 @@ def refresh_local_llm_documents(conn, config: Mapping[str, Any] | None) -> dict[
                 }
             )
             source_counts[source] += 1
-    if records:
-        append_dedup_table(
+    document_frame = pd.DataFrame(records).drop_duplicates(subset=["document_id"], keep="last")
+    if not document_frame.empty:
+        append_immutable_table(
             conn,
             "local_llm_news_documents",
-            pd.DataFrame(records),
+            document_frame,
             ["document_id"],
         )
-    return {"status": "ready", "rows": len(records), "sources": dict(sorted(source_counts.items()))}
+    return {"status": "ready", "rows": len(document_frame), "sources": dict(sorted(source_counts.items()))}
 
 
 def summarize_local_llm_news(

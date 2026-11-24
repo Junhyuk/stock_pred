@@ -858,7 +858,16 @@ def _parse_structured_content(content: Any) -> dict[str, Any]:
     try:
         parsed = json.loads(raw)
     except json.JSONDecodeError as exc:
-        raise OllamaUnavailableError("Ollama returned non-JSON structured output.") from exc
+        # A few GGUF chat templates prepend a short prose marker despite the
+        # JSON schema request. Keep only a valid object; never retain the raw
+        # completion or any hidden reasoning around it.
+        start = raw.find("{")
+        if start < 0:
+            raise OllamaUnavailableError("Ollama returned non-JSON structured output.") from exc
+        try:
+            parsed, _ = json.JSONDecoder().raw_decode(raw[start:])
+        except json.JSONDecodeError as nested_exc:
+            raise OllamaUnavailableError("Ollama returned non-JSON structured output.") from nested_exc
     if not isinstance(parsed, dict):
         raise OllamaUnavailableError("Ollama structured output must be a JSON object.")
     return parsed
