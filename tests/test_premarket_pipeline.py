@@ -33,11 +33,13 @@ def test_premarket_pipeline_runs_final_shadows_after_regime() -> None:
         "scripts/build_market_regime.py",
         "scripts/run_premarket_shadow.py",
         "scripts/run_us_korea_linkage_daily.py",
+        "scripts/run_us_market_liquidity_shadow.py",
     ]
-    assert commands[-2][-4:] == [
+    assert commands[-3][-4:] == [
         "--stage",
         "final_premarket",
         "--date",
         "latest",
     ]
+    assert commands[-2][-4:] == ["--stage", "premarket", "--date", "latest"]
     assert commands[-1][-4:] == ["--stage", "premarket", "--date", "latest"]

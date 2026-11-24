@@ -75,6 +75,7 @@ from roboquant.market_us_linkage import (
     get_market_us_linkage_history,
     get_market_us_linkage_shadow,
 )
+from roboquant.market_us_liquidity_shadow import get_market_us_liquidity_shadow
 
 CONFIG = load_config(ROOT / "configs" / "poc.yaml")
 TODAY_CONFIG = load_config(ROOT / "configs" / "today_update.yaml")
@@ -356,6 +357,15 @@ def market_us_linkage_feedback(market: str = "all", limit: int = 100):
     conn = _conn()
     try:
         return get_market_us_linkage_feedback(conn, market=market, limit=limit)
+    finally:
+        conn.close()
+
+
+@app.get("/api/market-us-liquidity-shadow")
+def market_us_liquidity_shadow(market: str = "all", limit: int = 20):
+    conn = _conn()
+    try:
+        return get_market_us_liquidity_shadow(conn, market=market, limit=limit)
     finally:
         conn.close()
 

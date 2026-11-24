@@ -244,6 +244,11 @@ def test_fastapi_health_and_local_pages() -> None:
     assert stock_page.index("async function bootStock") < stock_page.index(
         'document.addEventListener("DOMContentLoaded"'
     )
+    tomorrow_page = client.get("/demo/tomorrow").text
+    assert "/api/market-us-liquidity-shadow" in tomorrow_page
+    linkage_page = client.get("/demo/us-korea-linkage").text
+    assert "/api/market-us-liquidity-shadow" in linkage_page
+    assert client.get("/api/market-us-liquidity-shadow").status_code == 200
 
 
 def test_two_stock_demo_api_returns_focus_symbols(tmp_path, monkeypatch) -> None:

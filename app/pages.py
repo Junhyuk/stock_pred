@@ -616,6 +616,7 @@ def us_korea_linkage_html() -> HTMLResponse:
               <article class="panel"><h2>시장별 Gate</h2><div id="usLinkageGate" class="detail-list empty">gate 상태를 불러오는 중입니다.</div></article>
             </section>
             <article class="panel"><h2>최근 Out-of-Sample 비교</h2><div id="usLinkageHistory" class="table empty">과거 검증 결과를 불러오는 중입니다.</div></article>
+            <article class="panel"><h2>미국 ETF 거래량 Shadow</h2><div id="usLiquidityShadow" class="detail-list empty">미국 ETF OHLCV·거래량 후보를 불러오는 중입니다.</div></article>
             <p id="usLinkageDisclaimer" class="notice"></p>
             <div id="usKoreaLinkagePage" hidden></div>
             <script>
@@ -659,6 +660,25 @@ def us_korea_linkage_html() -> HTMLResponse:
               } catch (_) {
                 document.getElementById("usLinkageMetrics").innerHTML = metric("상태", "오류", "API 응답을 확인하세요");
                 document.getElementById("usLinkageForecast").textContent = "Nasdaq/SOX linkage 데이터를 불러오지 못했습니다.";
+              }
+            });
+            </script>
+            <script>
+            document.addEventListener("DOMContentLoaded", async () => {
+              const node = document.getElementById("usLiquidityShadow");
+              if (!node) return;
+              const esc = value => String(value ?? "-").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+              const pct = value => value === null || value === undefined || Number.isNaN(Number(value)) ? "-" : (Number(value) * 100).toFixed(2) + "%";
+              try {
+                const response = await fetch("/api/market-us-liquidity-shadow", {cache:"no-store"});
+                if (!response.ok) throw new Error("API error");
+                const data = await response.json();
+                const items = data.items || [];
+                const cards = items.length ? items.map(item => `<div class="detail-item"><div class="detail-head"><strong>${esc(item.market)}</strong><span class="chip">${esc(item.status)}</span></div><div class="detail-grid"><span><small>Target</small><b>${esc(String(item.prediction_date || "-").slice(0,10))}</b></span><span><small>Ridge</small><b>${pct(item.baseline_expected_return)}</b></span><span><small>Liquidity</small><b>${pct(item.liquidity_expected_return)}</b></span><span><small>Weight</small><b>${pct(item.dynamic_overlay_weight)}</b></span><span><small>Candidate</small><b>${pct(item.candidate_expected_return)}</b></span><span><small>80% range</small><b>${pct(item.candidate_range_low)} ~ ${pct(item.candidate_range_high)}</b></span></div></div>`).join("") : `<div class="empty">${esc(data.message || "거래량 후보는 최신 cutoff-safe 입력 또는 검증 이력이 필요합니다.")}</div>`;
+                const runs = (data.runs || []).map(run => `<p class="muted">${esc(run.market)}: ${esc(run.gate_status)} · OOS ${esc(run.oos_count)} · ${esc(run.fail_reason || "gate 검증 중")}</p>`).join("");
+                node.innerHTML = cards + runs;
+              } catch (_) {
+                node.textContent = "미국 거래량 shadow 데이터를 불러오지 못했습니다.";
               }
             });
             </script>
@@ -719,11 +739,31 @@ def tomorrow_market_html() -> HTMLResponse:
               <div id="todayGlobalMarkets" class="table empty">해외시장 데이터를 불러오는 중입니다.</div>
             </article>
             <article class="panel">
+              <h2>미국 거래량 Shadow</h2>
+              <div id="tomorrowLiquidityShadow" class="detail-list empty">미국 ETF OHLCV·거래량 후보를 불러오는 중입니다.</div>
+            </article>
+            <article class="panel">
               <h2>뉴스·거시 context</h2>
               <div id="todayNews" class="stack empty">뉴스를 불러오는 중입니다.</div>
             </article>
             <p id="todayDisclaimer" class="notice"></p>
             <div id="tomorrowMarketPage" hidden></div>
+            <script>
+            document.addEventListener("DOMContentLoaded", async () => {
+              const node = document.getElementById("tomorrowLiquidityShadow");
+              if (!node) return;
+              const esc = value => String(value ?? "-").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+              const pct = value => value === null || value === undefined || Number.isNaN(Number(value)) ? "-" : (Number(value) * 100).toFixed(2) + "%";
+              try {
+                const response = await fetch("/api/market-us-liquidity-shadow", {cache:"no-store"});
+                if (!response.ok) throw new Error("API error");
+                const data = await response.json();
+                node.innerHTML = (data.items || []).length ? (data.items || []).map(item => `<div class="row"><span>${esc(item.market)} · ${esc(item.status)}</span><b>Ridge ${pct(item.baseline_expected_return)} / 거래량 후보 ${pct(item.candidate_expected_return)} / weight ${pct(item.dynamic_overlay_weight)}</b></div>`).join("") : `<div class="empty">${esc(data.message || "미국 거래량 후보를 준비 중입니다.")}</div>`;
+              } catch (_) {
+                node.textContent = "미국 거래량 shadow 데이터를 불러오지 못했습니다.";
+              }
+            });
+            </script>
             """,
         )
     )

@@ -1802,6 +1802,112 @@ SCHEMA_SQL = [
     )
     """,
     """
+    CREATE TABLE IF NOT EXISTS market_us_liquidity_features_daily (
+      prediction_date DATE NOT NULL,
+      asof_date DATE NOT NULL,
+      market VARCHAR NOT NULL,
+      prediction_cutoff TIMESTAMP,
+      global_trade_date DATE,
+      global_available_at TIMESTAMP,
+      us_qqq_return_1d DOUBLE,
+      us_soxx_return_1d DOUBLE,
+      us_smh_return_1d DOUBLE,
+      us_spy_return_1d DOUBLE,
+      us_ewy_return_1d DOUBLE,
+      us_koru_return_1d DOUBLE,
+      us_qqq_volume_z20 DOUBLE,
+      us_soxx_volume_z20 DOUBLE,
+      us_smh_volume_z20 DOUBLE,
+      us_spy_volume_z20 DOUBLE,
+      us_ewy_volume_z20 DOUBLE,
+      us_koru_volume_z20 DOUBLE,
+      tech_down_volume_pressure DOUBLE,
+      broad_down_volume_pressure DOUBLE,
+      tech_broad_volume_divergence DOUBLE,
+      label_return DOUBLE,
+      data_quality_json VARCHAR NOT NULL,
+      feature_version VARCHAR NOT NULL,
+      created_at TIMESTAMP NOT NULL,
+      PRIMARY KEY (prediction_date, market, feature_version)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS market_us_liquidity_shadow_forecasts (
+      prediction_date DATE NOT NULL,
+      asof_date DATE NOT NULL,
+      market VARCHAR NOT NULL,
+      prediction_cutoff TIMESTAMP,
+      global_trade_date DATE,
+      model_name VARCHAR NOT NULL,
+      model_version VARCHAR NOT NULL,
+      baseline_expected_return DOUBLE,
+      liquidity_expected_return DOUBLE,
+      liquidity_delta DOUBLE,
+      dynamic_overlay_weight DOUBLE NOT NULL,
+      candidate_expected_return DOUBLE,
+      baseline_range_low DOUBLE,
+      baseline_range_high DOUBLE,
+      control_range_low DOUBLE,
+      control_range_high DOUBLE,
+      candidate_range_low DOUBLE,
+      candidate_range_high DOUBLE,
+      actual_return DOUBLE,
+      calibration_count INTEGER,
+      feedback_count INTEGER,
+      relative_mae_improvement DOUBLE,
+      attribution_json VARCHAR,
+      status VARCHAR NOT NULL,
+      production_weight DOUBLE NOT NULL,
+      is_backtest BOOLEAN NOT NULL,
+      metrics_json VARCHAR,
+      data_quality_json VARCHAR NOT NULL,
+      created_at TIMESTAMP NOT NULL,
+      PRIMARY KEY (prediction_date, market, model_version, is_backtest)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS market_us_liquidity_shadow_feedback_daily (
+      prediction_date DATE NOT NULL,
+      market VARCHAR NOT NULL,
+      model_name VARCHAR NOT NULL,
+      model_version VARCHAR NOT NULL,
+      is_backtest BOOLEAN NOT NULL,
+      actual_return DOUBLE NOT NULL,
+      baseline_abs_error DOUBLE NOT NULL,
+      candidate_abs_error DOUBLE NOT NULL,
+      liquidity_abs_error DOUBLE,
+      baseline_direction_hit BOOLEAN,
+      candidate_direction_hit BOOLEAN,
+      baseline_covered BOOLEAN,
+      candidate_covered BOOLEAN,
+      baseline_low_breach BOOLEAN,
+      candidate_low_breach BOOLEAN,
+      baseline_interval_score DOUBLE,
+      candidate_interval_score DOUBLE,
+      dynamic_overlay_weight DOUBLE NOT NULL,
+      relative_mae_improvement DOUBLE,
+      status VARCHAR NOT NULL,
+      created_at TIMESTAMP NOT NULL,
+      PRIMARY KEY (prediction_date, market, model_version, is_backtest)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS market_us_liquidity_shadow_backtest_runs (
+      run_id VARCHAR PRIMARY KEY,
+      model_name VARCHAR NOT NULL,
+      model_version VARCHAR NOT NULL,
+      market VARCHAR NOT NULL,
+      start_date DATE,
+      end_date DATE,
+      oos_count INTEGER NOT NULL,
+      live_observation_count INTEGER NOT NULL,
+      gate_status VARCHAR NOT NULL,
+      fail_reason VARCHAR,
+      metrics_json VARCHAR NOT NULL,
+      created_at TIMESTAMP NOT NULL
+    )
+    """,
+    """
     CREATE TABLE IF NOT EXISTS x_news_prediction_impact_daily (
       asof_date DATE,
       horizon VARCHAR,
@@ -2171,6 +2277,22 @@ SCHEMA_SQL = [
     """
     CREATE INDEX IF NOT EXISTS idx_market_us_linkage_backtest_runs_latest
     ON market_us_linkage_backtest_runs(market, created_at)
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_market_us_liquidity_features_latest
+    ON market_us_liquidity_features_daily(prediction_date, market, feature_version)
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_market_us_liquidity_shadow_latest
+    ON market_us_liquidity_shadow_forecasts(prediction_date, market, is_backtest, model_version)
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_market_us_liquidity_feedback_latest
+    ON market_us_liquidity_shadow_feedback_daily(prediction_date, market, is_backtest, model_version)
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_market_us_liquidity_runs_latest
+    ON market_us_liquidity_shadow_backtest_runs(market, created_at)
     """,
     """
     CREATE INDEX IF NOT EXISTS idx_long_short_backtest_results_horizon

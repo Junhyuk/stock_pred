@@ -70,6 +70,16 @@ def build_commands(args: argparse.Namespace) -> list[list[str]]:
             "--date",
             "latest",
         ],
+        [
+            sys.executable,
+            "scripts/run_us_market_liquidity_shadow.py",
+            "--config",
+            args.top50_config,
+            "--stage",
+            "premarket",
+            "--date",
+            "latest",
+        ],
     ]
 
 
