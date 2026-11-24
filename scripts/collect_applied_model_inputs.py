@@ -40,10 +40,32 @@ def fetch(url: str, timeout: int = 40) -> bytes:
         return response.read()
 
 
-def yahoo_levels(symbol: str, span: str = "10y") -> list[tuple[str, float]]:
+def fetch_plan(latest: str | None, today: str, overlap_days: int = 3) -> tuple[str, str | None]:
+    """Decide whether a series needs a request.
+
+    ``skip`` means the stored date already reaches today. ``full`` means the table has
+    no row. ``range`` starts a few days before the last stored date so only the missing
+    tail is requested. A request that returns nothing new records nothing: stored rows
+    keep the time they were first seen (``ingested_at``), so a stale source such as a
+    stopped file is asked again on the next run instead of being marked as checked.
+    """
+    if latest and latest >= today:
+        return "skip", None
+    if not latest:
+        return "full", None
+    start = datetime.strptime(latest, "%Y-%m-%d").date() - timedelta(days=overlap_days)
+    return "range", start.isoformat()
+
+
+def yahoo_levels(symbol: str, span: str = "10y", start: str | None = None) -> list[tuple[str, float]]:
+    query = f"?interval=1d&range={span}"
+    if start:
+        period1 = int(datetime.strptime(start, "%Y-%m-%d").replace(tzinfo=UTC).timestamp())
+        period2 = int(datetime.now(UTC).timestamp()) + 86400
+        query = f"?interval=1d&period1={period1}&period2={period2}"
     payload = json.loads(fetch(
         "https://query1.finance.yahoo.com/v8/finance/chart/"
-        + urllib.request.quote(symbol, safe="") + f"?interval=1d&range={span}"))
+        + urllib.request.quote(symbol, safe="") + query))
     result = payload["chart"]["result"][0]
     zone = ZoneInfo(result["meta"].get("exchangeTimezoneName") or "UTC")
     quote = result["indicators"]["quote"][0]
@@ -125,7 +147,7 @@ def treasury_yields(start_year: int | None = None) -> dict[str, list[tuple[str, 
     return {f"US_TREASURY_{tenor}Y": values for tenor, values in rows.items()}
 
 
-def japan_yields() -> dict[str, list[tuple[str, float]]]:
+def japan_yields(start: str | None = None) -> dict[str, list[tuple[str, float]]]:
     import pandas as pd
     raw = pd.read_csv(pd.io.common.BytesIO(fetch(
         "https://www.mof.go.jp/english/policy/jgbs/reference/interest_rate/historical/jgbcme_all.csv")), skiprows=1)
@@ -137,7 +159,9 @@ def japan_yields() -> dict[str, list[tuple[str, float]]]:
         values = pd.to_numeric(raw[source], errors="coerce")
         for day, value in zip(days, values):
             if pd.notna(day) and pd.notna(value):
-                output[code].append((day.date().isoformat(), float(value)))
+                observed = day.date().isoformat()
+                if start is None or observed >= start:
+                    output[code].append((observed, float(value)))
     return output
 
 
@@ -179,9 +203,20 @@ def insert_macro(conn, series: dict[str, list[tuple[str, float]]], source: str, 
     return added
 
 
-def insert_index_bars(conn, ingested_at: str) -> int:
+def _latest_index(conn, market: str) -> str | None:
+    try:
+        row = conn.execute("SELECT MAX(session_date) FROM index_eod WHERE index_code = ?", (market,)).fetchone()
+    except sqlite3.OperationalError:
+        return None
+    return row[0] if row and row[0] else None
+
+
+def insert_index_bars(conn, ingested_at: str, today: str) -> int:
     added = 0
     for market, symbol in INDEXES.items():
+        mode, start = fetch_plan(_latest_index(conn, market), today)
+        if mode == "skip":
+            continue
         bars = naver_index_bars(market)
         volumes = yahoo_index_bars(symbol)
         for day, bar in volumes.items():
@@ -236,25 +271,56 @@ def _ensure_tables(conn) -> None:
         """)
 
 
+def _kst_today() -> str:
+    return datetime.now(ZoneInfo("Asia/Seoul")).date().isoformat()
+
+
+def _yahoo_series(conn, today: str) -> dict[str, list[tuple[str, float]]]:
+    series = {}
+    for code, symbol in YAHOO.items():
+        mode, start = fetch_plan(_latest(conn, code), today)
+        if mode == "skip":
+            continue
+        series[code] = yahoo_levels(symbol, "10y", None if mode == "full" else start)
+    return series
+
+
+def _treasury_series(conn, today: str) -> dict[str, list[tuple[str, float]]]:
+    mode, start = fetch_plan(_latest(conn, "US_TREASURY_10Y"), today)
+    if mode == "skip":
+        return {}
+    first_year = 2021 if mode == "full" else int(start[:4])
+    return treasury_yields(first_year)
+
+
+def _japan_series(conn, today: str) -> dict[str, list[tuple[str, float]]]:
+    mode, start = fetch_plan(_latest(conn, "JP_JGB_10Y"), today, overlap_days=0)
+    if mode == "skip":
+        return {}
+    return japan_yields(None if mode == "full" else start)
+
+
+def _korea_series(conn, today: str) -> dict[str, list[tuple[str, float]]]:
+    mode, start = fetch_plan(_latest(conn, "KR_KTB_3Y"), today)
+    if mode == "skip":
+        return {}
+    start_text = "20210104" if mode == "full" else start.replace("-", "")
+    return korea_yields(start_text, today.replace("-", ""))
+
+
 def collect(sqlite_path: Path) -> dict:
     ingested_at = datetime.now(UTC).isoformat()
+    today = _kst_today()
     conn = sqlite3.connect(sqlite_path)
     try:
         _ensure_tables(conn)
-        yahoo_span = "3mo" if _latest(conn, "YAHOO_DXY") else "10y"
-        treasury_start = datetime.now(UTC).year if _latest(conn, "US_TREASURY_10Y") else 2021
-        korea_start = "20210104"
-        latest_korea = _latest(conn, "KR_KTB_3Y")
-        if latest_korea:
-            korea_start = (datetime.strptime(latest_korea, "%Y-%m-%d") - timedelta(days=21)).strftime("%Y%m%d")
         counts = {
-            "index_bars": insert_index_bars(conn, ingested_at),
-            "yahoo_levels": insert_macro(
-                conn, {code: yahoo_levels(symbol, yahoo_span) for code, symbol in YAHOO.items()},
-                "yahoo_chart_unofficial", ingested_at),
-            "us_yields": insert_macro(conn, treasury_yields(treasury_start), "us_treasury_daily_par_yield_curve", ingested_at),
-            "jp_yields": insert_macro(conn, japan_yields(), "mof_jgb_historical", ingested_at),
-            "kr_yields": insert_macro(conn, korea_yields(korea_start), "bok_ecos_817Y002_sample", ingested_at),
+            "index_bars": insert_index_bars(conn, ingested_at, today),
+            "yahoo_levels": insert_macro(conn, _yahoo_series(conn, today), "yahoo_chart_unofficial", ingested_at),
+            "us_yields": insert_macro(conn, _treasury_series(conn, today), "us_treasury_daily_par_yield_curve", ingested_at),
+            "jp_yields": insert_macro(conn, _japan_series(conn, today), "mof_jgb_historical", ingested_at),
+            "kr_yields": insert_macro(conn, _korea_series(conn, today), "bok_ecos_817Y002_sample", ingested_at),
+            "asof": today,
         }
         conn.commit()
     finally:
