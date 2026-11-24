@@ -4,7 +4,7 @@
   "architecture": "8층 미세조정 복사",
   "trigger": "manual_gpu",
   "production_weight": 0.0,
-  "generated_at": "2026-11-23T14:41:55Z",
+  "generated_at": "2026-11-24T12:55:08Z",
   "gpu": "NVIDIA GeForce RTX 3090",
   "threshold": 0.03,
   "scope": "급등·급락 전용",
@@ -12,51 +12,51 @@
   "markets": [
     {
       "market": "KOSPI",
-      "asof_date": "2026-11-23",
-      "target_date": "2026-11-24",
-      "close": 4708.54,
-      "p_up": 0.3206,
-      "p_down": 0.6794,
-      "expected_return": -0.016211,
-      "expected_index": 4632.21,
-      "trained_through": "2026-11-20",
+      "asof_date": "2026-11-24",
+      "target_date": "2026-11-25",
+      "close": 5006.03,
+      "p_up": 0.3622,
+      "p_down": 0.6378,
+      "expected_return": -0.006761,
+      "expected_index": 4972.18,
+      "trained_through": "2026-11-23",
       "examined": {
         "pre_2026": {
           "n": 18,
           "direction_hit": 0.4444,
-          "brier": 0.2626,
-          "close_mae": 116.29
+          "brier": 0.2745,
+          "close_mae": 116.19
         },
         "year_2026": {
-          "n": 79,
-          "direction_hit": 0.5696,
-          "brier": 0.2543,
-          "close_mae": 361.9
+          "n": 80,
+          "direction_hit": 0.55,
+          "brier": 0.2535,
+          "close_mae": 358.9
         }
       }
     },
     {
       "market": "KOSDAQ",
-      "asof_date": "2026-11-23",
-      "target_date": "2026-11-24",
-      "close": 635.45,
-      "p_up": 0.6195,
-      "p_down": 0.3805,
-      "expected_return": 0.013443,
-      "expected_index": 643.99,
-      "trained_through": "2026-11-19",
+      "asof_date": "2026-11-24",
+      "target_date": "2026-11-25",
+      "close": 665.88,
+      "p_up": 0.4674,
+      "p_down": 0.5326,
+      "expected_return": -0.002862,
+      "expected_index": 663.97,
+      "trained_through": "2026-11-23",
       "examined": {
         "pre_2026": {
           "n": 47,
-          "direction_hit": 0.7234,
-          "brier": 0.2159,
-          "close_mae": 27.11
+          "direction_hit": 0.7447,
+          "brier": 0.2126,
+          "close_mae": 28.26
         },
         "year_2026": {
-          "n": 67,
-          "direction_hit": 0.5522,
-          "brier": 0.2769,
-          "close_mae": 45.97
+          "n": 68,
+          "direction_hit": 0.4412,
+          "brier": 0.312,
+          "close_mae": 48.76
         }
       }
     }
