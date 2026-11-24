@@ -248,7 +248,12 @@ def test_fastapi_health_and_local_pages() -> None:
     assert "/api/market-us-liquidity-shadow" in tomorrow_page
     linkage_page = client.get("/demo/us-korea-linkage").text
     assert "/api/market-us-liquidity-shadow" in linkage_page
-    assert client.get("/api/market-us-liquidity-shadow").status_code == 200
+    # Every data endpoint opens the local DuckDB read-only; it is not part of a clean checkout.
+    from app.main import CONFIG as APP_CONFIG
+    from roboquant.config import get_database_path
+
+    if get_database_path(APP_CONFIG).exists():
+        assert client.get("/api/market-us-liquidity-shadow").status_code == 200
 
 
 def test_two_stock_demo_api_returns_focus_symbols(tmp_path, monkeypatch) -> None:
