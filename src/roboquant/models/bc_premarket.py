@@ -13,6 +13,8 @@ reports/model_c_kospi_20261125/preregistration*.json (WB7, WB3, K4).
 """
 from __future__ import annotations
 
+import hashlib
+
 import numpy as np
 
 US6 = ["us_spx_return_1d", "us_nasdaq_return_1d", "us_sox_return_1d", "us_vix_level", "us_vix_return_1d",
@@ -46,8 +48,14 @@ def fit_predict(variant: str, x_train, returns_train, x_live) -> dict:
     xt, xl = scaler.transform(x_train), scaler.transform(x_live)
     if spec["kind"] == "ridgecv":
         model = RidgeCV(alphas=RIDGE_ALPHAS).fit(xt, r)
-        return {"value": model.predict(xl).tolist(), "alpha": float(model.alpha_), "n_train": int(len(r))}
-    weights = abs_weights(r) if spec["weighted"] else None
-    model = LogisticRegression(C=LOGIT_C, solver="lbfgs", max_iter=2000, random_state=42)
-    model.fit(xt, (r > 0).astype(int), sample_weight=weights)
-    return {"value": model.predict_proba(xl)[:, 1].tolist(), "n_train": int(len(r))}
+        value = model.predict(xl)
+        extra = {"alpha": float(model.alpha_)}
+    else:
+        weights = abs_weights(r) if spec["weighted"] else None
+        model = LogisticRegression(C=LOGIT_C, solver="lbfgs", max_iter=2000, random_state=42)
+        model.fit(xt, (r > 0).astype(int), sample_weight=weights)
+        value = model.predict_proba(xl)[:, 1]
+        extra = {}
+    params = np.concatenate([scaler.mean_, scaler.scale_, np.ravel(model.coef_), np.ravel(model.intercept_)])
+    return {"value": value.tolist(), "n_train": int(len(r)), "seed_set": [42], "deterministic": True,
+            "params_sha256": hashlib.sha256(variant.encode() + params.astype(np.float64).tobytes()).hexdigest(), **extra}

@@ -243,6 +243,7 @@ def evening(args, now, run_id: str) -> int:
         stamp_stage(path, run_id)
     manifest["models_after"] = model_hashes()
     manifest["checkpoints"] = checkpoint_facts()
+    manifest["ledger"] = evening_ledger_rows(plan, run_id, manifest)
     manifest["outputs"] = {str(p.relative_to(ROOT)): lp.file_sha256(p) for p in (B_JSON, C_JSON)}
     manifest["pruned_backups"] = lp.prune_backups(BACKUP_ROOT, args.keep_backups)
     manifest["status"] = "ok"
@@ -250,6 +251,33 @@ def evening(args, now, run_id: str) -> int:
     print(json.dumps({"status": "ok", "asof": plan["asof_date"], "target": plan["target_date"],
                       "manifest": str(run_dir / "manifest.json")}, ensure_ascii=False))
     return 0
+
+
+def evening_ledger_rows(plan: dict, run_id: str, manifest: dict) -> list[str]:
+    """Record the published evening B and C forecasts beside the premarket ones."""
+    issued = datetime.now(UTC).isoformat()
+    hashes = manifest["models_after"]
+    facts = manifest.get("checkpoints", {})
+    out = []
+    for path, model, output in ((B_JSON, "B", "p_up"), (C_JSON, "C", "p_up_given_extreme")):
+        payload = json.loads(path.read_text())
+        for row in payload["markets"]:
+            market = row["market"]
+            ck = f"models/dnn/{'incremental' if model == 'B' else 'model_c'}_{market.lower()}.pt"
+            name = ck.rsplit("/", 1)[-1]
+            entry = {"schema_version": "model_bc_premarket_ledger_v1", "variant": f"published_evening_{model}",
+                     "model": model, "output": output, "market": market, "issue_stage": "evening",
+                     "asof_date": row["asof_date"], "target_date": row["target_date"], "issued_at": issued,
+                     "prediction_cutoff": issued, "close": row["close"], "value": row["p_up"],
+                     "expected_return": row.get("expected_return"), "trained_through": row.get("trained_through"),
+                     "model_sha256": hashes.get(ck), "seed_set": [(facts.get(name) or {}).get("seed")],
+                     "code_commit": manifest["git"]["commit"], "published": True, "production_weight": 0,
+                     "run_id": run_id}
+            try:
+                out.append(lp.append_ledger(LEDGER, entry)["row_sha256"])
+            except ValueError as exc:  # a re-run for the same target keeps the first issued row
+                out.append(f"skipped: {exc}")
+    return out
 
 
 # ------------------------------------------------------------------ premarket
@@ -359,6 +387,7 @@ def premarket(args, now, run_id: str) -> int:
                        "issued_at": issued.isoformat(), "prediction_cutoff": issued.isoformat(),
                        "nominal_cutoff": plan["nominal_cutoff"], "close": design["close"], "value": value,
                        "n_train": fitted["n_train"], "alpha": fitted.get("alpha"),
+                       "model_sha256": fitted["params_sha256"], "seed_set": fitted["seed_set"],
                        "train_last_label": design["train_last_label"], "features": design["features"],
                        "us_sessions": {s: (info or {}).get("selected_session") for s, info in (design["us_snapshot"] or {}).items()},
                        "us_first_seen": {s: (info or {}).get("first_seen_at") for s, info in (design["us_snapshot"] or {}).items()},
