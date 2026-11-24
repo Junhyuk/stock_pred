@@ -1,22 +1,19 @@
 {
   "schema_version": "kospi_investor_flow_chart_v1",
   "unit": "억원",
-  "source": "index_forecast.sqlite:investor_flow",
+  "source": "index_forecast.sqlite:investor_flow(naver_investor_trend_unofficial)",
   "source_url": "https://stock.naver.com/market/stock/kr/trend/trader",
-  "snapshot_received_at": "2026-11-23T14:12:32.729660+00:00",
+  "source_endpoint": "https://stock.naver.com/api/domestic/market/trend/daily",
+  "snapshot_received_at": "2026-11-24T12:59:33.724880+00:00",
   "production_weight": 0.0,
-  "window_start": "2025-10-23",
+  "window_start": "2025-10-24",
   "window_label": "1년 1개월",
   "average_sessions": 20,
+  "provisional_dates": [],
+  "revisions": [],
   "markets": {
     "KOSPI": {
       "sessions": [
-        {
-          "date": "2025-10-23",
-          "foreign_eok": -4071.4,
-          "institution_eok": -3971.6,
-          "personal_eok": 7504.7
-        },
         {
           "date": "2025-10-24",
           "foreign_eok": 5755.8,
@@ -1606,17 +1603,17 @@
           "foreign_eok": -2560.2,
           "institution_eok": 1758.4,
           "personal_eok": -3532.4
+        },
+        {
+          "date": "2026-11-24",
+          "foreign_eok": 8129.8,
+          "institution_eok": 8734.0,
+          "personal_eok": -21349.9
         }
       ]
     },
     "KOSDAQ": {
       "sessions": [
-        {
-          "date": "2025-10-23",
-          "foreign_eok": -1174.3,
-          "institution_eok": -134.2,
-          "personal_eok": 1649.9
-        },
         {
           "date": "2025-10-24",
           "foreign_eok": 353.2,
@@ -3206,6 +3203,12 @@
           "foreign_eok": -375.7,
           "institution_eok": 1949.8,
           "personal_eok": -1694.2
+        },
+        {
+          "date": "2026-11-24",
+          "foreign_eok": 1299.3,
+          "institution_eok": 2224.6,
+          "personal_eok": -3366.4
         }
       ]
     }

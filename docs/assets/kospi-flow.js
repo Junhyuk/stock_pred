@@ -224,7 +224,9 @@
           data.production_weight !== 0 || data.average_sessions !== AVERAGE_SESSIONS || !receipt ||
           markets.some(market => !validRows(sessions[market]))) throw new Error();
       content.innerHTML = `<div class="credit-grid">${markets.map(market => chart(market, sessions[market], data.average_sessions)).join('')}</div>`;
-      status.textContent = `자료 수신 ${receipt} KST`;
+      const provisional = Array.isArray(data.provisional_dates) ? data.provisional_dates.filter(validDate) : [];
+      status.textContent = `자료 수신 ${receipt} KST` +
+        (provisional.length ? ` · ${provisional.join(', ')} 잠정치(다음 수집에서 확정값으로 교체)` : '');
     })
     .catch(() => {
       content.innerHTML = '';

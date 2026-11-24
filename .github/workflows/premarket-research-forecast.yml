@@ -84,6 +84,13 @@ jobs:
         timeout-minutes: 2
         continue-on-error: true
         run: python scripts/collect_unofficial_numerics.py --output docs/data/unofficial_numerics.json
+      - name: Collect KOSPI investor flow chart
+        if: steps.operation.outputs.collect == 'true'
+        timeout-minutes: 2
+        continue-on-error: true
+        # The runner's sqlite never holds investor_flow history, so the committed JSON is
+        # the seed: new Naver sessions are merged in and a failure leaves the file untouched.
+        run: python scripts/collect_kospi_investor_flow_chart.py --output docs/data/kospi_investor_flow_chart.json
       - name: Refresh prices
         id: refresh
         if: steps.operation.outputs.collect == 'true'
@@ -189,6 +196,16 @@ jobs:
             --output-dir "$RUNNER_TEMP/market-indicators-validation" \
             --sqlite "$RUNNER_TEMP/market-indicators-private/indicators.sqlite" \
             --seed-dir docs/data
+      - name: Validate KOSPI investor flow chart without publication
+        if: steps.operation.outputs.mode == 'validate'
+        timeout-minutes: 2
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/kospi-flow-validation"
+          python scripts/collect_kospi_investor_flow_chart.py \
+            --seed docs/data/kospi_investor_flow_chart.json \
+            --output "$RUNNER_TEMP/kospi-flow-validation/kospi_investor_flow_chart.json" \
+            --raw-dir "$RUNNER_TEMP/kospi-flow-validation/raw" | tee "$RUNNER_TEMP/kospi-flow-validation/summary.json"
       - name: Validate without publication
         if: steps.operation.outputs.mode == 'validate' && !inputs.indicators_only
         run: |
@@ -204,6 +221,9 @@ jobs:
           path: |
             ${{ runner.temp }}/accuracy-validation.json
             ${{ runner.temp }}/market-indicators-validation/market_indicators_status.json
+            ${{ runner.temp }}/kospi-flow-validation/kospi_investor_flow_chart.json
+            ${{ runner.temp }}/kospi-flow-validation/summary.json
+            ${{ runner.temp }}/kospi-flow-validation/raw/*.json
           retention-days: 14
           if-no-files-found: warn
       - name: Compress derived OOF evidence

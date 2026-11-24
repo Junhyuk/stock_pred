@@ -42,6 +42,10 @@ INDEX_FORECAST_PAGE_FILES = (
     "assets/margin-credit.js",
     "assets/market-indicators.js",
     "assets/unofficial-numerics.js",
+    "assets/cross-assets.js",
+    "assets/model-b.js",
+    "assets/kospi-flow.js",
+    "assets/kospi-flow.css",
     "data/index_forecast.json",
 )
 
