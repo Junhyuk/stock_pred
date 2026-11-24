@@ -1,0 +1,20 @@
+{
+  "id": "model_bc_forward_rule_v1",
+  "registered": "before the first ledger row; the authoritative time is the git commit that adds this file",
+  "ledger": "reports/model_bc_forward/ledger.jsonl (git-ignored, local, append-only, sha256 hash-chained; scripts/run_local_bc_pipeline.py writes it, scripts/score_bc_forward_ledger.py reads it)",
+  "production_weight": 0,
+  "validity": "A row counts only if it is the first row for (variant, market, target), its chain hash verifies, it was issued before 09:00 KST of the target session, and its asof close and target close are stored in index_eod. Missed or blocked days are simply absent; nothing is back-filled.",
+  "ci_level": 0.9833,
+  "ci_note": "Bonferroni over the three forward tests per market (1 - 0.05/3), paired moving-block bootstrap, block 10, 2000 draws, seed 42.",
+  "sample_size_basis": "n needed to detect the 2026 retrospective effect with 80% power at the Bonferroni level, from the 2026 per-event bootstrap SE (reports/model_c_kospi_20261125/eval_run2/scores.json): KOSPI K4 vs coin -0.056 (SE 0.026 at n=80) -> about 184 extreme days; WB7 vs previous close -15.8 points (SE 3.6 at n=218) -> about 116 sessions; WB3 vs up-rate -0.023 (SE 0.010 at n=218) -> about 440 sessions.",
+  "interim_safety": "At 40 matured rows of any test, stop recording that variant if its mean loss difference vs its first comparator is worse by more than 0.02 Brier (direction) or 5 index points (close). This look makes no efficacy claim.",
+  "decision": "At decision_n matured rows: pass only if every listed comparison's CI upper bound is below 0 and the ECE limit holds. A pass still needs independent ML/risk review; the PM cannot approve alone. KOSDAQ tests are monitor-only unless KOSDAQ passed the retrospective gate for that variant.",
+  "tests": [
+    {"variant": "WB7_bclose_pre_ridgecv_f24us", "market": "KOSPI", "metric": "mae_points", "decision_n": 120, "paired_reference": "published_evening_B"},
+    {"variant": "WB3_b_pre_logit_f24us", "market": "KOSPI", "metric": "brier", "decision_n": 440, "ece_bins": 10, "ece_max": 0.05, "paired_reference": "published_evening_B"},
+    {"variant": "K4_c_pre_logit_absw_f24us", "market": "KOSPI", "metric": "brier", "event_threshold": 0.03, "decision_n": 184, "ece_bins": 5, "ece_max": 0.10, "paired_reference": "published_evening_C"},
+    {"variant": "WB7_bclose_pre_ridgecv_f24us", "market": "KOSDAQ", "metric": "mae_points", "decision_n": 120, "paired_reference": "published_evening_B"},
+    {"variant": "WB3_b_pre_logit_f24us", "market": "KOSDAQ", "metric": "brier", "decision_n": 440, "ece_bins": 10, "ece_max": 0.05, "paired_reference": "published_evening_B"},
+    {"variant": "K4_c_pre_logit_absw_f24us", "market": "KOSDAQ", "metric": "brier", "event_threshold": 0.03, "decision_n": 184, "ece_bins": 5, "ece_max": 0.10, "paired_reference": "published_evening_C"}
+  ]
+}

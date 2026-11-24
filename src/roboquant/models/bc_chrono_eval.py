@@ -66,7 +66,7 @@ def summarize(p, y, bins: int) -> dict:
     }
 
 
-def block_bootstrap(difference, *, block: int = 10, draws: int = 2000, seed: int = 42) -> dict:
+def block_bootstrap(difference, *, block: int = 10, draws: int = 2000, seed: int = 42, level: float = 0.95) -> dict:
     """Paired moving-block bootstrap of a mean loss difference.
 
     ``difference`` is candidate loss minus comparator loss, in time order.
@@ -86,7 +86,8 @@ def block_bootstrap(difference, *, block: int = 10, draws: int = 2000, seed: int
         idx = (starts[:, None] + np.arange(size)).ravel()[:n]
         means[i] = d[idx].mean()
     mean = float(d.mean())
-    low, high = np.quantile(means, [0.025, 0.975])
+    tail = (1.0 - float(level)) / 2.0
+    low, high = np.quantile(means, [tail, 1.0 - tail])
     se = float(means.std(ddof=1)) if draws > 1 else float("nan")
     centered = means - mean
     p_one = float((1 + np.sum(centered <= mean)) / (draws + 1))
@@ -101,6 +102,7 @@ def block_bootstrap(difference, *, block: int = 10, draws: int = 2000, seed: int
         "block": size,
         "draws": int(draws),
         "seed": int(seed),
+        "level": float(level),
     }
 
 
