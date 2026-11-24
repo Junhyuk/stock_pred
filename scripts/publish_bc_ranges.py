@@ -9,6 +9,7 @@ import re
 from dataclasses import dataclass, field
 from datetime import date
 from html import escape
+from itertools import pairwise
 from pathlib import Path
 
 LEVEL = 0.80
@@ -123,12 +124,30 @@ def load_rows(path):
             )
 
 
+def surge_context(rows: list[Row], asof: date) -> tuple[float, tuple[int, int, int]] | None:
+    """Return the realized as-of surge and completed same-year outcomes after surges."""
+    today = next((row.actual for row in reversed(rows) if row.target == asof), None)
+    if today is None or event_class(today) != 2:
+        return None
+    outcomes = [0, 0, 0]
+    for prior, following in pairwise(rows):
+        if (
+            following.target.year == asof.year
+            and following.target <= asof
+            and prior.target == following.origin
+            and event_class(prior.actual) == 2
+        ):
+            outcomes[event_class(following.actual)] += 1
+    return today, (outcomes[0], outcomes[1], outcomes[2])
+
+
 def build_card(run_dir, market, forecast):
     asof = date.fromisoformat(forecast["asof_date"])
     target = date.fromisoformat(forecast["target_date"])
     if asof >= target:
         raise ValueError("forecast must target a session after its input close")
-    history, coverage = calibrate(load_rows(run_dir / f"{market.lower()}_predictions.csv"), asof)
+    rows = list(load_rows(run_dir / f"{market.lower()}_predictions.csv"))
+    history, coverage = calibrate(rows, asof)
     if min(len(history.b_errors), len(history.c_errors)) < MINIMUM or not coverage["n"]:
         raise ValueError(f"{market} has insufficient realized forecasts for calibration")
     close = forecast["last_close"]
@@ -146,9 +165,20 @@ def build_card(run_dir, market, forecast):
     c_down, c_neutral, c_up = probabilities
     b_coverage = coverage["b"] / coverage["n"]
     c_coverage = coverage["c"] / coverage["n"]
+    surge = surge_context(rows, asof)
+    realized_move = ""
+    followup = ""
+    if surge is not None:
+        today, (down, neutral, up) = surge
+        realized_move = f" · 전 거래일 대비 <strong>{today:+.2%}</strong> 급등"
+        followup = (
+            f'        <div class="detail-line">{asof.year}년 재구성 · 급등 다음 날 '
+            f'{down + neutral + up}건 · 3% 이상 하락 {down}건 · 중립 {neutral}건 · '
+            f'3% 이상 상승 {up}건</div>\n'
+        )
     return f"""      <article class="forecast-card" aria-label="{MARKETS[market]} 종가 범위">
         <h3>{MARKETS[market]}</h3>
-        <div class="card-dates">기준 종가 <strong>{close:,.2f}</strong></div>
+        <div class="card-dates">기준 종가 <strong>{close:,.2f}</strong>{realized_move}</div>
         <div class="hero-metric"><span>모델 B 종가 범위</span><strong>{points(bounds_b)}</strong></div>
         <div class="detail-line">예상 종가 {forecast["expected_close"]:,.2f} · {asof.year}년 범위 적중 {b_coverage:.1%}</div>
         <div class="prob-row">
@@ -156,9 +186,9 @@ def build_card(run_dir, market, forecast):
           <div class="prob-box down"><span>B 하락 확률</span><strong>{1 - b_up:.1%}</strong></div>
         </div>
         <div class="hero-metric"><span>모델 C 종가 범위</span><strong>{points(bounds_c)}</strong></div>
-        <div class="detail-line">C 3% 이상 하락 {c_down:.1%} · 중립 {c_neutral:.1%} · 3% 이상 상승 {c_up:.1%}</div>
+        <div class="detail-line">다음 거래일 C 예측 · 3% 이상 하락 {c_down:.2%} · 중립 {c_neutral:.2%} · 3% 이상 상승 {c_up:.2%}</div>
         <div class="detail-line">{asof.year}년 범위 적중 {c_coverage:.1%} · 공통 평가 {coverage["n"]}거래일</div>
-      </article>"""
+{followup}      </article>"""
 
 
 def publish(run_dir, page):
