@@ -633,7 +633,8 @@ def test_validate_mode_exercises_the_collector_into_the_temp_dir_and_never_publi
     steps = workflow_steps()
     names = [step["name"] for step in steps]
     step = steps[names.index("Validate KOSPI investor flow chart without publication")]
-    assert step["if"] == "steps.operation.outputs.mode == 'validate'"
+    # Validate-only, and still runs when an unrelated earlier contract test failed.
+    assert step["if"] == "steps.operation.outputs.mode == 'validate' && !cancelled()"
     assert "continue-on-error" not in step
     assert '--output "$RUNNER_TEMP/kospi-flow-validation/' in step["run"]
     assert "--seed docs/data/kospi_investor_flow_chart.json" in step["run"]

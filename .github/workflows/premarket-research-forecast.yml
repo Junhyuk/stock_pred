@@ -197,7 +197,8 @@ jobs:
             --sqlite "$RUNNER_TEMP/market-indicators-private/indicators.sqlite" \
             --seed-dir docs/data
       - name: Validate KOSPI investor flow chart without publication
-        if: steps.operation.outputs.mode == 'validate'
+        # Independent of the contract tests above: a stale unrelated test must not hide this check.
+        if: steps.operation.outputs.mode == 'validate' && !cancelled()
         timeout-minutes: 2
         run: |
           set -euo pipefail
