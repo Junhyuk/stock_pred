@@ -122,6 +122,24 @@ curl 'http://localhost:8000/api/recommendations/top20-price-forecast?horizons=3M
 
 Top20 예상가격 API는 최신 추천 Top20에 대해 `3M/6M/9M/1Y` 예상가와 상단/하단 범위를 반환합니다. 이 값은 모델 기반 정보제공용 전망이며 목표가나 수익 보장이 아닙니다.
 
+### 모델 B·C 로컬 실행과 게시
+
+모델 B·C의 데이터 준비, GPU 학습 및 추론은 로컬 PC에서 실행합니다.
+학습 DB와 체크포인트는 로컬에 저장합니다. 모델 A의 장후 자동화와 별도로,
+GitHub Pages는 로컬에서 계산한 B·C의 정적 결과를 표시합니다.
+
+로컬 GPU 실행 후 범위 카드는 다음 명령으로 갱신합니다.
+`LOCAL_BC_RUN_DIR`은 완료된 `report.json`과 시장별 예측 CSV가 들어 있는 실행 폴더입니다.
+
+```bash
+python scripts/publish_bc_ranges.py "$LOCAL_BC_RUN_DIR"
+git add -- docs/reliable-index-forecast.html
+```
+
+수동 예측 카드도 갱신했다면 해당 결과 파일인 `docs/data/model_b_forecast.json`,
+`docs/data/model_c_forecast.json`을 함께 스테이징합니다. 공개 브랜치로 커밋을 푸시하면
+Pages 워크플로가 정적 사이트를 배포합니다.
+
 ### Recent Prediction Price Gap
 
 최근 조회 창의 예측수익률과 실제 가격 흐름의 괴리를 확인합니다. 확정 성능은 horizon별

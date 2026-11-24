@@ -207,7 +207,7 @@ def publish(run_dir, page):
     section = f"""{START}
   <section id="model-bc-range" class="notice" aria-labelledby="model-bc-range-title" data-target-date="{escape(target)}">
     <h2 id="model-bc-range-title">모델 B·C 종가 범위 (연구용)</h2>
-    <p>대상 거래일 <strong>{escape(target)}</strong> · 기준 종가일 {escape(asof)} KST · 가격 기반 재학습 · 명목 80% 범위</p>
+    <p>대상 거래일 <strong>{escape(target)}</strong> · 기준 종가일 {escape(asof)} KST · 로컬 GPU · 가격 기반 재학습 · 명목 80% 범위</p>
     <div class="forecast-grid bc-range-grid">
 {cards}
     </div>

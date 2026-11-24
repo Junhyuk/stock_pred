@@ -44,9 +44,14 @@ INDEX_FORECAST_PAGE_FILES = (
     "assets/unofficial-numerics.js",
     "assets/cross-assets.js",
     "assets/model-b.js",
+    "assets/model-c.js",
     "assets/kospi-flow.js",
     "assets/kospi-flow.css",
     "data/index_forecast.json",
+    # Copy the local GPU results during static export; the runner allowlist is separate.
+    "data/model_b_forecast.json",
+    "data/model_b_accuracy.json",
+    "data/model_c_forecast.json",
 )
 
 

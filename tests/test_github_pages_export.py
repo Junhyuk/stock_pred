@@ -43,6 +43,24 @@ sys.modules[DOCS_PUBLISH_SPEC.name] = docs_publisher
 DOCS_PUBLISH_SPEC.loader.exec_module(docs_publisher)
 
 
+def test_manual_bc_publication_survives_export_and_stays_out_of_runner_publish(tmp_path):
+    docs = ROOT / "docs"
+    files = (
+        "assets/model-b.js",
+        "assets/model-c.js",
+        "data/model_b_forecast.json",
+        "data/model_b_accuracy.json",
+        "data/model_c_forecast.json",
+    )
+    preserved = exporter._preserve_index_forecast_pages(tmp_path / "site")
+    for name in files:
+        assert preserved[name] == (docs / name).read_bytes()
+
+    runner_paths = set(exporter.public_payload_paths(docs / "data"))
+    assert runner_paths.isdisjoint(docs / name for name in files)
+
+
+
 def test_export_github_pages_site_writes_static_json_and_relative_assets(tmp_path) -> None:
     db_path = tmp_path / "site.duckdb"
     conn = connect_database(db_path)
