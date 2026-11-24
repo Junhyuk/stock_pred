@@ -1,9 +1,7 @@
 import json
 import shutil
 import sqlite3
-from datetime import UTC, datetime
 from pathlib import Path
-from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -13,6 +11,9 @@ from scripts import collect_market_indicators as tracker
 
 ROOT = Path(__file__).resolve().parents[1]
 RECEIVED = "2026-11-19T12:45:00+00:00"
+# Newer than every row of the pinned seed (observed 2026-11-23, received 2026-11-24T09:12Z) and
+# already in the past for any real clock, so no wall clock is involved.
+NEWER_THAN_SEED = {"day": "2026-11-24", "received": "2026-11-24T10:00:00+00:00"}
 SEED_FIXTURE = ROOT / "tests/fixtures/market_indicators_seed"
 
 
@@ -61,11 +62,6 @@ def test_credit_failure_does_not_discard_successful_yield_collection(monkeypatch
 
 def test_partial_run_keeps_market_chart_and_appends_keyless_source(monkeypatch, tmp_path, seed):
     output, db = tmp_path / "public", tmp_path / "private.sqlite"
-    # The injected rows must be the newest ones whatever the seed holds: today's observation date
-    # with a receipt time that is not in the future.
-    now = datetime.now(UTC)
-    fresh = {"day": now.astimezone(ZoneInfo("Asia/Seoul")).date().isoformat(),
-             "received": now.isoformat()}
     monkeypatch.setattr(
         tracker,
         "collect_credit_balances",
@@ -75,7 +71,7 @@ def test_partial_run_keeps_market_chart_and_appends_keyless_source(monkeypatch, 
                 26_266_366_000_000,
                 "kofia_freesis_margin_credit",
                 unit="KRW",
-                **fresh,
+                **NEWER_THAN_SEED,
             )
         ],
     )
@@ -83,7 +79,7 @@ def test_partial_run_keeps_market_chart_and_appends_keyless_source(monkeypatch, 
         tracker,
         "collect_us_yields",
         lambda **_: [
-            observation("US_YIELD_1Y", 4.62, "us_treasury_daily_par_yield_curve", **fresh)
+            observation("US_YIELD_1Y", 4.62, "us_treasury_daily_par_yield_curve", **NEWER_THAN_SEED)
         ],
     )
     report = tracker.collect_indicators(

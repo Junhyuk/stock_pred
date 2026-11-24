@@ -33,8 +33,6 @@ ALLOWED_LIVE_PATHS = {
 }
 # (test file, call) -> why a bare wall-clock call cannot go stale.
 ALLOWED_CLOCK_CALLS = {
-    ("test_market_indicators.py", "datetime.now"):
-        "injected observations must be newer than any seed, so they are stamped with the current time",
     ("test_accuracy_calendar_audit.py", "datetime.now"):
         "measures a delayed fetch against the run start; only relative order is asserted",
 }
