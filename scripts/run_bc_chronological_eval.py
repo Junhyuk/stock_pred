@@ -73,7 +73,7 @@ def premarket_cutoffs(conn, market: str, dates: list[str], latest: str | None = 
     sessions = pd.read_sql_query(
         "SELECT session_date FROM index_eod WHERE index_code = ? ORDER BY session_date", conn, params=[market]
     )["session_date"].tolist()
-    nxt = dict(zip(sessions[:-1], sessions[1:]))
+    nxt = dict(zip(sessions[:-1], sessions[1:], strict=True))
     if latest is not None and latest not in nxt:
         nxt[latest] = learner.next_session(latest)
     out = {}
@@ -405,7 +405,7 @@ def main() -> int:
             manifest[f"{market}_ridge_alphas"] = linear.pop("_ridge_alphas")
             manifest[f"{market}_features"] = data["features"] + US6
             manifest[f"{market}_us_report"] = {k: data["us_report"].get(k) for k in ("status", "eligible_rows", "reporting_cutoff", "limitations")}
-            manifest[f"{market}_premarket_invalid_windows"] = [d for d, ok in zip(data["dates"], data["valid_us"]) if not ok]
+            manifest[f"{market}_premarket_invalid_windows"] = [d for d, ok in zip(data["dates"], data["valid_us"], strict=True) if not ok]
             arrays = {**preds, **linear}
             np.savez_compressed(out_dir / f"{market.lower()}_predictions.npz", dates=np.array(data["dates"]),
                                 y=data["y"], r=data["r"], close=data["close"], valid_us=data["valid_us"],
@@ -508,7 +508,7 @@ def main() -> int:
                     pr = preds[f"{key}_s{s}"]
                     ok = mask & np.isfinite(pr)
                     vals.append(float(ev.brier(pr[ok], y[ok]).mean()))
-                per[slice_name] = {"per_seed_brier": dict(zip(map(str, SEEDS), vals)), "mean_single": float(np.mean(vals))}
+                per[slice_name] = {"per_seed_brier": dict(zip(map(str, SEEDS), vals, strict=True)), "mean_single": float(np.mean(vals))}
             market_res["seed_spread"][key] = per
         results["markets"][market] = market_res
     (out_dir / "scores.json").write_text(json.dumps(results, ensure_ascii=False, indent=2) + "\n")
