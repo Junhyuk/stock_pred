@@ -1,8 +1,11 @@
 import json
+import shutil
 import sqlite3
 from datetime import UTC, datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
+
+import pytest
 
 from roboquant.index_forecast.automation_state import public_payload_paths
 from roboquant.index_forecast.official_credit import CreditSourceError
@@ -10,6 +13,15 @@ from scripts import collect_market_indicators as tracker
 
 ROOT = Path(__file__).resolve().parents[1]
 RECEIVED = "2026-11-19T12:45:00+00:00"
+SEED_FIXTURE = ROOT / "tests/fixtures/market_indicators_seed"
+
+
+@pytest.fixture
+def seed(tmp_path):
+    # Hermetic: a pinned snapshot of the public seed. docs/data advances with every daily run,
+    # so reading it live made the expected latest rows depend on the day the test ran.
+    shutil.copytree(SEED_FIXTURE, tmp_path / "seed")
+    return tmp_path / "seed"
 
 
 def observation(
@@ -47,10 +59,10 @@ def test_credit_failure_does_not_discard_successful_yield_collection(monkeypatch
     assert report["observations"][0]["value"] == 4.84
 
 
-def test_partial_run_keeps_market_chart_and_appends_keyless_source(monkeypatch, tmp_path):
-    seed, output, db = ROOT / "docs/data", tmp_path / "public", tmp_path / "private.sqlite"
-    # The seed is the live public data and advances every day, so the injected rows must be
-    # the newest ones: today's observation date with a receipt time that is not in the future.
+def test_partial_run_keeps_market_chart_and_appends_keyless_source(monkeypatch, tmp_path, seed):
+    output, db = tmp_path / "public", tmp_path / "private.sqlite"
+    # The injected rows must be the newest ones whatever the seed holds: today's observation date
+    # with a receipt time that is not in the future.
     now = datetime.now(UTC)
     fresh = {"day": now.astimezone(ZoneInfo("Asia/Seoul")).date().isoformat(),
              "received": now.isoformat()}
@@ -99,8 +111,10 @@ def test_partial_run_keeps_market_chart_and_appends_keyless_source(monkeypatch, 
     assert db.read_bytes() == before
 
 
-def test_validated_market_split_extends_graph_and_source_failure_is_redacted(monkeypatch, tmp_path):
-    seed, output, db = ROOT / "docs/data", tmp_path / "public", tmp_path / "private.sqlite"
+def test_validated_market_split_extends_graph_and_source_failure_is_redacted(
+    monkeypatch, tmp_path, seed
+):
+    output, db = tmp_path / "public", tmp_path / "private.sqlite"
     monkeypatch.setattr(
         tracker,
         "collect_credit_balances",
