@@ -165,6 +165,23 @@ def japan_yields(start: str | None = None) -> dict[str, list[tuple[str, float]]]
     return output
 
 
+def ecos_block(payload: dict) -> dict | None:
+    """Return the StatisticSearch block, None for an empty range, or raise with ECOS's own code.
+
+    ECOS answers an empty range (INFO-200) or any refusal (for example a rate limit or a
+    key problem) with a RESULT object and no StatisticSearch block. Indexing the block
+    blindly turned both cases into an unexplained KeyError.
+    """
+    block = payload.get("StatisticSearch")
+    if block is not None:
+        return block
+    result = payload.get("RESULT") or {}
+    if result.get("CODE") == "INFO-200":
+        return None
+    raise RuntimeError(f"ECOS returned {result.get('CODE') or 'no StatisticSearch block'}: "
+                       f"{str(result.get('MESSAGE') or '')[:120]}")
+
+
 def korea_yields(start: str | None = None, end: str | None = None) -> dict[str, list[tuple[str, float]]]:
     start = start or "20210104"
     end = end or datetime.now(UTC).strftime("%Y%m%d")
@@ -175,7 +192,9 @@ def korea_yields(start: str | None = None, end: str | None = None) -> dict[str, 
         while total is None or offset <= total:
             url = ("https://ecos.bok.or.kr/api/StatisticSearch/sample/json/kr/"
                    f"{offset}/{offset + 9}/817Y002/D/{start}/{end}/{ecos}")
-            block = json.loads(fetch(url))["StatisticSearch"]
+            block = ecos_block(json.loads(fetch(url)))
+            if block is None:
+                break
             total = int(block["list_total_count"])
             batch = block["row"]
             batch = batch if isinstance(batch, list) else [batch]
@@ -312,19 +331,31 @@ def collect(sqlite_path: Path) -> dict:
     ingested_at = datetime.now(UTC).isoformat()
     today = _kst_today()
     conn = sqlite3.connect(sqlite_path)
+    sources = (
+        ("index_bars", lambda: insert_index_bars(conn, ingested_at, today)),
+        ("yahoo_levels", lambda: insert_macro(conn, _yahoo_series(conn, today), "yahoo_chart_unofficial", ingested_at)),
+        ("us_yields", lambda: insert_macro(conn, _treasury_series(conn, today), "us_treasury_daily_par_yield_curve", ingested_at)),
+        ("jp_yields", lambda: insert_macro(conn, _japan_series(conn, today), "mof_jgb_historical", ingested_at)),
+        ("kr_yields", lambda: insert_macro(conn, _korea_series(conn, today), "bok_ecos_817Y002_sample", ingested_at)),
+    )
+    counts: dict = {}
+    errors: dict[str, str] = {}
     try:
         _ensure_tables(conn)
-        counts = {
-            "index_bars": insert_index_bars(conn, ingested_at, today),
-            "yahoo_levels": insert_macro(conn, _yahoo_series(conn, today), "yahoo_chart_unofficial", ingested_at),
-            "us_yields": insert_macro(conn, _treasury_series(conn, today), "us_treasury_daily_par_yield_curve", ingested_at),
-            "jp_yields": insert_macro(conn, _japan_series(conn, today), "mof_jgb_historical", ingested_at),
-            "kr_yields": insert_macro(conn, _korea_series(conn, today), "bok_ecos_817Y002_sample", ingested_at),
-            "asof": today,
-        }
         conn.commit()
+        for name, run in sources:
+            # One failing source must not discard what the others already fetched.
+            try:
+                counts[name] = run()
+                conn.commit()
+            except Exception as exc:  # noqa: BLE001 - recorded per source and reported by main()
+                conn.rollback()
+                counts[name] = None
+                errors[name] = f"{type(exc).__name__}: {str(exc)[:200]}"
     finally:
         conn.close()
+    counts["asof"] = today
+    counts["errors"] = errors
     counts["published_at"] = None
     counts["production_weight"] = 0.0
     return counts
@@ -334,8 +365,12 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--sqlite", default="data/processed/index_forecast.sqlite")
     args = parser.parse_args()
-    print(json.dumps(collect(Path(args.sqlite)), ensure_ascii=False))
-    return 0
+    result = collect(Path(args.sqlite))
+    for name, message in result["errors"].items():
+        # A workflow annotation, so a failed source is visible on the run page.
+        print(f"::warning title=collect_applied_model_inputs::{name} failed: {message}")
+    print(json.dumps(result, ensure_ascii=False))
+    return 1 if result["errors"] else 0
 
 
 if __name__ == "__main__":

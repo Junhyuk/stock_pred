@@ -50,3 +50,42 @@ def test_naver_index_parser_rejects_a_broken_range(monkeypatch):
     bars = MODULE.naver_index_bars("KOSPI")
     assert bars["2026-11-23"]["close"] == 4708.54
     assert "2026-11-20" not in bars
+
+
+def test_ecos_block_separates_empty_range_from_refusal():
+    block = {"list_total_count": 1, "row": []}
+    assert MODULE.ecos_block({"StatisticSearch": block}) is block
+    assert MODULE.ecos_block({"RESULT": {"CODE": "INFO-200", "MESSAGE": "no data"}}) is None
+    try:
+        MODULE.ecos_block({"RESULT": {"CODE": "ERROR-301", "MESSAGE": "bad count"}})
+    except RuntimeError as exc:
+        assert "ERROR-301" in str(exc)
+    else:
+        raise AssertionError("a refusal must raise with the ECOS code, not KeyError")
+
+
+def test_one_failing_source_keeps_the_others_and_is_reported(monkeypatch, tmp_path, capsys):
+    import sqlite3
+    import sys
+
+    db = tmp_path / "inputs.sqlite"
+    monkeypatch.setattr(MODULE, "insert_index_bars", lambda conn, ingested_at, today: 0)
+    monkeypatch.setattr(MODULE, "_yahoo_series", lambda conn, today: {"YAHOO_DXY": [("2026-11-20", 100.5)]})
+    monkeypatch.setattr(MODULE, "_treasury_series", lambda conn, today: {})
+    monkeypatch.setattr(MODULE, "_japan_series", lambda conn, today: {})
+
+    def refused(conn, today):
+        raise RuntimeError("ECOS returned ERROR-301: refused")
+
+    monkeypatch.setattr(MODULE, "_korea_series", refused)
+    result = MODULE.collect(db)
+    assert result["yahoo_levels"] == 1 and result["kr_yields"] is None
+    assert result["errors"] == {"kr_yields": "RuntimeError: ECOS returned ERROR-301: refused"}
+    stored = sqlite3.connect(db).execute("SELECT series_code, value FROM macro_series").fetchall()
+    assert stored == [("YAHOO_DXY", 100.5)]  # the earlier source was committed, not rolled back
+
+    monkeypatch.setattr(sys, "argv", ["collect_applied_model_inputs.py", "--sqlite", str(db)])
+    assert MODULE.main() == 1
+    lines = capsys.readouterr().out.strip().splitlines()
+    assert lines[0].startswith("::warning title=collect_applied_model_inputs::kr_yields failed")
+    assert json.loads(lines[-1])["errors"]["kr_yields"].startswith("RuntimeError")
