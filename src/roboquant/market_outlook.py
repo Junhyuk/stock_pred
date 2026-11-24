@@ -505,11 +505,11 @@ def build_market_outlook_dataset(
     if benchmark.empty:
         return _empty_dataset_frame()
 
-    components, messages = _component_status(conn)
+    components, messages = _component_status(conn, now=now)
     top50_breadth = _top50_breadth(conn)
     prediction_breadth = _prediction_breadth(conn, config)
     koru = _koru_features(conn)
-    regime = _regime_features(conn, config=config)
+    regime = _regime_features(conn, config=config, now=now)
     telegram = _telegram_features(conn)
     local_llm_news = _local_llm_news_features(conn) if include_local_llm_features else pd.DataFrame()
     holidays = market_outlook_holidays(config)
@@ -693,7 +693,7 @@ def get_market_outlook(
             market=market,
             limit=limit,
             target_date=context["target_date"],
-            forecast_status=["confirmed", "domestic_index_only"],
+            forecast_status="confirmed",
         )
     else:
         frame = _stored_market_outlook(conn, date=date, horizon=horizon, market=market, limit=limit)
@@ -815,6 +815,7 @@ def market_outlook_input_status(
     config: dict[str, Any] | None = None,
     calendar_source: str | None = None,
     calendar_messages: list[str] | None = None,
+    now: datetime | None = None,
 ) -> dict[str, Any]:
     """Validate the domestic inputs required for a confirmed next-session row."""
     asof = _to_date(asof_date)
@@ -840,7 +841,7 @@ def market_outlook_input_status(
         messages.append(
             f"{required_asof.isoformat()} Top50 가격 완결성 부족: {universe_price_count}/{universe_total}"
         )
-    global_cutoff = _global_cutoff_for_target(conn, target, config=config)
+    global_cutoff = _global_cutoff_for_target(conn, target, config=config, now=now)
     status = "confirmed" if asof_ready and benchmark_ready and top50_ready else "blocked_stale_input"
     return {
         "forecast_status": status,
@@ -893,6 +894,7 @@ def _global_cutoff_for_target(
     target_date: date,
     *,
     config: dict[str, Any] | None = None,
+    now: datetime | None = None,
 ) -> datetime | None:
     if not table_exists(conn, "market_regime_daily"):
         return None
@@ -901,16 +903,35 @@ def _global_cutoff_for_target(
         hour, minute = [int(part) for part in cutoff_time.split(":", maxsplit=1)]
     except (TypeError, ValueError):
         hour, minute = 8, 0
-    allowed_cutoff = _regime_cutoff_utc(target_date, hour=hour, minute=minute)
-    row = conn.execute(
+    # New regime rows are stored as a timezone-naive KST wall-clock timestamp
+    # for dashboard compatibility.  Earlier rows used naive UTC.  Keep both
+    # formats readable without treating a post-08:00 KST rebuild as eligible.
+    allowed_kst = datetime.combine(target_date, time(hour, minute))
+    allowed_utc = _regime_cutoff_utc(target_date, hour=hour, minute=minute)
+    rows = conn.execute(
         """
-        SELECT MAX(prediction_cutoff)
+        SELECT prediction_cutoff, created_at
         FROM market_regime_daily
-        WHERE prediction_date = ? AND prediction_cutoff <= ?
+        WHERE prediction_date = ?
         """,
-        [target_date, allowed_cutoff],
-    ).fetchone()
-    return None if not row else row[0]
+        [target_date],
+    ).fetchall()
+    eligible: list[datetime] = []
+    for cutoff, created_at in rows:
+        if not isinstance(cutoff, datetime):
+            continue
+        if now is not None:
+            if isinstance(created_at, datetime) and created_at > _to_utc_naive(now):
+                continue
+            cutoff_utc = (cutoff.replace(tzinfo=KST).astimezone(UTC).replace(tzinfo=None)
+                          if cutoff.date() == target_date else cutoff)
+            if cutoff_utc > _to_utc_naive(now):
+                continue
+        if cutoff.date() == target_date and cutoff <= allowed_kst:
+            eligible.append(cutoff)
+        elif cutoff.date() < target_date and allowed_utc is not None and cutoff <= allowed_utc:
+            eligible.append(cutoff)
+    return max(eligible) if eligible else None
 
 
 def _forecast_context_for_row(
@@ -1805,7 +1826,8 @@ def _koru_features(conn) -> pd.DataFrame:
     return frame
 
 
-def _regime_features(conn, config: dict[str, Any] | None = None) -> pd.DataFrame:
+def _regime_features(conn, config: dict[str, Any] | None = None, *,
+                     now: datetime | None = None) -> pd.DataFrame:
     if not table_exists(conn, "market_regime_daily"):
         return pd.DataFrame()
     frame = conn.execute(
@@ -1831,17 +1853,34 @@ def _regime_features(conn, config: dict[str, Any] | None = None) -> pd.DataFrame
         hour, minute = [int(part) for part in cutoff_time.split(":", maxsplit=1)]
     except (TypeError, ValueError):
         hour, minute = 8, 0
-    frame["allowed_cutoff"] = frame["date"].map(
+    # Current regime writers store a timezone-naive KST wall-clock timestamp;
+    # older rows used naive UTC.  Interpret the two formats from their date so
+    # the 08:00 KST row is usable while a later rebuild remains excluded.
+    frame["allowed_cutoff_kst"] = frame["date"].map(
+        lambda day: datetime.combine(day, time(hour, minute)) if day else None
+    )
+    frame["allowed_cutoff_utc"] = frame["date"].map(
         lambda day: _regime_cutoff_utc(day, hour=hour, minute=minute)
     )
-    # Stored timestamps are timezone-naive UTC.  A later same-day rebuild is
-    # not eligible for a historical 08:00 KST forecast.
-    frame = frame[frame["prediction_cutoff"].notna() & (frame["prediction_cutoff"] <= frame["allowed_cutoff"])]
+    same_day_kst = frame["prediction_cutoff"].dt.date.eq(frame["date"])
+    eligible_kst = same_day_kst & (frame["prediction_cutoff"] <= frame["allowed_cutoff_kst"])
+    eligible_utc = (~same_day_kst) & (frame["prediction_cutoff"] <= frame["allowed_cutoff_utc"])
+    if now is not None:
+        # Target-session timestamps are bounded by the actual run, even when
+        # this is a Friday preliminary forecast for Monday's session.
+        actual_utc = _to_utc_naive(now)
+        actual_kst = pd.Timestamp(now).tz_convert(KST).tz_localize(None) if pd.Timestamp(now).tzinfo else pd.Timestamp(now)
+        eligible_kst &= frame["prediction_cutoff"] <= actual_kst
+        eligible_utc &= frame["prediction_cutoff"] <= actual_utc
+        created = pd.to_datetime(frame["created_at"], errors="coerce")
+        eligible_kst &= created.isna() | (created <= actual_utc)
+        eligible_utc &= created.isna() | (created <= actual_utc)
+    frame = frame[frame["prediction_cutoff"].notna() & (eligible_kst | eligible_utc)]
     if frame.empty:
         return pd.DataFrame()
     frame = frame.sort_values(["date", "prediction_cutoff", "created_at"], na_position="first")
     return frame.drop_duplicates("date", keep="last").drop(
-        columns=["prediction_cutoff", "created_at", "allowed_cutoff"]
+        columns=["prediction_cutoff", "created_at", "allowed_cutoff_kst", "allowed_cutoff_utc"]
     )
 
 
@@ -1914,7 +1953,7 @@ def _news_features(
         return pd.DataFrame()
     frame = conn.execute(
         """
-        SELECT pub_date, source, title, summary, sentiment_score
+        SELECT pub_date, collected_at, source, title, summary, sentiment_score
         FROM market_news_feed
         WHERE pub_date IS NOT NULL
         ORDER BY pub_date
@@ -1923,6 +1962,7 @@ def _news_features(
     if frame.empty or not asof_dates:
         return pd.DataFrame()
     frame["pub_date"] = pd.to_datetime(frame["pub_date"], errors="coerce")
+    frame["collected_at"] = pd.to_datetime(frame["collected_at"], errors="coerce")
     frame["source"] = frame["source"].fillna("").astype(str)
     frame["text"] = (
         frame.get("title", pd.Series("", index=frame.index)).fillna("").astype(str)
@@ -1941,14 +1981,20 @@ def _news_features(
             use_realtime_cutoff=use_realtime_cutoff,
         )
         start = cutoff - window
-        subset = frame[(frame["pub_date"] > start) & (frame["pub_date"] <= cutoff)]
+        available = frame["collected_at"].notna() & (frame["collected_at"] <= cutoff)
+        subset = frame[(frame["pub_date"] > start) & (frame["pub_date"] <= cutoff) & available]
         x_subset_24h = subset[subset["source"].str.lower().eq(X_MARKET_NEWS_SOURCE)].copy()
         x_start_3d = cutoff - timedelta(days=3)
         x_subset_3d = frame[
             (frame["pub_date"] > x_start_3d)
             & (frame["pub_date"] <= cutoff)
+            & available
             & frame["source"].str.lower().eq(X_MARKET_NEWS_SOURCE)
         ].copy()
+        # A row published after this cutoff must not turn a missing source into
+        # an observed zero, including its feature-provenance missing flags.
+        if subset.empty and x_subset_3d.empty:
+            continue
         x_negative = _negative_x_news_mask(x_subset_3d)
         x_negative_count = int(x_negative.sum()) if not x_subset_3d.empty else 0
         rows.append(
@@ -2086,7 +2132,7 @@ def _has_negative_business_keyword(text: str) -> bool:
     return any(str(keyword).lower() in lowered for keyword in DEFAULT_NEGATIVE_BUSINESS_KEYWORDS)
 
 
-def _component_status(conn) -> tuple[dict[str, str], list[str]]:
+def _component_status(conn, *, now: datetime | None = None) -> tuple[dict[str, str], list[str]]:
     checks = {
         "benchmark": ("benchmark_daily", "지수 가격"),
         "top50_breadth": ("features_daily", "Top50 breadth"),
@@ -2102,7 +2148,15 @@ def _component_status(conn) -> tuple[dict[str, str], list[str]]:
         ready = False
         if table_exists(conn, table):
             try:
-                ready = bool(conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0])
+                if now is not None and key == "regime":
+                    ready = not _regime_features(conn, now=now).empty
+                elif now is not None and key == "news":
+                    ready = bool(conn.execute(
+                        "SELECT COUNT(*) FROM market_news_feed WHERE pub_date <= ? AND collected_at <= ?",
+                        [_to_utc_naive(now), _to_utc_naive(now)],
+                    ).fetchone()[0])
+                else:
+                    ready = bool(conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0])
             except Exception:
                 ready = False
         components[key] = "ready" if ready else "missing"

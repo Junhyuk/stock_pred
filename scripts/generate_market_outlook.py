@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import argparse
 import sys
-from datetime import datetime, time
+from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -39,6 +39,7 @@ def main() -> None:
     ensure_project_dirs(config)
     model_path = Path(args.model_path) if args.model_path else default_market_outlook_model_path(config)
     conn = connect_database(get_database_path(config))
+    prediction_now = datetime.now(KST)
     try:
         outcomes = update_market_outlook_outcomes(conn)
         asof = resolve_market_outlook_asof(conn, args.date)
@@ -46,6 +47,7 @@ def main() -> None:
             asof,
             config,
             target_date=None if str(args.target_date).strip().lower() == "latest" else args.target_date,
+            now=prediction_now,
         )
         context = market_outlook_input_status(
             conn,
@@ -54,6 +56,7 @@ def main() -> None:
             config=config,
             calendar_source=target["calendar_source"],
             calendar_messages=target["calendar_messages"],
+            now=prediction_now,
         )
         if context["forecast_status"] != "confirmed":
             print(
@@ -66,7 +69,7 @@ def main() -> None:
             config=config,
             asof_date=args.date,
             model_path=model_path,
-            now=datetime.combine(target["target_date"], time(8, 0), tzinfo=KST),
+            now=prediction_now,
             forecast_context=context,
         )
     finally:

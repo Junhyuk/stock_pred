@@ -95,6 +95,20 @@ def test_latest_market_outlook_hides_stale_target_until_confirmed_inputs_exist(t
     assert {item["market"] for item in confirmed["items"]} == {"KOSPI", "KOSDAQ"}
 
 
+def test_market_outlook_does_not_promote_domestic_only_rows_when_inputs_are_current(tmp_path) -> None:
+    conn = connect_database(tmp_path / "outlook_domestic_only_not_promoted.duckdb")
+    _seed_market_outlook_input(conn, date(2026, 7, 16), symbols=50)
+    _seed_market_outlook_input(conn, date(2026, 7, 17), symbols=50)
+    _seed_forecast_row(conn, date(2026, 7, 17), date(2026, 7, 20), "domestic_index_only")
+    sunday = datetime(2026, 7, 19, 12, tzinfo=UTC)
+    config = {"market_outlook": {"require_confirmed_inputs": True, "use_pykrx_calendar": False}}
+
+    payload = get_market_outlook(conn, config=config, now=sunday)
+
+    assert payload["forecast_status"] == "not_collected"
+    assert payload["items"] == []
+
+
 def test_market_outlook_dataset_uses_asof_or_earlier_features(tmp_path) -> None:
     conn = connect_database(tmp_path / "outlook_dataset.duckdb")
     _seed_benchmark(conn)
@@ -158,6 +172,30 @@ def test_market_outlook_news_features_use_trailing_window_without_lookahead(tmp_
 
     assert set(latest["news_count_24h"]) == {1}
     assert set(latest["news_sentiment_score"].round(2)) == {0.7}
+
+
+def test_friday_forecast_ignores_future_monday_news_and_regime(tmp_path) -> None:
+    conn = connect_database(tmp_path / "friday_future_data.duckdb")
+    _seed_benchmark(conn)
+    conn.execute("UPDATE benchmark_daily SET date = date + INTERVAL '3 days'")
+    friday = datetime(2026, 6, 26, 14, tzinfo=UTC)
+    kwargs = {"asof_date": "2026-06-26", "now": friday,
+              "config": {"market_outlook": {"use_pykrx_calendar": False}},
+              "include_feature_provenance": True}
+    before = build_market_outlook_dataset(conn, **kwargs)
+    conn.execute("""
+        INSERT INTO market_regime_daily (
+          prediction_date, prediction_cutoff, global_risk_score, regime,
+          recommended_cash_ratio, feature_version, created_at
+        ) VALUES ('2026-06-29', '2026-06-29 08:00:00', 999, 'future', .99, 'future', '2026-06-28 23:00:00')
+    """)
+    conn.execute("""
+        INSERT INTO market_news_feed (article_id, source, title, summary, pub_date, sentiment_score)
+        VALUES ('monday-future', 'fixture', 'future Monday news', 'future', '2026-06-29 00:00:00', 0)
+    """)
+    after = build_market_outlook_dataset(conn, **kwargs)
+    pd.testing.assert_frame_equal(before.sort_index(axis=1), after.sort_index(axis=1))
+    conn.close()
 
 
 def test_market_outlook_uses_x_news_features_and_impact_ablation(tmp_path) -> None:
@@ -402,6 +440,61 @@ def test_market_regime_joins_target_session_and_excludes_late_cutoff_rows(tmp_pa
 
     assert row["__raw_global_risk_score"] == 11.0
     assert row["global_risk_score"] == 11.0
+    conn.close()
+
+
+def test_market_regime_joins_kst_stored_cutoff_row(tmp_path) -> None:
+    conn = connect_database(tmp_path / "outlook_regime_kst_cutoff.duckdb")
+    _seed_benchmark(conn)
+    conn.execute(
+        """
+        INSERT INTO market_regime_daily (
+          prediction_date, prediction_cutoff, us_equity_score, semiconductor_score,
+          asia_score, volatility_score, rate_score, fx_score, futures_score,
+          commodity_score, global_risk_score, regime, recommended_cash_ratio,
+          feature_version, created_at
+        ) VALUES (?, ?, 0, 0, 0, 0, 0, 0, 0, 0, 10, 'risk_on', 0.05, 'kst', ?)
+        """,
+        [date(2026, 6, 24), datetime(2026, 6, 24, 8), datetime(2026, 6, 23, 23)],
+    )
+
+    frame = build_market_outlook_dataset(
+        conn,
+        config={"regime": {"cutoff_time_kst": "08:00"}},
+        asof_date="2026-06-23",
+        include_feature_provenance=True,
+    )
+    row = frame[
+        (frame["market"] == "KOSPI")
+        & (frame["horizon"] == "TODAY")
+        & (frame["asof_date"] == date(2026, 6, 23))
+    ].iloc[0]
+
+    assert row["__raw_global_risk_score"] == 10.0
+    assert row["global_risk_score"] == 10.0
+    conn.close()
+
+
+def test_market_outlook_context_reads_kst_regime_cutoff(tmp_path) -> None:
+    conn = connect_database(tmp_path / "outlook_kst_regime_cutoff.duckdb")
+    _seed_market_outlook_input(conn, date(2026, 7, 17), symbols=50)
+    conn.execute(
+        """
+        INSERT INTO market_regime_daily (
+          prediction_date, prediction_cutoff, global_risk_score, regime,
+          recommended_cash_ratio, feature_version, created_at
+        ) VALUES (?, ?, 0, 'risk_on', 0.05, 'fixture', ?)
+        """,
+        [date(2026, 7, 20), datetime(2026, 7, 20, 8), datetime(2026, 7, 19, 23)],
+    )
+
+    status = market_outlook_input_status(
+        conn,
+        asof_date=date(2026, 7, 17),
+        target_date=date(2026, 7, 20),
+    )
+
+    assert status["global_cutoff"] == datetime(2026, 7, 20, 8)
     conn.close()
 
 

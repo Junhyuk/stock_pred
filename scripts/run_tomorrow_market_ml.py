@@ -7,7 +7,7 @@ import argparse
 import json
 import sys
 import warnings
-from datetime import datetime, time
+from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -34,6 +34,21 @@ from roboquant.signals.local_llm_news import (
 KST = ZoneInfo("Asia/Seoul")
 
 
+def production_today_status(production) -> tuple[str, list[str]]:
+    """Return the publication status from current-session production rows only.
+
+    The Ridge run stores both the next-session ``TODAY`` outlook and a
+    longer-horizon ``WEEK`` research row.  The latter has no premarket input
+    contract and is intentionally marked ``legacy``; it must not downgrade a
+    confirmed next-session forecast.
+    """
+    today_rows = production[
+        production["horizon"].astype(str).str.upper().eq("TODAY")
+    ].copy()
+    statuses = sorted({str(value) for value in today_rows["forecast_status"].dropna().tolist()})
+    return ("confirmed" if statuses == ["confirmed"] else "blocked_stale_input", statuses)
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Refresh tomorrow market ML and experimental LLM-news shadow.")
     parser.add_argument("--config", default="configs/local_llm_news.yaml")
@@ -49,6 +64,7 @@ def main() -> None:
     config = load_local_llm_news_config(args.config)
     ensure_project_dirs(config)
     conn = connect_database(get_database_path(config))
+    prediction_now = datetime.now(KST)
     try:
         outcomes = update_market_outlook_outcomes(conn)
         asof = resolve_market_outlook_asof(conn, args.date)
@@ -56,6 +72,7 @@ def main() -> None:
             asof,
             config,
             target_date=None if str(args.target_date).strip().lower() == "latest" else args.target_date,
+            now=prediction_now,
         )
         context = market_outlook_input_status(
             conn,
@@ -64,6 +81,7 @@ def main() -> None:
             config=config,
             calendar_source=target["calendar_source"],
             calendar_messages=target["calendar_messages"],
+            now=prediction_now,
         )
         if context["forecast_status"] != "confirmed":
             print(
@@ -84,7 +102,6 @@ def main() -> None:
             )
             return
 
-        prediction_now = datetime.combine(target["target_date"], time(8, 0), tzinfo=KST)
         model_path = default_market_outlook_model_path(config)
         # Sparse optional sources are represented as missing, not synthetic
         # values. Their all-NaN medians are expected during Ridge preparation.
@@ -126,13 +143,15 @@ def main() -> None:
                 },
             )
         )
+        final_status, stored_statuses = production_today_status(production)
         print(
             json.dumps(
                 {
-                    "status": "ready",
-                    "forecast_status": context["forecast_status"],
+                    "status": "ready" if final_status == "confirmed" else "blocked_stale_input",
+                    "forecast_status": final_status,
                     "target_date": context["target_date"],
                     "domestic_asof_date": context["domestic_asof_date"],
+                    "stored_forecast_statuses": stored_statuses,
                     "production_model_version": production_model.get("model_version"),
                     "production_forecasts": int(len(production)),
                     "outcomes": outcomes,
