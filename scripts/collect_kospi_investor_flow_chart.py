@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Build the KOSPI and KOSDAQ investor chart from daily net buys.
 
-The window is one year and one month back from today, by calendar month, not
-a fixed day count. Values in investor_flow are won; the page file stores
+The window starts two calendar years before today in Seoul. Values in
+investor_flow are won; the page file stores
 daily eok. The page adds those daily values into a cumulative line and draws
 a 4-week average of that line. Four weeks means 20 stored trading sessions:
 the mean of the cumulative level, not of the daily net buys. The latest box
@@ -11,10 +11,11 @@ divided by 1e12 (stored eok divided by 10,000). The series has no forecast weigh
 
 Two ways to build the file:
 
-* Default (runner and local): start from the committed JSON, ask Naver for
-  the sessions after the last stored one plus the last 5 again, merge, move the
-  window, validate, and write only a valid result. Network or validation
-  failure leaves the previous file untouched. A latest session received before
+* Default (runner and local): start from the committed JSON, fetch missing
+  XKRX sessions and the last five stored sessions from Naver, and write only
+  a validated rolling window. A legacy 13-month snapshot is backfilled once.
+  Network or validation failure leaves the previous file untouched. A latest
+  session received before
   20:30 KST (KRX after-market closes 20:00) is listed in provisional_dates and
   is replaced at the next run. A stored value that Naver later changes is
   replaced and written to revisions. Nothing is zero-filled: a missing session
@@ -45,7 +46,8 @@ INSTITUTION = {"1000", "2000", "3000", "3100", "4000", "5000", "6000", "7000"}
 GROUPS = {"foreign": FOREIGN, "personal": PERSONAL, "institution": INSTITUTION}
 REQUIRED = {"9000", "8000", "1000"}
 MARKETS = ("KOSPI", "KOSDAQ")
-WINDOW_LABEL = "1년 1개월"
+WINDOW_LABEL = "2년"
+LEGACY_WINDOW_LABEL = "1년 1개월"
 AVERAGE_SESSIONS = 20
 INVESTOR_FIELDS = {"기관": "institution_eok", "개인": "personal_eok", "외국인": "foreign_eok"}
 FIELDS = tuple(INVESTOR_FIELDS.values())
@@ -76,9 +78,9 @@ def trend_url(market: str, bizdate: str, start: int, page_size: int) -> str:
 
 
 def window_start(today: str) -> str:
-    """First calendar day of the window: today minus 1 year minus 1 month."""
+    """First calendar day of the window, two calendar years before today."""
     current = datetime.strptime(today, "%Y-%m-%d").date()
-    return _add_months(current, -13).isoformat()
+    return _add_months(current, -24).isoformat()
 
 
 def _add_months(day: date, months: int) -> date:
@@ -196,12 +198,15 @@ def fetch_sessions(market: str, asof: str, count: int, *, get=http_get, raw_dir:
     A day without the required investor codes is returned in the skipped list and is
     never turned into zeros.
     """
+    if count <= 0:
+        return [], []
     bizdate = asof.replace("-", "")
     found: dict[str, dict] = {}
     skipped: list[str] = []
-    pages = -(-count // PAGE_SIZE)
+    size = min(PAGE_SIZE, count)
+    pages = -(-count // size)
     for page in range(pages):
-        size = min(PAGE_SIZE, count - page * PAGE_SIZE)
+        # Naver uses page * size as the start offset. Keep the stride constant.
         if page or market != MARKETS[0]:
             sleep(delay)
         body = get(trend_url(market, bizdate, page, size))
@@ -225,7 +230,7 @@ def fetch_sessions(market: str, asof: str, count: int, *, get=http_get, raw_dir:
             found[won["date"]] = won
         if len(content) < size:
             break
-    return [found[day] for day in sorted(found)], sorted(set(skipped))
+    return [found[day] for day in sorted(found)[-count:]], sorted(set(skipped))
 
 
 def to_eok_row(won: dict) -> dict:
@@ -323,10 +328,14 @@ def validate_payload(payload: dict, sessions_fn=xkrx_sessions) -> list[str]:
                     errors.append(f"{market} {day}: {field} is not a finite number")
         if errors:
             continue
-        expected = sessions_fn(start, rows[-1]["date"])
-        missing = sorted(set(expected) - {row["date"] for row in rows})
+        expected = set(sessions_fn(start, rows[-1]["date"]))
+        observed = {row["date"] for row in rows}
+        missing = sorted(expected - observed)
         if missing:
             errors.append(f"{market}: missing XKRX sessions {missing[:5]}{'...' if len(missing) > 5 else ''}")
+        unexpected = sorted(observed - expected)
+        if unexpected:
+            errors.append(f"{market}: non-XKRX sessions {unexpected[:5]}")
     provisional = payload.get("provisional_dates", [])
     if not isinstance(provisional, list):
         errors.append("provisional_dates must be a list")
@@ -339,7 +348,8 @@ def guard_against_previous(previous: dict | None, payload: dict) -> list[str]:
         return []
     errors: list[str] = []
     start = payload["window_start"]
-    if payload["window_start"] < previous.get("window_start", ""):
+    migrating = previous.get("window_label") == LEGACY_WINDOW_LABEL and payload.get("window_label") == WINDOW_LABEL
+    if start < previous.get("window_start", "") and not migrating:
         errors.append("window_start moved backwards")
     revised = {(item["market"], item["date"]) for item in payload.get("revisions", [])}
     provisional = set(previous.get("provisional_dates", []))
@@ -401,6 +411,7 @@ def update_from_naver(previous: dict | None, *, now: datetime, get=http_get, raw
     """Merge the newest Naver sessions into the stored file. Returns result with payload and notes."""
     asof = kst_date(now)
     start = window_start(asof)
+    expected = sessions_fn(start, asof)
     now_iso = now.astimezone(UTC).isoformat()
     cutoff = datetime.combine(date.fromisoformat(asof), FINAL_AFTER, tzinfo=KST)
     today_is_provisional = now.astimezone(KST) < cutoff
@@ -412,17 +423,19 @@ def update_from_naver(previous: dict | None, *, now: datetime, get=http_get, raw
     summary: dict = {}
     won_rows: dict[str, list[dict]] = {}
     for market in MARKETS:
-        rows = [row for row in stored[market] if row["date"] >= start]
-        if rows:
-            span = (date.fromisoformat(asof) - date.fromisoformat(rows[-1]["date"])).days
-            count = span + REFETCH_SESSIONS
-        else:
-            count = (date.fromisoformat(asof) - date.fromisoformat(start)).days + 1
+        rows = [row for row in stored[market] if start <= row["date"] <= asof]
+        stored_dates = {row["date"] for row in rows}
+        overlap = [day for day in expected if day in stored_dates][-REFETCH_SESSIONS:]
+        missing = [day for day in expected if day not in stored_dates]
+        earliest = min(overlap + missing, default=start)
+        count = sum(day >= earliest for day in expected)
         count = max(REFETCH_SESSIONS, min(count, MAX_FETCH))
         fetched_won, skipped = fetch_sessions(market, asof, count, get=get, raw_dir=raw_dir,
                                               delay=delay, sleep=sleep)
         won_rows[market] = fetched_won
         fetched = [to_eok_row(item) for item in fetched_won if item["date"] <= asof]
+        if not fetched:
+            raise ValueError(f"{market}: Naver returned no usable sessions through {asof}")
         merged, found, added, refreshed = merge_sessions(
             rows, fetched, start, asof, old_provisional, now_iso, market)
         markets[market] = merged
@@ -433,15 +446,17 @@ def update_from_naver(previous: dict | None, *, now: datetime, get=http_get, raw
                            "last": merged[-1]["date"] if merged else None}
     if len(revisions) > MAX_REVISIONS * len(MARKETS):
         raise ValueError(f"{len(revisions)} stored sessions changed; refusing a bulk rewrite")
-    last = max(rows[-1]["date"] for rows in markets.values())
+    last = max((rows[-1]["date"] for rows in markets.values() if rows), default="")
     # Only a session received on its own day before 20:30 KST can still change.
     provisional = [last] if today_is_provisional and last == asof else []
     kept = [item for item in (previous or {}).get("revisions", []) if item["date"] >= start]
     payload = build_payload(markets, start=start, received=now_iso, source=SOURCE_TAG,
                             provisional=provisional, revisions=[*kept, *revisions][-20:])
-    changed = bool(revisions or refreshed_any or provisional != sorted(old_provisional)
+    changed = bool(not previous or previous.get("window_start") != start
+                   or previous.get("window_label") != WINDOW_LABEL
+                   or revisions or refreshed_any or provisional != sorted(old_provisional)
                    or any(info["added"] for info in summary.values()))
-    errors = validate_payload(payload, sessions_fn)
+    errors = validate_payload(payload, lambda first, last: [day for day in expected if first <= day <= last])
     if not errors:
         errors = guard_against_previous(previous, payload)
     return {"payload": payload, "changed": changed, "errors": errors, "summary": summary,

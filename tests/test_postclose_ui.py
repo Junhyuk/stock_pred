@@ -1,4 +1,5 @@
 import json
+import re
 import subprocess
 from pathlib import Path
 
@@ -191,3 +192,11 @@ def test_page_places_automatic_korea_and_us_in_a_then_separate_research_models()
     assert html.index('id="model-c"') < html.index('id="model-bc-range"') < html.index('id="model-compare"')
     assert 'assets/forecast-ranges.js' in html
     assert '수동 예측' in (HTML.parent / 'assets/model-b.js').read_text()
+
+
+def test_context_charts_immediately_follow_the_live_forecasts():
+    sections = re.findall(r'^  <section(?: id="([^"]+)")?[ >]', HTML.read_text(), re.MULTILINE)
+    first = sections.index('model-a')
+    assert sections[first:first + 6] == [
+        'model-a', 'model-b', 'model-c', 'kospi-flow', 'overseas-market-charts', 'margin-credit',
+    ]

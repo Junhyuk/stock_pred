@@ -224,11 +224,11 @@
     <a href="#cfd-balance">CFD 잔고</a>
     <a href="index-forecast.html">1D/2D 리포트</a>
     <a href="dashboard.html">일일 대시보드</a>
+    <a href="#kospi-flow">누적 순매수</a>
     <a href="#overseas-market-charts">SK하이닉스 ADR·KORU</a>
+    <a href="#margin-credit">신용융자 잔고</a>
     <a href="#cross-assets">환율·금리·원유</a>
     <a href="#extra-numerics">추가 수치</a>
-    <a href="#kospi-flow">누적 순매수</a>
-    <a href="#margin-credit">신용융자 잔고</a>
     <a href="#market-indicators">시장 지표</a>
   </nav>
   <div id="automation-status" hidden></div>
@@ -293,6 +293,52 @@
     </header>
     <div class="forecast-grid" id="model-c-cards"></div>
   </section>
+  <section id="kospi-flow" class="notice" aria-labelledby="kospi-flow-title">
+    <h2 id="kospi-flow-title">코스피·코스닥 투자자 누적 순매수 · 2년</h2>
+    <p class="credit-intro">각 투자자의 누적 순매수와, 그 누적선을 저장된 20거래일(4주)로 평균한 가는 선입니다. 상자는 누적·오늘·전일 순매수금액을 1조 원으로 나눈 값입니다.</p>
+    <p id="kospi-flow-status" role="status">누적 순매수 그래프를 불러오는 중입니다.</p>
+    <div id="kospi-flow-content"></div>
+    <p class="credit-source">출처 <a href="https://stock.naver.com/market/stock/kr/trend/trader">네이버 증권 투자자별 매매동향</a> · 거래소 공식 통계가 아닌 비공식 자료라 확정 통계와 다를 수 있습니다.</p>
+    <p class="credit-source">당일 20:30(KST) 전에 받은 최근일 값은 잠정치로 따로 표시하고, 다음 수집에서 확정값으로 바꿉니다. 외국인은 외국인과 기타외국인, 기관은 금융투자·보험·투신·사모·은행·기타금융·연기금의 합이며 기타법인은 제외합니다.</p>
+  </section>
+  <section id="overseas-market-charts" class="notice overseas-market" aria-labelledby="overseas-market-charts-title">
+    <h2 id="overseas-market-charts-title">SK하이닉스 ADR·KORU 가격</h2>
+    <div class="overseas-market-controls">
+      <p id="overseas-price-status" class="overseas-market-meta" role="status">미국 정규장 종가를 불러오는 중입니다.</p>
+      <label for="overseas-chart-range">미국 종가 기간
+        <select id="overseas-chart-range" disabled>
+          <option value="30">30거래일</option>
+          <option value="90">90거래일</option>
+          <option value="180">180거래일</option>
+        </select>
+      </label>
+    </div>
+    <div class="overseas-price-grid">
+      <article class="overseas-market-card" aria-labelledby="overseas-skhy-title">
+        <h3 id="overseas-skhy-title">SK하이닉스 ADR</h3>
+        <p class="overseas-market-meta">SKHY · Nasdaq · USD</p>
+        <div id="overseas-price-SKHY"><p class="overseas-chart-empty">종가 확인 중</p></div>
+      </article>
+      <article class="overseas-market-card" aria-labelledby="overseas-koru-title">
+        <h3 id="overseas-koru-title">KORU 한국 주식 일일 3배 ETF</h3>
+        <p class="overseas-market-meta">KORU · NYSE Arca · USD</p>
+        <div id="overseas-price-KORU"><p class="overseas-chart-empty">종가 확인 중</p></div>
+      </article>
+    </div>
+    <details class="overseas-market-card overseas-investors overseas-market-details">
+      <summary>미국 기관 보유 공시 (SEC 13F)</summary>
+      <p class="overseas-market-meta">SEC 공시에서 확인한 일부 운용사의 분기 말 보유 주식 수입니다. 미국 밖 운용사도 포함됩니다.</p>
+      <div id="overseas-holdings-content" aria-busy="true"><p class="overseas-chart-empty">공시 확인 중</p></div>
+    </details>
+    <noscript><p class="overseas-chart-empty">차트와 표를 보려면 자바스크립트를 켜 주세요.</p></noscript>
+  </section>
+  <section id="margin-credit" class="notice" aria-labelledby="margin-credit-title">
+    <h2 id="margin-credit-title">시장별 신용융자 잔고</h2>
+    <p class="credit-intro">결제일 기준</p>
+    <p id="margin-credit-status" role="status">신용융자 잔고를 불러오는 중입니다.</p>
+    <div id="margin-credit-content"></div>
+    <p class="credit-source">출처 <a href="https://freesis.kofia.or.kr/stat/FreeSIS.do?parentDivId=MSIS10000000000000&amp;serviceId=STATSCU0100000140">금융투자협회 FreeSIS</a></p>
+  </section>
   <!-- model-bc-range:start -->
   <section id="model-bc-range" class="notice" aria-labelledby="model-bc-range-title" data-target-date="2026-11-25">
     <details id="model-compare" class="forecast-support">
@@ -337,37 +383,6 @@
     </details>
   </section>
   <!-- model-bc-range:end -->
-  <section id="overseas-market-charts" class="notice overseas-market" aria-labelledby="overseas-market-charts-title">
-    <h2 id="overseas-market-charts-title">SK하이닉스 ADR·KORU 가격</h2>
-    <div class="overseas-market-controls">
-      <p id="overseas-price-status" class="overseas-market-meta" role="status">미국 정규장 종가를 불러오는 중입니다.</p>
-      <label for="overseas-chart-range">미국 종가 기간
-        <select id="overseas-chart-range" disabled>
-          <option value="30">30거래일</option>
-          <option value="90">90거래일</option>
-          <option value="180">180거래일</option>
-        </select>
-      </label>
-    </div>
-    <div class="overseas-price-grid">
-      <article class="overseas-market-card" aria-labelledby="overseas-skhy-title">
-        <h3 id="overseas-skhy-title">SK하이닉스 ADR</h3>
-        <p class="overseas-market-meta">SKHY · Nasdaq · USD</p>
-        <div id="overseas-price-SKHY"><p class="overseas-chart-empty">종가 확인 중</p></div>
-      </article>
-      <article class="overseas-market-card" aria-labelledby="overseas-koru-title">
-        <h3 id="overseas-koru-title">KORU 한국 주식 일일 3배 ETF</h3>
-        <p class="overseas-market-meta">KORU · NYSE Arca · USD</p>
-        <div id="overseas-price-KORU"><p class="overseas-chart-empty">종가 확인 중</p></div>
-      </article>
-    </div>
-    <details class="overseas-market-card overseas-investors overseas-market-details">
-      <summary>미국 기관 보유 공시 (SEC 13F)</summary>
-      <p class="overseas-market-meta">SEC 공시에서 확인한 일부 운용사의 분기 말 보유 주식 수입니다. 미국 밖 운용사도 포함됩니다.</p>
-      <div id="overseas-holdings-content" aria-busy="true"><p class="overseas-chart-empty">공시 확인 중</p></div>
-    </details>
-    <noscript><p class="overseas-chart-empty">차트와 표를 보려면 자바스크립트를 켜 주세요.</p></noscript>
-  </section>
   <section id="cross-assets" class="notice" aria-labelledby="cross-assets-title">
     <h2 id="cross-assets-title">환율·금리·원유</h2>
     <p id="cross-assets-status" role="status">환율·금리·원유를 불러오는 중입니다.</p>
@@ -383,21 +398,6 @@
       <thead><tr><th scope="col">수치</th><th scope="col">값</th><th scope="col">전일 대비</th><th scope="col">기준일</th></tr></thead>
       <tbody id="extra-numerics-rows"></tbody>
     </table></div>
-  </section>
-  <section id="kospi-flow" class="notice" aria-labelledby="kospi-flow-title">
-    <h2 id="kospi-flow-title">코스피·코스닥 투자자 누적 순매수 · 1년 1개월</h2>
-    <p class="credit-intro">각 투자자의 누적 순매수와, 그 누적선을 저장된 20거래일(4주)로 평균한 가는 선입니다. 상자는 누적·오늘·전일 순매수금액을 1조 원으로 나눈 값입니다.</p>
-    <p id="kospi-flow-status" role="status">누적 순매수 그래프를 불러오는 중입니다.</p>
-    <div id="kospi-flow-content"></div>
-    <p class="credit-source">출처 <a href="https://stock.naver.com/market/stock/kr/trend/trader">네이버 증권 투자자별 매매동향</a> · 거래소 공식 통계가 아닌 비공식 자료라 확정 통계와 다를 수 있습니다.</p>
-    <p class="credit-source">당일 20:30(KST) 전에 받은 최근일 값은 잠정치로 따로 표시하고, 다음 수집에서 확정값으로 바꿉니다. 외국인은 외국인과 기타외국인, 기관은 금융투자·보험·투신·사모·은행·기타금융·연기금의 합이며 기타법인은 제외합니다.</p>
-  </section>
-  <section id="margin-credit" class="notice" aria-labelledby="margin-credit-title">
-    <h2 id="margin-credit-title">시장별 신용융자 잔고</h2>
-    <p class="credit-intro">결제일 기준</p>
-    <p id="margin-credit-status" role="status">신용융자 잔고를 불러오는 중입니다.</p>
-    <div id="margin-credit-content"></div>
-    <p class="credit-source">출처 <a href="https://freesis.kofia.or.kr/stat/FreeSIS.do?parentDivId=MSIS10000000000000&amp;serviceId=STATSCU0100000140">금융투자협회 FreeSIS</a></p>
   </section>
   <section id="market-indicators" class="notice" aria-labelledby="market-indicators-title">
     <h2 id="market-indicators-title">국채 금리와 전체 신용융자</h2>

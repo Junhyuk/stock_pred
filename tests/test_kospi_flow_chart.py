@@ -83,21 +83,21 @@ def test_kosdaq_uses_the_same_trend_endpoint():
     assert not hasattr(MODULE, "WINDOW_DAYS")
 
 
-def test_window_is_one_year_and_one_month_by_calendar():
-    assert MODULE.window_start("2026-11-23") == "2025-10-23"
-    assert MODULE.window_start("2025-03-31") == "2024-02-29"
-    assert MODULE.window_start("2024-03-31") == "2023-02-28"
+def test_window_is_two_calendar_years_including_end_of_month_clamps():
+    assert MODULE.window_start("2026-11-23") == "2024-11-23"
+    assert MODULE.window_start("2024-02-29") == "2022-02-28"
+    assert MODULE.window_start("2026-02-28") == "2024-02-28"
     today = "2026-11-23"
     rows = [
-        {"date": "2025-10-22", "foreign_eok": 1, "institution_eok": 1, "personal_eok": 1},
-        {"date": "2025-10-23", "foreign_eok": 4, "institution_eok": 4, "personal_eok": 4},
+        {"date": "2024-11-22", "foreign_eok": 1, "institution_eok": 1, "personal_eok": 1},
+        {"date": "2024-11-23", "foreign_eok": 4, "institution_eok": 4, "personal_eok": 4},
         {"date": "2025-11-23", "foreign_eok": 2, "institution_eok": 2, "personal_eok": 2},
         {"date": "2026-11-23", "foreign_eok": 3, "institution_eok": 3, "personal_eok": 3},
         {"date": "2026-11-23", "foreign_eok": 9, "institution_eok": 9, "personal_eok": 9},
         {"date": "2026-11-24", "foreign_eok": 8, "institution_eok": 8, "personal_eok": 8},
     ]
     selected = MODULE.select_window(rows, today)
-    assert [row["date"] for row in selected] == ["2025-10-23", "2025-11-23", "2026-11-23"]
+    assert [row["date"] for row in selected] == ["2024-11-23", "2025-11-23", "2026-11-23"]
     assert selected[-1]["foreign_eok"] == 9
 
 
@@ -117,7 +117,7 @@ def test_collect_rebuilds_the_window_from_stored_rows(tmp_path):
         """
     )
     amounts = {"기관": 175844000000, "개인": -353236000000, "외국인": -256024000000}
-    start = date(2025, 10, 23)
+    start = date(2024, 11, 23)
     for market in ("KOSPI", "KOSDAQ"):
         for offset, day in enumerate([start - timedelta(days=1), *[start + timedelta(days=index) for index in range(20)], date(2026, 11, 24)]):
             sign = -1 if market == "KOSDAQ" else 1
@@ -129,8 +129,8 @@ def test_collect_rebuilds_the_window_from_stored_rows(tmp_path):
     conn.commit()
     conn.close()
     payload = MODULE.collect(received_at="2026-11-23T00:00:00+00:00", today="2026-11-23", db_path=database)
-    assert payload["window_start"] == "2025-10-23"
-    assert payload["window_label"] == "1년 1개월"
+    assert payload["window_start"] == "2024-11-23"
+    assert payload["window_label"] == "2년"
     assert payload["average_sessions"] == 20
     assert payload["production_weight"] == 0.0
     kospi = payload["markets"]["KOSPI"]["sessions"]
@@ -172,8 +172,7 @@ def test_flow_chart_draws_cumulative_lines_for_both_markets():
     assert "<tr><td>2026-01-01</td><td>+5억</td><td>0억</td><td>-10억</td>" in html
     assert "2026-11-23" in nodes["kospi-flow-status"]["textContent"]
     page = (ROOT / "docs/reliable-index-forecast.html").read_text()
-    assert '<h2 id="kospi-flow-title">코스피·코스닥 투자자 누적 순매수 · 1년 1개월</h2>' in page
-    assert "2년" not in page.split('id="kospi-flow"', 1)[1].split("</section>", 1)[0]
+    assert '<h2 id="kospi-flow-title">코스피·코스닥 투자자 누적 순매수 · 2년</h2>' in page
     assert '<a href="#kospi-flow">누적 순매수</a>' in page
     assert 'id="kospi-flow"' in page and "assets/kospi-flow.js" in page
     assert "https://stock.naver.com/market/stock/kr/trend/trader" in page
@@ -357,13 +356,13 @@ def sessions_of(path, market="KOSPI"):
 
 
 def test_runner_seeds_from_committed_json_and_adds_the_new_session(tmp_path, weekday_calendar, capsys):
-    naver = FakeNaver(weekdays("2025-01-01", "2026-11-24"))
+    naver = FakeNaver(weekdays("2024-01-01", "2026-11-24"))
     code, output = run_cli(tmp_path, naver, seed_payload())
     assert code == 0
     payload = json.loads(output.read_text())
     kospi = payload["markets"]["KOSPI"]["sessions"]
-    assert kospi[0]["date"] == "2025-10-24" and kospi[-1]["date"] == "2026-11-24"
-    assert payload["window_start"] == "2025-10-24" and payload["production_weight"] == 0
+    assert kospi[0]["date"] == "2024-11-25" and kospi[-1]["date"] == "2026-11-24"
+    assert payload["window_start"] == "2024-11-24" and payload["production_weight"] == 0
     assert payload["source"] == "naver_investor_trend_unofficial" and payload["provisional_dates"] == []
     # 9000 + 9001 are one foreign group, institution is 1000 + 6000, 7100 is left out.
     assert kospi[-1] == MODULE.to_eok_row({"date": "2026-11-24", **won("2026-11-24")})
@@ -375,7 +374,7 @@ def test_runner_seeds_from_committed_json_and_adds_the_new_session(tmp_path, wee
 
 
 def test_second_run_is_idempotent_and_leaves_the_file_byte_identical(tmp_path, weekday_calendar):
-    naver = FakeNaver(weekdays("2025-01-01", "2026-11-24"))
+    naver = FakeNaver(weekdays("2024-01-01", "2026-11-24"))
     code, output = run_cli(tmp_path, naver, seed_payload())
     assert code == 0
     first = output.read_bytes()
@@ -394,16 +393,57 @@ def test_bootstrap_without_a_seed_fetches_the_whole_window_in_pages(tmp_path, we
     code, output = run_cli(tmp_path, naver, None)
     assert code == 0
     rows = sessions_of(output)
-    assert rows[0]["date"] == "2025-10-24" and rows[-1]["date"] == "2026-11-24"
-    assert [row["date"] for row in rows] == weekdays("2025-10-24", "2026-11-24")
-    # 397 calendar days -> two pages of at most 200 per market; startIdx is the page number.
-    assert len(naver.calls) == 4
-    assert [("startIdx=0" in url, "startIdx=1" in url) for url in naver.calls[:2]] == [(True, False), (False, True)]
+    assert rows[0]["date"] == "2024-11-25" and rows[-1]["date"] == "2026-11-24"
+    assert [row["date"] for row in rows] == weekdays("2024-11-24", "2026-11-24")
+    # Uses the same size for each page because Naver multiplies the page index by the size.
+    assert len(naver.calls) == 6
+    assert [parse_qs(urlparse(url).query)["startIdx"] for url in naver.calls] == [["0"], ["1"], ["2"]] * 2
+    assert all("pageSize=200" in url for url in naver.calls)
+
+
+def test_legacy_seed_is_backfilled_without_changing_any_finalized_rows(tmp_path, weekday_calendar):
+    seed = seed_payload(first="2025-10-23")
+    seed.update(window_start="2025-10-23", window_label="1년 1개월")
+    naver = FakeNaver(weekdays("2024-01-01", "2026-11-24"))
+    code, output = run_cli(tmp_path, naver, seed)
+    assert code == 0
+    data = json.loads(output.read_text())
+    assert data["window_start"] == "2024-11-24"
+    assert data["window_label"] == "2년"
+    assert data["revisions"] == []
+    assert len(naver.calls) == 6
+    for market in MODULE.MARKETS:
+        rows = {row["date"]: row for row in data["markets"][market]["sessions"]}
+        assert rows.keys() == set(weekdays("2024-11-24", "2026-11-24"))
+        assert all(rows[row["date"]] == row for row in seed["markets"][market]["sessions"])
+
+
+def test_legacy_migration_cannot_bypass_preserved_rows_and_revisions():
+    previous = seed_payload(first="2025-10-23")
+    previous.update(window_start="2025-10-23", window_label="1년 1개월")
+    new = seed_payload(last="2026-11-24", first="2024-11-24")
+    assert MODULE.guard_against_previous(previous, new) == []
+    rows = new["markets"]["KOSPI"]["sessions"]
+    rows.remove(next(row for row in rows if row["date"] == "2025-10-23"))
+    next(row for row in rows if row["date"] == "2025-10-24")["foreign_eok"] += 10
+    errors = MODULE.guard_against_previous(previous, new)
+    assert any("was dropped" in error for error in errors)
+    assert any("without a revision record" in error for error in errors)
+
+
+def test_window_rolls_forward_even_if_latest_observation_has_not_arrived(tmp_path, weekday_calendar):
+    seed = seed_payload(last="2026-11-23")
+    source = FakeNaver(weekdays("2024-01-01", "2026-11-23"))
+    code, output = run_cli(tmp_path, source, seed)
+    assert code == 0
+    payload = json.loads(output.read_text())
+    assert payload["window_start"] == "2024-11-24"
+    assert payload["markets"]["KOSPI"]["sessions"][-1]["date"] == "2026-11-23"
 
 
 def test_stored_value_that_naver_later_changes_is_replaced_and_recorded(tmp_path, weekday_calendar):
     changed_day = "2026-11-20"
-    naver = FakeNaver(weekdays("2025-01-01", "2026-11-24"), offsets={("KOSPI", changed_day): 3})
+    naver = FakeNaver(weekdays("2024-01-01", "2026-11-24"), offsets={("KOSPI", changed_day): 3})
     code, output = run_cli(tmp_path, naver, seed_payload())
     assert code == 0
     payload = json.loads(output.read_text())
@@ -424,20 +464,20 @@ def test_bulk_rewrite_of_stored_history_is_refused_and_the_file_is_untouched(tmp
     seed_path.write_text(json.dumps(seed), encoding="utf-8")
     before = seed_path.read_bytes()
     code = MODULE.main(["--seed", str(seed_path), "--output", str(seed_path), "--now", FINAL_NOW, "--delay", "0"],
-                       get=FakeNaver(weekdays("2025-01-01", "2026-11-24"), offsets=offsets))
+                       get=FakeNaver(weekdays("2024-01-01", "2026-11-24"), offsets=offsets))
     assert code == 1 and seed_path.read_bytes() == before
     assert "unchanged" in capsys.readouterr().err
 
 
 def test_latest_session_before_2030_kst_is_provisional_and_corrected_next_run(tmp_path, weekday_calendar):
-    early = FakeNaver(weekdays("2025-01-01", "2026-11-24"), offsets={("KOSPI", "2026-11-24"): 1})
+    early = FakeNaver(weekdays("2024-01-01", "2026-11-24"), offsets={("KOSPI", "2026-11-24"): 1})
     code, output = run_cli(tmp_path, early, seed_payload(), now=EARLY_NOW)
     assert code == 0
     payload = json.loads(output.read_text())
     assert payload["provisional_dates"] == ["2026-11-24"] and payload["revisions"] == []
     assert payload["snapshot_received_at"] == "2026-11-24T09:10:00+00:00"
     # Finalised later the same evening: the provisional value is replaced without a revision record.
-    final = FakeNaver(weekdays("2025-01-01", "2026-11-24"))
+    final = FakeNaver(weekdays("2024-01-01", "2026-11-24"))
     code, corrected = run_cli(tmp_path, final, payload, now=FINAL_NOW, name="final.json")
     assert code == 0
     fixed = json.loads(corrected.read_text())
@@ -447,7 +487,7 @@ def test_latest_session_before_2030_kst_is_provisional_and_corrected_next_run(tm
 
 
 def test_provisional_session_stays_provisional_when_rechecked_before_the_cutoff(tmp_path, weekday_calendar):
-    naver = FakeNaver(weekdays("2025-01-01", "2026-11-24"))
+    naver = FakeNaver(weekdays("2024-01-01", "2026-11-24"))
     code, output = run_cli(tmp_path, naver, seed_payload(), now=EARLY_NOW)
     assert code == 0
     first = output.read_bytes()
@@ -457,7 +497,7 @@ def test_provisional_session_stays_provisional_when_rechecked_before_the_cutoff(
 
 
 def test_missing_naver_session_is_an_error_not_a_zero(tmp_path, weekday_calendar, capsys):
-    days = [day for day in weekdays("2025-01-01", "2026-11-24") if day != "2026-11-23"]
+    days = [day for day in weekdays("2024-01-01", "2026-11-24") if day != "2026-11-23"]
     naver = FakeNaver(days)
     seed = seed_payload(last="2026-11-20")
     code, output = run_cli(tmp_path, naver, seed)
@@ -465,14 +505,14 @@ def test_missing_naver_session_is_an_error_not_a_zero(tmp_path, weekday_calendar
     assert "missing XKRX sessions" in capsys.readouterr().err
     # A day without the required investor codes is skipped, never turned into zeros:
     # in the middle of the window it is a gap and blocks the write ...
-    middle = FakeNaver(weekdays("2025-01-01", "2026-11-24"), broken={"2026-11-23"})
+    middle = FakeNaver(weekdays("2024-01-01", "2026-11-24"), broken={"2026-11-23"})
     code, output = run_cli(tmp_path, middle, seed_payload(last="2026-11-20"), name="middle.json")
     assert code == 1 and not output.exists()
     # ... and as the newest day it is simply not added yet.
-    newest = FakeNaver(weekdays("2025-01-01", "2026-11-24"), broken={"2026-11-24"})
+    newest = FakeNaver(weekdays("2024-01-01", "2026-11-24"), broken={"2026-11-24"})
     code, output = run_cli(tmp_path, newest, seed_payload(), name="newest.json")
     assert code == 0 and sessions_of(output)[-1]["date"] == "2026-11-23"
-    assert json.loads(output.read_text())["window_start"] == "2025-10-23"
+    assert json.loads(output.read_text())["window_start"] == "2024-11-24"
 
 
 def test_network_failure_leaves_the_previous_file_untouched(tmp_path, weekday_calendar, capsys):
@@ -494,6 +534,10 @@ def test_network_failure_leaves_the_previous_file_untouched(tmp_path, weekday_ca
     assert MODULE.main(["--seed", str(seed_path), "--output", str(seed_path), "--now", FINAL_NOW, "--delay", "0"], get=garbage) == 1
     assert seed_path.read_bytes() == before
 
+    assert MODULE.main(["--seed", str(seed_path), "--output", str(seed_path), "--now", FINAL_NOW, "--delay", "0"],
+                       get=lambda _: b'{"content": []}') == 1
+    assert seed_path.read_bytes() == before
+
 
 def test_guard_blocks_dropped_rows_stale_newest_day_and_unrecorded_edits():
     previous = seed_payload()
@@ -509,9 +553,9 @@ def test_guard_blocks_dropped_rows_stale_newest_day_and_unrecorded_edits():
     edited["markets"]["KOSPI"]["sessions"][50]["foreign_eok"] += 10
     assert any("without a revision record" in error for error in MODULE.guard_against_previous(previous, edited))
     rolled = json.loads(json.dumps(previous))
-    rolled["window_start"] = "2025-10-27"
-    rolled["markets"]["KOSPI"]["sessions"] = [r for r in rolled["markets"]["KOSPI"]["sessions"] if r["date"] >= "2025-10-27"]
-    rolled["markets"]["KOSDAQ"]["sessions"] = [r for r in rolled["markets"]["KOSDAQ"]["sessions"] if r["date"] >= "2025-10-27"]
+    rolled["window_start"] = "2024-11-27"
+    rolled["markets"]["KOSPI"]["sessions"] = [r for r in rolled["markets"]["KOSPI"]["sessions"] if r["date"] >= "2024-11-27"]
+    rolled["markets"]["KOSDAQ"]["sessions"] = [r for r in rolled["markets"]["KOSDAQ"]["sessions"] if r["date"] >= "2024-11-27"]
     assert MODULE.guard_against_previous(previous, rolled) == []
 
 
@@ -571,7 +615,7 @@ def test_http_get_retries_server_errors_but_not_client_errors():
 
 
 def test_raw_responses_are_kept_when_a_directory_is_given(tmp_path):
-    naver = FakeNaver(weekdays("2025-01-01", "2026-11-24"))
+    naver = FakeNaver(weekdays("2024-01-01", "2026-11-24"))
     rows, skipped = MODULE.fetch_sessions("KOSPI", "2026-11-24", 3, get=naver, raw_dir=tmp_path / "raw",
                                           sleep=lambda seconds: None)
     assert [row["date"] for row in rows] == ["2026-11-20", "2026-11-23", "2026-11-24"] and skipped == []
