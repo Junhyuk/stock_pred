@@ -101,6 +101,11 @@ jobs:
         timeout-minutes: 1
         continue-on-error: true
         run: python scripts/export_sk_hynix_investor_flow.py --output docs/data/sk-hynix-investor-flow.json
+      - name: Collect Samsung Electronics investor-class flows
+        if: steps.operation.outputs.collect == 'true'
+        timeout-minutes: 1
+        continue-on-error: true
+        run: python scripts/export_sk_hynix_investor_flow.py --symbol 005930 --output docs/data/samsung-electronics-investor-flow.json
       - name: Refresh prices
         id: refresh
         if: steps.operation.outputs.collect == 'true'

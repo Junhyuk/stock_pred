@@ -43,15 +43,20 @@ def test_fetch_validated_metric_scopes_and_krw_balances(collector, monkeypatch):
 
     result = collector.fetch_totals("2026-11-23", "2026-11-24")
 
+    included = {
+        "total_krw": 770, "kospi_krw": 110, "kosdaq_krw": 220, "buy_krw": 700,
+        "sell_krw": 70, "kospi_buy_krw": 100, "kospi_sell_krw": 10,
+        "kosdaq_buy_krw": 200, "kosdaq_sell_krw": 20,
+    }
+    excluded = {
+        "total_krw": 368, "kospi_krw": 55, "kosdaq_krw": 92, "buy_krw": 350,
+        "sell_krw": 18, "kospi_buy_krw": 50, "kospi_sell_krw": 5,
+        "kosdaq_buy_krw": 90, "kosdaq_sell_krw": 2,
+    }
+    dates = ("2026-11-23", "2026-11-24")
     assert result == {
-        "with_margin": [
-            {"date": "2026-11-23", "total_krw": 770, "kospi_krw": 110, "kosdaq_krw": 220},
-            {"date": "2026-11-24", "total_krw": 770, "kospi_krw": 110, "kosdaq_krw": 220},
-        ],
-        "without_margin": [
-            {"date": "2026-11-23", "total_krw": 368, "kospi_krw": 55, "kosdaq_krw": 92},
-            {"date": "2026-11-24", "total_krw": 368, "kospi_krw": 55, "kosdaq_krw": 92},
-        ],
+        "with_margin": [dict(included, date=day) for day in dates],
+        "without_margin": [dict(excluded, date=day) for day in dates],
     }
     assert len(requests) == 2
     for (request, timeout), object_name in zip(

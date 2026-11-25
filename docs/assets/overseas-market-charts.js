@@ -5,7 +5,10 @@
 
   const range = document.getElementById('overseas-chart-range');
   const priceStatus = document.getElementById('overseas-price-status');
-  const flowContent = document.getElementById('sk-hynix-flow-content');
+  const stocks = {
+    '000660': { label: 'SK하이닉스', file: 'sk-hynix-investor-flow', content: document.getElementById('sk-hynix-flow-content') },
+    '005930': { label: '삼성전자', file: 'samsung-electronics-investor-flow', content: document.getElementById('samsung-electronics-flow-content') },
+  };
   const holdingsContent = document.getElementById('overseas-holdings-content');
   const priceCards = {
     SKHY: document.getElementById('overseas-price-SKHY'),
@@ -13,6 +16,7 @@
   };
   const groups = [['foreign', '외국인'], ['institution', '기관'], ['individual', '개인']];
   const units = { shares: '주', KRW: '원' };
+  const investorColors = { foreign: '#096866', institution: '#634099', individual: '#8f590e' };
   const colors = { up: '#a3201b', down: '#174b9a', flat: '#66717d', grid: '#d9dee5' };
   const dollars = new Intl.NumberFormat('en-US', {
     style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 4,
@@ -23,8 +27,8 @@
     hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
   });
   let prices;
-  let flow;
-  let plots = [];
+  let pricePlots = [];
+  const flowPlots = [];
 
   function esc(text) {
     return String(text).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
@@ -128,57 +132,83 @@
       ${credit ? `<p class="overseas-market-meta">${credit}</p>` : ''}
       ${tableMarkup('날짜별 종가 보기', ['미국 거래일', '종가 (USD)'], table)}`;
     const canvas = card.querySelector('canvas');
-    if (canvas) plots.push(() => drawPrices(canvas, points));
+    if (canvas) pricePlots.push(() => drawPrices(canvas, points));
   }
 
-  function usableFlow(data) {
-    return data?.schema_version === 1 && data.symbol === '000660' && data.market === 'KRX' &&
+  function usableFlow(symbol, data) {
+    return data?.schema_version === 1 && data.symbol === symbol && data.market === 'KRX' &&
       ['ready', 'partial', 'stale'].includes(data.status) && Object.hasOwn(units, data.unit) &&
       ordered(data.series) && data.series.every(row => groups.every(([key]) => row[key] === null || Number.isFinite(row[key])));
   }
 
-  function renderFlow(data, limit) {
-    flowContent.setAttribute('aria-busy', 'false');
-    if (!usableFlow(data) || !data.series.length) {
-      flowContent.innerHTML = emptyMarkup(data ? '일별 순매수 자료가 없습니다.' : '국내 순매수 자료를 불러오지 못했습니다.', data?.source);
+  function renderFlow(symbol, stock, data) {
+    const content = stock.content;
+    if (!content) return;
+    content.setAttribute('aria-busy', 'false');
+    if (!usableFlow(symbol, data) || !data.series.length) {
+      content.innerHTML = emptyMarkup(data ? '일별 순매수 자료가 없습니다.' : '국내 순매수 자료를 불러오지 못했습니다.', data?.source);
       return;
     }
 
-    const rows = data.series.slice(-limit);
-    const values = rows.flatMap(row => groups.map(([key]) => row[key]).filter(Number.isFinite));
+    const rows = data.series;
+    const totals = Object.fromEntries(groups.map(([key]) => [key, { sum: 0, count: 0 }]));
+    const first = sessionDate(data.window_start) ? data.window_start : rows[0].date;
+    const latest = rows.at(-1);
+    const target = sessionDate(data.window_end) ? data.window_end : latest.date;
+    const missing = Array.isArray(data.coverage?.missing_sessions)
+      ? data.coverage.missing_sessions.filter(day => sessionDate(day) && day >= first && day <= target)
+      : [];
+    const byDate = new Map(rows.map(row => [row.date, row]));
+    const dates = [...new Set([...byDate.keys(), ...missing])].sort();
+    const points = dates.map(date => {
+      const row = byDate.get(date);
+      const point = { date };
+      for (const [key] of groups) {
+        const value = row?.[key];
+        if (Number.isFinite(value)) {
+          totals[key].sum += value;
+          totals[key].count += 1;
+          point[key] = totals[key].sum;
+        } else {
+          point[key] = null;
+        }
+      }
+      return point;
+    });
+    const values = points.flatMap(row => groups.map(([key]) => row[key]).filter(Number.isFinite));
     if (!values.length) {
-      flowContent.innerHTML = emptyMarkup('선택 기간의 순매수 자료가 없습니다.', data.source);
+      content.innerHTML = emptyMarkup('순매수 자료가 없습니다.', data.source);
       return;
     }
 
     const unit = units[data.unit];
-    const latest = rows.at(-1);
+    const expected = Math.max(rows.length, data.coverage?.expected_sessions || rows.length);
+    const incomplete = groups.some(([key]) => totals[key].count < expected);
     const credit = sourceMarkup(data.source);
     const generated = snapshotTime(data.generated_at);
-    const cards = groups.map(([key, label]) => {
-      const value = latest[key];
-      const chart = rows.some(row => Number.isFinite(row[key]))
-        ? chartMarkup(`SK하이닉스 ${label} 일별 순매수 (${unit}), ${rows[0].date}–${latest.date}`, `data-investor="${key}"`)
-        : '<p class="overseas-chart-empty">선택 기간 자료가 없습니다.</p>';
-      return `<article><h4>${label}</h4>
-        <p class="overseas-market-meta">기준일 <strong class="overseas-${direction(value)}">${value === null ? '자료 없음' : `${signed(value, v => v.toLocaleString('ko-KR'))}${unit}`}</strong></p>
-        ${chart}</article>`;
+    const format = value => signed(value, n => n.toLocaleString('ko-KR'));
+    const legend = groups.map(([key, label]) => {
+      const { sum, count } = totals[key];
+      const value = count ? `<strong class="overseas-${direction(sum)}">${format(sum)}${unit}</strong>` : '자료 없음';
+      return `<span class="flow-${key}">${label} ${value}${count < expected ? ` <small>${count}/${expected}거래일</small>` : ''}</span>`;
     }).join('');
     const table = rows.slice().reverse().map(row => {
-      const cells = groups.map(([key]) => `<td>${row[key] === null ? '자료 없음' : signed(row[key], v => v.toLocaleString('ko-KR'))}</td>`).join('');
+      const cells = groups.map(([key]) => `<td>${row[key] === null ? '자료 없음' : format(row[key])}</td>`).join('');
       return `<tr><th scope="row">${row.date}</th>${cells}</tr>`;
     }).join('');
 
-    flowContent.innerHTML = `
-      <p class="overseas-market-meta">기준일 <time datetime="${latest.date}">${latest.date}</time> · ${rows.length}거래일 · 순매수 (${unit})${statusMarkup(data.status)}</p>
-      <p class="overseas-market-legend"><span class="overseas-up">순매수 (+)</span><span class="overseas-down">순매도 (−)</span></p>
-      <div class="overseas-flow-grid">${cards}</div>
+    content.innerHTML = `
+      <p class="overseas-market-meta">집계 기간 ${first}–${target} · 관측 끝 ${latest.date} · ${rows.length}거래일 · 순매수 (${unit})${statusMarkup(data.status)}</p>
+      <p class="overseas-market-legend">${legend}</p>
+      ${incomplete ? '<p class="overseas-market-meta">확인된 순매수만 합산했습니다.</p>' : ''}
+      ${chartMarkup(`${stock.label} 투자자별 누적 순매수 (${unit}), ${first}–${target}`)}
       ${credit || generated ? `<p class="overseas-market-meta">${[credit, generated].filter(Boolean).join(' · ')}</p>` : ''}
-      ${tableMarkup('날짜별 국내 순매수 보기', ['한국 거래일', ...groups.map(([, label]) => label)], table)}`;
-    const bound = niceStep(Math.max(1, ...values.map(Math.abs)));
-    flowContent.querySelectorAll('canvas').forEach(canvas => {
-      plots.push(() => drawFlow(canvas, rows, canvas.dataset.investor, bound));
-    });
+      ${tableMarkup('날짜별 순매수 보기', ['한국 거래일', ...groups.map(([, label]) => label)], table)}`;
+    const canvas = content.querySelector('canvas');
+    if (canvas) {
+      const bound = niceStep(Math.max(1, ...values.map(Math.abs)));
+      flowPlots.push(() => drawCumulativeFlow(canvas, points, bound));
+    }
   }
 
   function renderHoldings(data) {
@@ -213,7 +243,7 @@
     return (fraction <= 1 ? 1 : fraction <= 2 ? 2 : fraction <= 5 ? 5 : 10) * scale;
   }
 
-  function chartAxes(canvas, rows, ticks, formatter, centered) {
+  function chartAxes(canvas, rows, ticks, formatter, centered, cumulative = false) {
     const width = canvas.clientWidth;
     const height = canvas.clientHeight;
     const ctx = canvas.getContext('2d');
@@ -237,7 +267,7 @@
     const y = value => top + (high - value) / (high - low) * (bottom - top);
     const x = index => left + space * (centered ? (index + 0.5) / rows.length : index / (rows.length - 1));
     ticks.forEach(value => {
-      const baseline = centered && value === 0;
+      const baseline = (centered || cumulative) && value === 0;
       ctx.strokeStyle = baseline ? colors.flat : colors.grid;
       ctx.lineWidth = 1;
       ctx.beginPath();
@@ -254,7 +284,7 @@
       const last = labelCount > 1 && index === labelCount - 1;
       ctx.textAlign = first ? 'left' : last ? 'right' : 'center';
       const labelX = first ? left : last ? right : x(position);
-      ctx.fillText(rows[position].date.slice(5), labelX, height - 8);
+      ctx.fillText(rows[position].date.slice(cumulative ? 2 : 5), labelX, height - 8);
     }
     return { ctx, x, y, space };
   }
@@ -288,33 +318,46 @@
     ctx.fill();
   }
 
-  function drawFlow(canvas, rows, investor, bound) {
+  function drawCumulativeFlow(canvas, rows, bound) {
     const plot = chartAxes(canvas, rows, [-bound, -bound / 2, 0, bound / 2, bound],
-      value => value < 0 ? `−${compact.format(-value)}` : compact.format(value), true);
+      value => signed(value, number => compact.format(number)), rows.length === 1, true);
     if (!plot) return;
 
-    const { ctx, x, y, space } = plot;
-    const width = Math.min(12, space / rows.length * 0.72);
-    const zero = y(0);
-    rows.forEach((row, index) => {
-      const value = row[investor];
-      if (value === null) return;
-      ctx.fillStyle = colors[direction(value)];
-      const top = Math.min(y(value), zero);
-      ctx.fillRect(x(index) - width / 2, top, width, Math.max(1, Math.abs(y(value) - zero)));
-    });
+    const { ctx, x, y } = plot;
+    for (const [key] of groups) {
+      ctx.strokeStyle = investorColors[key];
+      ctx.fillStyle = investorColors[key];
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      let previous = null;
+      let latest = null;
+      rows.forEach((row, index) => {
+        const value = row[key];
+        if (value !== null) {
+          if (previous === null) ctx.moveTo(x(index), y(value));
+          else ctx.lineTo(x(index), y(value));
+          latest = { index, value };
+        }
+        previous = value;
+      });
+      ctx.stroke();
+      if (latest) {
+        ctx.beginPath();
+        ctx.arc(x(latest.index), y(latest.value), 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
   }
 
   function drawPlots() {
-    plots.forEach(draw => draw());
+    [...pricePlots, ...flowPlots].forEach(draw => draw());
   }
 
-  function render() {
+  function renderPrices() {
     const limit = Number(range.value);
-    plots = [];
+    pricePlots = [];
     Object.keys(priceCards).forEach(symbol => renderPrice(symbol, prices?.instruments?.[symbol], limit));
-    renderFlow(flow, limit);
-    drawPlots();
+    pricePlots.forEach(draw => draw());
   }
 
   async function load(path) {
@@ -326,20 +369,24 @@
     }
   }
 
-  range.addEventListener('change', render);
+  range.addEventListener('change', renderPrices);
   if (typeof ResizeObserver === 'function') {
     new ResizeObserver(drawPlots).observe(section);
   } else {
     window.addEventListener('resize', drawPlots);
   }
-  Promise.all([load('overseas-market-prices'), load('sk-hynix-investor-flow')]).then(([priceData, flowData]) => {
+  load('overseas-market-prices').then(priceData => {
     prices = priceData?.schema_version === 1 ? priceData : null;
-    flow = flowData;
     const generated = snapshotTime(prices?.generated_at);
     priceStatus.textContent = prices ? `미국 현지 거래일 · 정규장 종가 (USD) · 주식 분할 반영·배당 제외${generated ? ` · ${generated}` : ''}` : '미국 종가 자료를 불러오지 못했습니다.';
-    range.disabled = !Object.keys(priceCards).some(symbol => usablePrice(symbol, prices?.instruments?.[symbol])) &&
-      !(usableFlow(flow) && flow.series.length);
-    render();
+    range.disabled = !Object.keys(priceCards).some(symbol => usablePrice(symbol, prices?.instruments?.[symbol]));
+    renderPrices();
   });
+  for (const [symbol, stock] of Object.entries(stocks)) {
+    if (stock.content) load(stock.file).then(data => {
+      renderFlow(symbol, stock, data);
+      flowPlots.forEach(draw => draw());
+    });
+  }
   if (holdingsContent) load('overseas-institutional-holdings').then(renderHoldings);
 })();

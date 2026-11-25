@@ -96,7 +96,10 @@ def test_collector_retains_only_the_failed_series(tmp_path):
 
 
 def test_chart_files_are_reviewed_public_payloads(tmp_path):
-    names = ("overseas-market-prices.json", "sk-hynix-investor-flow.json")
+    names = (
+        "overseas-market-prices.json", "sk-hynix-investor-flow.json",
+        "samsung-electronics-investor-flow.json",
+    )
     for name in (*names, "private-raw.json"):
         (tmp_path / name).write_text("{}")
     assert {p.name for p in public_payload_paths(tmp_path)} == set(names)

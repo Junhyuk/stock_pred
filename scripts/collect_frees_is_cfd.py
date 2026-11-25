@@ -39,8 +39,8 @@ def _fetch_metric(object_name: str, first: date, last: date) -> list[dict]:
             "tmpV40": "1",  # Query in whole KRW.
             "tmpV41": "1",
             "tmpV1": "D",
-            "tmpV45": first.strftime("%Y%m%d"),
-            "tmpV46": last.strftime("%Y%m%d"),
+            "tmpV45": first.isoformat().replace("-", ""),
+            "tmpV46": last.isoformat().replace("-", ""),
             "OBJ_NM": object_name,
         }
     }
@@ -86,6 +86,12 @@ def _fetch_metric(object_name: str, first: date, last: date) -> list[dict]:
             "total_krw": total,
             "kospi_krw": row["TMPV2"] + row["TMPV7"],
             "kosdaq_krw": row["TMPV3"] + row["TMPV8"],
+            "buy_krw": sum(amounts[:5]),
+            "sell_krw": sum(amounts[5:10]),
+            "kospi_buy_krw": row["TMPV2"],
+            "kospi_sell_krw": row["TMPV7"],
+            "kosdaq_buy_krw": row["TMPV3"],
+            "kosdaq_sell_krw": row["TMPV8"],
         }
     return [balances[day] for day in sorted(balances)]
 
@@ -93,9 +99,10 @@ def _fetch_metric(object_name: str, first: date, last: date) -> list[dict]:
 def fetch_totals(first: str, last: str) -> dict[str, list[dict]]:
     """Fetch inclusive ISO dates, with one request per margin treatment.
 
-    ``total_krw`` covers the full published market, including overseas and
-    other markets. The two KRX markets report their own gross buy plus sell
-    balances. Dates are observation dates in both series, in ascending order.
+    The unprefixed fields cover all reported markets, including overseas and
+    other markets. The prefixed fields cover the two KRX markets separately.
+    Buy and sell are outstanding notional balances. Gross totals are retained
+    for callers that use the sum of both sides. Observations are ordered by date.
     """
     first_day, last_day = _iso_date(first), _iso_date(last)
     if first_day > last_day:

@@ -73,17 +73,17 @@ def test_refresh_never_publishes_same_day_future_invalid_or_wrong_symbol(tmp_pat
             trend_row("20261131"),
         ]
 
-    assert exporter.refresh(output, NOW, fetch_page) == "ready"
+    assert exporter.refresh(output, NOW, fetch_page) == "partial"
     assert json.loads(output.read_text())["series"] == [
         {"date": "2026-11-23", "foreign": -118990, "institution": -844, "individual": 46433},
     ]
 
 
-def test_collect_paginates_exclusively_and_caps_history():
+def test_collect_paginates_exclusively_through_two_calendar_years():
     seen = []
     day = date(2026, 11, 24)
     days = []
-    while len(days) < 320:
+    while len(days) < 580:
         if day.weekday() < 5:
             days.append(day)
         day -= timedelta(days=1)
@@ -93,16 +93,55 @@ def test_collect_paginates_exclusively_and_caps_history():
         return [trend_row(day.strftime("%Y%m%d")) for day in days if day < before][:60]
 
     rows = exporter.collect_rows(date(2026, 11, 25), fetch_page)
-    assert seen == [date(2026, 11, 25), days[59], days[119], days[179], days[239]]
-    assert len(rows) == 250
-    assert rows[0]["date"] == days[249].isoformat()
+    assert seen == [date(2026, 11, 25), *days[59:480:60]]
+    assert rows[0]["date"] == "2024-11-25"
     assert rows[-1]["date"] == "2026-11-24"
+
+
+def test_samsung_cli_uses_independent_source_and_reports_window_gaps(tmp_path, monkeypatch):
+    output = tmp_path / "samsung-electronics-investor-flow.json"
+    monkeypatch.setattr(exporter, "session_dates", lambda *_: ["2026-11-23", "2026-11-24"])
+    missing = trend_row("20261124", individual=None)
+    monkeypatch.setattr(
+        exporter, "fetch_naver_page", lambda _, *, symbol: [{**missing, "itemCode": symbol}],
+    )
+    monkeypatch.setattr(exporter, "datetime", type("Clock", (), {"now": staticmethod(lambda _: NOW)}))
+    assert exporter.main(["--symbol", "005930", "--output", str(output)]) == 0
+    snapshot = json.loads(output.read_text())
+    assert snapshot["issuer"] == "삼성전자"
+    assert snapshot["symbol"] == "005930"
+    assert snapshot["source"]["url"].endswith("005930/total")
+    assert snapshot["window_start"] == "2024-11-25"
+    assert snapshot["window_end"] == "2026-11-24"
+    assert snapshot["coverage"] == {
+        "expected_sessions": 2, "observed_sessions": 1, "missing_sessions": ["2026-11-23"],
+        "missing_values": {"foreign": 0, "institution": 0, "individual": 1},
+    }
+
+
+def test_complete_saved_history_needs_only_one_overlapping_page(tmp_path):
+    output = tmp_path / "flow.json"
+    days = exporter.session_dates(date(2024, 11, 25), date(2026, 11, 24))
+    calls = []
+
+    def fetch_page(before):
+        calls.append(before)
+        return [trend_row(day.replace("-", "")) for day in reversed(days) if day < str(before)][:60]
+
+    assert exporter.refresh(output, NOW, fetch_page) == "ready"
+    assert len(calls) > 1
+    calls.clear()
+    assert exporter.refresh(output, NOW, fetch_page) == "ready"
+    assert calls == [date(2026, 11, 25)]
+    snapshot = json.loads(output.read_text())
+    assert snapshot["coverage"]["missing_sessions"] == []
+    assert len(snapshot["series"]) == len(days)
 
 
 @pytest.mark.parametrize("failure", ["network", "schema", "empty", "all_fields_missing", "stale"])
 def test_refresh_preserves_previous_snapshot_on_failed_or_stale_update(tmp_path, failure):
     output = tmp_path / "flow.json"
-    assert exporter.refresh(output, NOW, lambda _: [trend_row("20261124")]) == "ready"
+    assert exporter.refresh(output, NOW, lambda _: [trend_row("20261124")]) == "partial"
     previous = output.read_bytes()
 
     def fetch_page(_before):
@@ -124,7 +163,7 @@ def test_refresh_retains_previous_dates_and_directly_reported_values(tmp_path):
     output = tmp_path / "flow.json"
     assert exporter.refresh(
         output, NOW, lambda _: [trend_row("20261124"), trend_row("20261123")]
-    ) == "ready"
+    ) == "partial"
 
     def fetch_page(_before):
         return [
@@ -151,10 +190,13 @@ def test_refresh_writes_unavailable_without_previous_snapshot(tmp_path):
 
 def test_cli_uses_output_path(tmp_path, monkeypatch):
     output = tmp_path / "nested" / "stock-flow.json"
-    monkeypatch.setattr(exporter, "fetch_naver_page", lambda _: [trend_row("20230102")])
+    monkeypatch.setattr(exporter, "datetime", type("Clock", (), {"now": staticmethod(lambda _: NOW)}))
+    monkeypatch.setattr(exporter, "fetch_naver_page", lambda _, *, symbol: [trend_row("20261124")])
 
     assert exporter.main(["--output", str(output)]) == 0
-    assert json.loads(output.read_text())["series"][0]["date"] == "2023-01-02"
+    snapshot = json.loads(output.read_text())
+    assert snapshot["symbol"] == "000660"
+    assert snapshot["series"][0]["date"] == "2026-11-24"
 
 
 def test_fetch_naver_page_requests_krx_cursor_and_retries_transient_error(monkeypatch):

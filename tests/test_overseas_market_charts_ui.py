@@ -7,13 +7,14 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "docs/assets/overseas-market-charts.js"
 
 
-def render(prices, flow, selected_range=None, holdings=None):
+def render(prices, flow, selected_range=None, holdings=None, samsung=None):
     program = r"""
 const fs = require('node:fs');
 const vm = require('node:vm');
-const [prices, flow, range, holdings] = JSON.parse(process.argv[2]);
+const [prices, flow, range, holdings, samsung] = JSON.parse(process.argv[2]);
 const ids = ['overseas-market-charts', 'overseas-chart-range', 'overseas-price-status',
-  'overseas-price-SKHY', 'overseas-price-KORU', 'sk-hynix-flow-content', 'overseas-holdings-content'];
+  'overseas-price-SKHY', 'overseas-price-KORU', 'sk-hynix-flow-content',
+  'samsung-electronics-flow-content', 'overseas-holdings-content'];
 const nodes = Object.fromEntries(ids.map(id => [id, {
   textContent: '', innerHTML: '', value: '30', disabled: true,
   querySelector: () => null, querySelectorAll: () => [],
@@ -28,6 +29,7 @@ vm.runInNewContext(fs.readFileSync(process.argv[1], 'utf8'), {
     const payload = {
       'data/overseas-market-prices.json': prices,
       'data/sk-hynix-investor-flow.json': flow,
+      'data/samsung-electronics-investor-flow.json': samsung,
       'data/overseas-institutional-holdings.json': holdings,
     }[url];
     return {ok: payload != null, json: async () => payload};
@@ -42,7 +44,7 @@ setImmediate(() => {
 });
 """
     result = subprocess.run(
-        ["node", "-e", program, str(SCRIPT), json.dumps([prices, flow, selected_range, holdings])],
+        ["node", "-e", program, str(SCRIPT), json.dumps([prices, flow, selected_range, holdings, samsung])],
         capture_output=True,
         text=True,
         check=True,
@@ -123,7 +125,7 @@ def test_domestic_flow_keeps_negative_zero_and_missing_observations_distinct():
     assert "종가 자료를 불러오지 못" in nodes["overseas-price-status"]["textContent"]
 
 
-def test_range_switch_limits_each_table_to_saved_sessions():
+def test_two_year_flow_uses_full_history_independently_of_price_range():
     payload = flow_payload()
     payload["series"] = [
         {"date": (date(2026, 9, 1) + timedelta(days=offset)).isoformat(), "foreign": offset,
@@ -132,10 +134,32 @@ def test_range_switch_limits_each_table_to_saved_sessions():
     ]
     default = render(None, payload)["sk-hynix-flow-content"]["innerHTML"]
     expanded = render(None, payload, "90")["sk-hynix-flow-content"]["innerHTML"]
-    assert "2026-09-01" not in default
-    assert "2026-09-01" in expanded
+    assert "2026-09-01" in default
+    assert default == expanded
     assert "순매수 (주)" in expanded
     assert "35거래일" in expanded
+    assert "+595" in expanded
+
+
+def test_independent_samsung_cumulative_flows_and_missing_observation_counts():
+    hynix = flow_payload()
+    samsung = {
+        **flow_payload(),
+        "symbol": "005930",
+        "issuer": "삼성전자",
+        "window_start": "2024-11-25",
+        "window_end": "2026-11-24",
+        "coverage": {"expected_sessions": 3, "missing_sessions": ["2026-11-21"]},
+        "series": [
+            {"date": "2026-11-23", "foreign": 13, "institution": None, "individual": 5},
+            {"date": "2026-11-24", "foreign": -3, "institution": -14, "individual": -2},
+        ],
+    }
+    samsung_html = render(None, hynix, samsung=samsung)["samsung-electronics-flow-content"]["innerHTML"]
+    assert "2024-11-25" in samsung_html and "2026-11-24" in samsung_html
+    assert "+10" in samsung_html and "−14" in samsung_html and "+3" in samsung_html
+    assert "2/3거래일" in samsung_html and "1/3거래일" in samsung_html
+    assert "자료 없음" in samsung_html
 
 
 def test_price_chart_shows_history_without_claiming_unverified_previous_session_return():

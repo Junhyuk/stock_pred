@@ -24,7 +24,7 @@ PUBLIC_NAMES = frozenset({'automation_status.json', 'reliable_index_forecast.jso
     'forward_history.json', 'forward_validation.json', 'actions_budget.json',
     'postclose_forward_history.json', 'postclose_forward_validation.json', 'postclose_completions.json', 'postclose_attempt_status.json', 'market_closes.json', 'market_closes_publication.json',
     'unofficial_numerics.json', 'kospi_investor_flow_chart.json',
-    'overseas-market-prices.json', 'sk-hynix-investor-flow.json',
+    'overseas-market-prices.json', 'sk-hynix-investor-flow.json', 'samsung-electronics-investor-flow.json',
     'cfd_status.json', 'cfd_market_history.json', 'cfd_frees_is_history.json'})
 POSTCLOSE_PREPARED_NAMES = frozenset({'sqlite', 'us_csv', 'economic_sqlite', 'fit_models_kr', 'fit_models_us', 'market_closes', 'market_closes_receipt'})
 PREPARED_NAMES = frozenset({'sqlite', 'us_csv', 'economic_sqlite', 'fit_models_kr', 'fit_models_us'})

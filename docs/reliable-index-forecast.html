@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="assets/margin-credit.css" />
   <link rel="stylesheet" href="assets/cfd-balance.css" />
   <link rel="stylesheet" href="assets/kospi-flow.css" />
-  <link rel="stylesheet" href="assets/overseas-market-charts.css" />
+  <link rel="stylesheet" href="assets/overseas-market-charts.css?v=20261125-flow" />
   <style>
     .notice {
       padding: 16px;
@@ -223,6 +223,7 @@
     <a href="index-forecast.html">1D/2D 리포트</a>
     <a href="dashboard.html">일일 대시보드</a>
     <a href="#overseas-market-charts">SK하이닉스 ADR·KORU</a>
+    <a href="#stock-investor-flow">종목별 2년 누적 수급</a>
     <a href="#cross-assets">환율·금리·원유</a>
     <a href="#extra-numerics">추가 수치</a>
     <a href="#kospi-flow">누적 순매수</a>
@@ -317,7 +318,7 @@
     <h2 id="overseas-market-charts-title">SK하이닉스 ADR·KORU 가격과 투자자 수급</h2>
     <div class="overseas-market-controls">
       <p id="overseas-price-status" class="overseas-market-meta" role="status">미국 정규장 종가를 불러오는 중입니다.</p>
-      <label for="overseas-chart-range">최근 거래일
+      <label for="overseas-chart-range">미국 종가 기간
         <select id="overseas-chart-range" disabled>
           <option value="30">30거래일</option>
           <option value="90">90거래일</option>
@@ -337,10 +338,18 @@
         <div id="overseas-price-KORU"><p class="overseas-chart-empty">종가 확인 중</p></div>
       </article>
     </div>
-    <section class="overseas-market-card overseas-investors" aria-labelledby="sk-hynix-flow-title">
-      <h3 id="sk-hynix-flow-title">SK하이닉스(000660) 일별 투자자 순매수</h3>
-      <p class="overseas-market-meta">한국거래소 원주 수급입니다. 미국의 공개 자료에서는 SKHY·KORU의 외국인·기관·개인별 일별 순매수를 같은 기준으로 확인할 수 없습니다.</p>
-      <div id="sk-hynix-flow-content" aria-busy="true"><p class="overseas-chart-empty">국내 수급 확인 중</p></div>
+    <section id="stock-investor-flow" class="overseas-investors" aria-labelledby="stock-investor-flow-title">
+      <h3 id="stock-investor-flow-title">한국거래소 투자자별 2년 누적 순매수</h3>
+      <div class="overseas-price-grid">
+        <article class="overseas-market-card" aria-labelledby="sk-hynix-flow-title">
+          <h4 id="sk-hynix-flow-title">SK하이닉스 (000660)</h4>
+          <div id="sk-hynix-flow-content" aria-busy="true"><p class="overseas-chart-empty">SK하이닉스 수급 확인 중</p></div>
+        </article>
+        <article class="overseas-market-card" aria-labelledby="samsung-electronics-flow-title">
+          <h4 id="samsung-electronics-flow-title">삼성전자 (005930)</h4>
+          <div id="samsung-electronics-flow-content" aria-busy="true"><p class="overseas-chart-empty">삼성전자 수급 확인 중</p></div>
+        </article>
+      </div>
     </section>
     <details class="overseas-market-card overseas-investors overseas-market-details">
       <summary>미국 기관 보유 공시 (SEC 13F)</summary>
@@ -682,9 +691,9 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) refr
 <script src="assets/economic-calendar.js"></script>
 <script src="assets/kospi-flow.js"></script>
 <script src="assets/margin-credit.js"></script>
-<script src="assets/cfd-balance.js"></script>
+<script src="assets/cfd-balance.js?v=20261125-flow"></script>
 <script src="assets/market-indicators.js"></script>
-<script src="assets/overseas-market-charts.js"></script>
+<script src="assets/overseas-market-charts.js?v=20261125-flow"></script>
 <script src="assets/cross-assets.js?v=20261123"></script>
 <script src="assets/unofficial-numerics.js?v=20261123"></script>
 <script src="assets/forecast-ranges.js"></script>

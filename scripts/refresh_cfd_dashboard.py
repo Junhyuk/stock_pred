@@ -8,7 +8,8 @@ import hashlib
 import json
 import subprocess
 import sys
-from datetime import UTC, datetime, timedelta
+from calendar import monthrange
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from shutil import which
 from urllib.error import URLError
@@ -20,8 +21,10 @@ sys.path.insert(0, str(ROOT / "src"))
 
 if __package__:
     from .collect_cfd_research import KOFIA_INDEX_URL, discover_disclosures, parse_pdf
+    from .collect_frees_is_cfd import fetch_totals as fetch_frees_is_totals
 else:
     from collect_cfd_research import KOFIA_INDEX_URL, discover_disclosures, parse_pdf
+    from collect_frees_is_cfd import fetch_totals as fetch_frees_is_totals
 
 from roboquant.index_forecast.automation_state import atomic_json
 from roboquant.index_forecast.market_calendar import exchange_schedule
@@ -29,6 +32,13 @@ from roboquant.index_forecast.market_calendar import exchange_schedule
 KST = ZoneInfo("Asia/Seoul")
 HISTORY = "cfd_market_history.json"
 STATUS = "cfd_status.json"
+FREESIS_HISTORY = "cfd_frees_is_history.json"
+FREESIS_DEFINITIONS = ("with_margin", "without_margin")
+FREESIS_SCOPE_FIELDS = (
+    ("buy_krw", "sell_krw", "total_krw"),
+    ("kospi_buy_krw", "kospi_sell_krw", "kospi_krw"),
+    ("kosdaq_buy_krw", "kosdaq_sell_krw", "kosdaq_krw"),
+)
 MARKETS = ("KOSPI", "KOSDAQ")
 MAX_POINTS = 756
 FREESIS_BASE = "https://freesis.kofia.or.kr/stat/FreeSIS.do?parentDivId=MSIS30060000000000"
@@ -105,13 +115,38 @@ def _merge_aggregate(history, item, raw, received_at):
     return changed
 
 
+def _valid_sides(row):
+    for buy, sell, total in FREESIS_SCOPE_FIELDS:
+        values = (row.get(buy), row.get(sell), row.get(total))
+        if not all(type(value) is int and value >= 0 for value in values):
+            return False
+        if values[0] + values[1] != values[2]:
+            return False
+    return (row["kospi_buy_krw"] + row["kosdaq_buy_krw"] <= row["buy_krw"]
+            and row["kospi_sell_krw"] + row["kosdaq_sell_krw"] <= row["sell_krw"])
+
+
+def _frees_is_start(previous, today, expected):
+    latest = date.fromisoformat(expected)
+    year = latest.year - 2
+    anniversary = latest.replace(year=year, day=min(latest.day, monthrange(year, latest.month)[1]))
+    baseline = date.fromisoformat(_previous_krx(anniversary + timedelta(days=1)))
+    overlap = today - timedelta(days=21)
+    _, sessions = exchange_schedule("XKRX", baseline, overlap - timedelta(days=1))
+    required = {session.date().isoformat() for session in sessions}
+    if all(required.issubset({row["date"] for row in previous.get(definition, []) if _valid_sides(row)})
+           for definition in FREESIS_DEFINITIONS):
+        return overlap.isoformat()
+    return baseline.isoformat()
+
+
 def _refresh_frees_is(output_dir, today, expected, fetch_totals):
-    target = output_dir / "cfd_frees_is_history.json"
+    target = output_dir / FREESIS_HISTORY
     previous = _read(target).get("series", {})
     try:
-        snapshots = fetch_totals((today - timedelta(days=21)).isoformat(), expected)
+        snapshots = fetch_totals(_frees_is_start(previous, today, expected), expected)
         merged = {}
-        for definition in ("with_margin", "without_margin"):
+        for definition in FREESIS_DEFINITIONS:
             points = {row["date"]: row for row in previous.get(definition, [])}
             points.update({row["date"]: row for row in snapshots[definition]})
             merged[definition] = [points[day] for day in sorted(points)[-MAX_POINTS:]]
@@ -129,7 +164,7 @@ def _refresh_frees_is(output_dir, today, expected, fetch_totals):
         return (
             "ready"
             if all(snapshots[key] and snapshots[key][-1]["date"] == expected
-                   for key in ("with_margin", "without_margin"))
+                   for key in FREESIS_DEFINITIONS)
             else ("stale" if any(merged.values()) else "unavailable")
         )
     except (KeyError, OSError, TypeError, ValueError):
@@ -237,14 +272,10 @@ def main():
         help="Use only for source-reviewed recurring access and noncommercial aggregate publication.",
     )
     args = parser.parse_args()
-    fetch_totals = None
-    if args.publish_approved_aggregates:
-        from collect_frees_is_cfd import fetch_totals
-
     status = refresh(
         args.output_dir,
         permit_aggregates=args.publish_approved_aggregates,
-        fetch_totals=fetch_totals,
+        fetch_totals=fetch_frees_is_totals if args.publish_approved_aggregates else None,
     )
     print(
         json.dumps(

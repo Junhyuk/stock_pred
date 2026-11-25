@@ -1,0 +1,2943 @@
+{
+  "schema_version": 1,
+  "issuer": "삼성전자",
+  "symbol": "005930",
+  "market": "KRX",
+  "unit": "shares",
+  "source": {
+    "label": "네이버페이 증권",
+    "url": "https://m.stock.naver.com/domestic/stock/005930/total"
+  },
+  "status": "ready",
+  "generated_at": "2026-11-25T09:45:27Z",
+  "window_start": "2024-11-25",
+  "window_end": "2026-11-24",
+  "coverage": {
+    "expected_sessions": 486,
+    "observed_sessions": 486,
+    "missing_sessions": [],
+    "missing_values": {
+      "foreign": 0,
+      "institution": 0,
+      "individual": 0
+    }
+  },
+  "series": [
+    {
+      "date": "2024-11-25",
+      "foreign": -168148,
+      "institution": 2247614,
+      "individual": -2757915
+    },
+    {
+      "date": "2024-11-26",
+      "foreign": 910548,
+      "institution": -1964635,
+      "individual": 146707
+    },
+    {
+      "date": "2024-11-27",
+      "foreign": -4981632,
+      "institution": -376261,
+      "individual": 4082730
+    },
+    {
+      "date": "2024-11-28",
+      "foreign": -3358322,
+      "institution": 30380,
+      "individual": 2185664
+    },
+    {
+      "date": "2024-11-29",
+      "foreign": -3676336,
+      "institution": -551553,
+      "individual": 3115356
+    },
+    {
+      "date": "2024-12-02",
+      "foreign": -3950009,
+      "institution": 2032509,
+      "individual": 1197875
+    },
+    {
+      "date": "2024-12-03",
+      "foreign": -2093757,
+      "institution": 294309,
+      "individual": 903748
+    },
+    {
+      "date": "2024-12-04",
+      "foreign": -1457663,
+      "institution": -345726,
+      "individual": 1113911
+    },
+    {
+      "date": "2024-12-05",
+      "foreign": -2589129,
+      "institution": 2504435,
+      "individual": -888301
+    },
+    {
+      "date": "2024-12-06",
+      "foreign": -1311379,
+      "institution": 3144845,
+      "individual": -2805882
+    },
+    {
+      "date": "2024-12-09",
+      "foreign": -1380362,
+      "institution": 2470239,
+      "individual": -2277885
+    },
+    {
+      "date": "2024-12-10",
+      "foreign": -2450097,
+      "institution": 1082090,
+      "individual": -100139
+    },
+    {
+      "date": "2024-12-11",
+      "foreign": -1498641,
+      "institution": 124833,
+      "individual": -42911
+    },
+    {
+      "date": "2024-12-12",
+      "foreign": -1038791,
+      "institution": 2756588,
+      "individual": -3131158
+    },
+    {
+      "date": "2024-12-13",
+      "foreign": -1980759,
+      "institution": 671258,
+      "individual": -204500
+    },
+    {
+      "date": "2024-12-16",
+      "foreign": -3038638,
+      "institution": 180465,
+      "individual": 1875151
+    },
+    {
+      "date": "2024-12-17",
+      "foreign": -4270079,
+      "institution": 664317,
+      "individual": 2675759
+    },
+    {
+      "date": "2024-12-18",
+      "foreign": 741183,
+      "institution": 80755,
+      "individual": -1816299
+    },
+    {
+      "date": "2024-12-19",
+      "foreign": -6144270,
+      "institution": -2803911,
+      "individual": 7509212
+    },
+    {
+      "date": "2024-12-20",
+      "foreign": -4792393,
+      "institution": -1335038,
+      "individual": 4687038
+    },
+    {
+      "date": "2024-12-23",
+      "foreign": -830210,
+      "institution": 464199,
+      "individual": -696548
+    },
+    {
+      "date": "2024-12-24",
+      "foreign": 1906338,
+      "institution": 64871,
+      "individual": -3111933
+    },
+    {
+      "date": "2024-12-26",
+      "foreign": -1359343,
+      "institution": -125220,
+      "individual": 242434
+    },
+    {
+      "date": "2024-12-27",
+      "foreign": -43194,
+      "institution": -261276,
+      "individual": -733514
+    },
+    {
+      "date": "2024-12-30",
+      "foreign": -2676872,
+      "institution": -60782,
+      "individual": 1368125
+    },
+    {
+      "date": "2025-01-02",
+      "foreign": -988799,
+      "institution": -1588872,
+      "individual": 1529845
+    },
+    {
+      "date": "2025-01-03",
+      "foreign": 620183,
+      "institution": 2135737,
+      "individual": -3740211
+    },
+    {
+      "date": "2025-01-06",
+      "foreign": 1702569,
+      "institution": 940903,
+      "individual": -3618221
+    },
+    {
+      "date": "2025-01-07",
+      "foreign": -883092,
+      "institution": -231399,
+      "individual": 72059
+    },
+    {
+      "date": "2025-01-08",
+      "foreign": 4819822,
+      "institution": 399884,
+      "individual": -5937270
+    },
+    {
+      "date": "2025-01-09",
+      "foreign": 756244,
+      "institution": -3236305,
+      "individual": 1754456
+    },
+    {
+      "date": "2025-01-10",
+      "foreign": -1986925,
+      "institution": -1634708,
+      "individual": 2824657
+    },
+    {
+      "date": "2025-01-13",
+      "foreign": -4633854,
+      "institution": -301692,
+      "individual": 4028427
+    },
+    {
+      "date": "2025-01-14",
+      "foreign": -3715058,
+      "institution": -3456,
+      "individual": 3334737
+    },
+    {
+      "date": "2025-01-15",
+      "foreign": -2691335,
+      "institution": -1661776,
+      "individual": 3709640
+    },
+    {
+      "date": "2025-01-16",
+      "foreign": 1007189,
+      "institution": -278394,
+      "individual": -1235830
+    },
+    {
+      "date": "2025-01-17",
+      "foreign": -5067220,
+      "institution": -1998867,
+      "individual": 6359447
+    },
+    {
+      "date": "2025-01-20",
+      "foreign": -2521966,
+      "institution": -310068,
+      "individual": 2186942
+    },
+    {
+      "date": "2025-01-21",
+      "foreign": -814878,
+      "institution": -154950,
+      "individual": 321273
+    },
+    {
+      "date": "2025-01-22",
+      "foreign": -1355783,
+      "institution": 859910,
+      "individual": -126926
+    },
+    {
+      "date": "2025-01-23",
+      "foreign": -1934277,
+      "institution": 233240,
+      "individual": 1079524
+    },
+    {
+      "date": "2025-01-24",
+      "foreign": -1795106,
+      "institution": -96823,
+      "individual": 1133214
+    },
+    {
+      "date": "2025-01-31",
+      "foreign": -13409551,
+      "institution": 2098023,
+      "individual": 10555881
+    },
+    {
+      "date": "2025-02-03",
+      "foreign": -7891814,
+      "institution": -1896251,
+      "individual": 8749109
+    },
+    {
+      "date": "2025-02-04",
+      "foreign": 3603646,
+      "institution": -184005,
+      "individual": -3649343
+    },
+    {
+      "date": "2025-02-05",
+      "foreign": -2172186,
+      "institution": 274733,
+      "individual": 1327891
+    },
+    {
+      "date": "2025-02-06",
+      "foreign": 1015939,
+      "institution": 1359185,
+      "individual": -2809562
+    },
+    {
+      "date": "2025-02-07",
+      "foreign": -1996510,
+      "institution": 1366708,
+      "individual": 15397
+    },
+    {
+      "date": "2025-02-10",
+      "foreign": 779404,
+      "institution": 2854317,
+      "individual": -4352589
+    },
+    {
+      "date": "2025-02-11",
+      "foreign": 724800,
+      "institution": 2707225,
+      "individual": -3602343
+    },
+    {
+      "date": "2025-02-12",
+      "foreign": 6902977,
+      "institution": -6459832,
+      "individual": -960084
+    },
+    {
+      "date": "2025-02-13",
+      "foreign": -2039288,
+      "institution": 1929871,
+      "individual": -466817
+    },
+    {
+      "date": "2025-02-14",
+      "foreign": -915067,
+      "institution": 2893879,
+      "individual": -1874688
+    },
+    {
+      "date": "2025-02-17",
+      "foreign": -1275997,
+      "institution": 878911,
+      "individual": 402785
+    },
+    {
+      "date": "2025-02-18",
+      "foreign": 2331000,
+      "institution": 998081,
+      "individual": -3306178
+    },
+    {
+      "date": "2025-02-19",
+      "foreign": 1886776,
+      "institution": 5091141,
+      "individual": -7968739
+    },
+    {
+      "date": "2025-02-20",
+      "foreign": 242367,
+      "institution": -281150,
+      "individual": -1004375
+    },
+    {
+      "date": "2025-02-21",
+      "foreign": -982966,
+      "institution": -457671,
+      "individual": 445604
+    },
+    {
+      "date": "2025-02-24",
+      "foreign": 185352,
+      "institution": -1564214,
+      "individual": 376980
+    },
+    {
+      "date": "2025-02-25",
+      "foreign": 666830,
+      "institution": -1231168,
+      "individual": -534244
+    },
+    {
+      "date": "2025-02-26",
+      "foreign": -3749201,
+      "institution": 834180,
+      "individual": 2118648
+    },
+    {
+      "date": "2025-02-27",
+      "foreign": 642650,
+      "institution": -1784194,
+      "individual": 1198244
+    },
+    {
+      "date": "2025-02-28",
+      "foreign": -3409735,
+      "institution": -3349993,
+      "individual": 5652361
+    },
+    {
+      "date": "2025-03-04",
+      "foreign": -649221,
+      "institution": -880960,
+      "individual": 311954
+    },
+    {
+      "date": "2025-03-05",
+      "foreign": -2244610,
+      "institution": -2581248,
+      "individual": 3739638
+    },
+    {
+      "date": "2025-03-06",
+      "foreign": -1147145,
+      "institution": -677765,
+      "individual": 662293
+    },
+    {
+      "date": "2025-03-07",
+      "foreign": -2720497,
+      "institution": -730424,
+      "individual": 2078926
+    },
+    {
+      "date": "2025-03-10",
+      "foreign": -1464567,
+      "institution": -339446,
+      "individual": 598383
+    },
+    {
+      "date": "2025-03-11",
+      "foreign": -468043,
+      "institution": -1795982,
+      "individual": 978240
+    },
+    {
+      "date": "2025-03-12",
+      "foreign": 2317596,
+      "institution": 10189,
+      "individual": -3333611
+    },
+    {
+      "date": "2025-03-13",
+      "foreign": -2982397,
+      "institution": 1856239,
+      "individual": -50926
+    },
+    {
+      "date": "2025-03-14",
+      "foreign": -1929302,
+      "institution": 284920,
+      "individual": 407301
+    },
+    {
+      "date": "2025-03-17",
+      "foreign": 8587851,
+      "institution": 3962768,
+      "individual": -13580388
+    },
+    {
+      "date": "2025-03-18",
+      "foreign": 3688133,
+      "institution": -109820,
+      "individual": -4754683
+    },
+    {
+      "date": "2025-03-19",
+      "foreign": 4697674,
+      "institution": 2291756,
+      "individual": -8132959
+    },
+    {
+      "date": "2025-03-20",
+      "foreign": 8383930,
+      "institution": 463402,
+      "individual": -9876304
+    },
+    {
+      "date": "2025-03-21",
+      "foreign": 7838733,
+      "institution": -1015330,
+      "individual": -7870638
+    },
+    {
+      "date": "2025-03-24",
+      "foreign": -650040,
+      "institution": -314517,
+      "individual": 92258
+    },
+    {
+      "date": "2025-03-25",
+      "foreign": -56414,
+      "institution": -300605,
+      "individual": -510954
+    },
+    {
+      "date": "2025-03-26",
+      "foreign": 2326780,
+      "institution": 522082,
+      "individual": -3614499
+    },
+    {
+      "date": "2025-03-27",
+      "foreign": 5198009,
+      "institution": -1084964,
+      "individual": -5041748
+    },
+    {
+      "date": "2025-03-28",
+      "foreign": -1579209,
+      "institution": -1340029,
+      "individual": 1997379
+    },
+    {
+      "date": "2025-03-31",
+      "foreign": -3589073,
+      "institution": 485125,
+      "individual": 2188317
+    },
+    {
+      "date": "2025-04-01",
+      "foreign": -1721310,
+      "institution": 21723,
+      "individual": 698062
+    },
+    {
+      "date": "2025-04-02",
+      "foreign": -472191,
+      "institution": -540044,
+      "individual": 101389
+    },
+    {
+      "date": "2025-04-03",
+      "foreign": -5306645,
+      "institution": -352877,
+      "individual": 4637378
+    },
+    {
+      "date": "2025-04-04",
+      "foreign": -7280803,
+      "institution": 74520,
+      "individual": 6184342
+    },
+    {
+      "date": "2025-04-07",
+      "foreign": -12304972,
+      "institution": 1303481,
+      "individual": 9731934
+    },
+    {
+      "date": "2025-04-08",
+      "foreign": -4079174,
+      "institution": -489311,
+      "individual": 3546281
+    },
+    {
+      "date": "2025-04-09",
+      "foreign": -2701098,
+      "institution": -1466542,
+      "individual": 2967949
+    },
+    {
+      "date": "2025-04-10",
+      "foreign": -214043,
+      "institution": 1117658,
+      "individual": -1629053
+    },
+    {
+      "date": "2025-04-11",
+      "foreign": -4071863,
+      "institution": 143879,
+      "individual": 2899732
+    },
+    {
+      "date": "2025-04-14",
+      "foreign": 906362,
+      "institution": -284555,
+      "individual": -1282428
+    },
+    {
+      "date": "2025-04-15",
+      "foreign": 661174,
+      "institution": 230992,
+      "individual": -1558937
+    },
+    {
+      "date": "2025-04-16",
+      "foreign": -4858306,
+      "institution": -488119,
+      "individual": 4659831
+    },
+    {
+      "date": "2025-04-17",
+      "foreign": -2062649,
+      "institution": 936149,
+      "individual": 413456
+    },
+    {
+      "date": "2025-04-18",
+      "foreign": 493947,
+      "institution": -687303,
+      "individual": -521306
+    },
+    {
+      "date": "2025-04-21",
+      "foreign": -54366,
+      "institution": -504852,
+      "individual": -143683
+    },
+    {
+      "date": "2025-04-22",
+      "foreign": -1824504,
+      "institution": -48593,
+      "individual": 1189326
+    },
+    {
+      "date": "2025-04-23",
+      "foreign": -1485159,
+      "institution": 1494294,
+      "individual": -891307
+    },
+    {
+      "date": "2025-04-24",
+      "foreign": 45419,
+      "institution": -831559,
+      "individual": 112902
+    },
+    {
+      "date": "2025-04-25",
+      "foreign": -1568114,
+      "institution": 770545,
+      "individual": 177864
+    },
+    {
+      "date": "2025-04-28",
+      "foreign": -642327,
+      "institution": -105820,
+      "individual": 245252
+    },
+    {
+      "date": "2025-04-29",
+      "foreign": -167161,
+      "institution": 783006,
+      "individual": -1105497
+    },
+    {
+      "date": "2025-04-30",
+      "foreign": -1624733,
+      "institution": -668116,
+      "individual": 1748391
+    },
+    {
+      "date": "2025-05-02",
+      "foreign": -12002738,
+      "institution": 1122449,
+      "individual": 9953980
+    },
+    {
+      "date": "2025-05-07",
+      "foreign": -2368747,
+      "institution": 155796,
+      "individual": 1700700
+    },
+    {
+      "date": "2025-05-08",
+      "foreign": 89403,
+      "institution": -2018842,
+      "individual": 1575138
+    },
+    {
+      "date": "2025-05-09",
+      "foreign": -4171,
+      "institution": -616541,
+      "individual": 54535
+    },
+    {
+      "date": "2025-05-12",
+      "foreign": 2380853,
+      "institution": 2111451,
+      "individual": -5021110
+    },
+    {
+      "date": "2025-05-13",
+      "foreign": 68561,
+      "institution": 642495,
+      "individual": -889669
+    },
+    {
+      "date": "2025-05-14",
+      "foreign": -170326,
+      "institution": 1230186,
+      "individual": -1017433
+    },
+    {
+      "date": "2025-05-15",
+      "foreign": 2859317,
+      "institution": -1205859,
+      "individual": -1566793
+    },
+    {
+      "date": "2025-05-16",
+      "foreign": -1275505,
+      "institution": -199115,
+      "individual": 1401854
+    },
+    {
+      "date": "2025-05-19",
+      "foreign": -616175,
+      "institution": -1023409,
+      "individual": 1449372
+    },
+    {
+      "date": "2025-05-20",
+      "foreign": -705617,
+      "institution": 97762,
+      "individual": 620423
+    },
+    {
+      "date": "2025-05-21",
+      "foreign": -844810,
+      "institution": -336958,
+      "individual": 1147465
+    },
+    {
+      "date": "2025-05-22",
+      "foreign": -3162576,
+      "institution": -2072115,
+      "individual": 4969653
+    },
+    {
+      "date": "2025-05-23",
+      "foreign": -2619555,
+      "institution": -978163,
+      "individual": 3423715
+    },
+    {
+      "date": "2025-05-26",
+      "foreign": -2080330,
+      "institution": 1062146,
+      "individual": 874893
+    },
+    {
+      "date": "2025-05-27",
+      "foreign": -4996871,
+      "institution": 422087,
+      "individual": 4239421
+    },
+    {
+      "date": "2025-05-28",
+      "foreign": 2128110,
+      "institution": 3485737,
+      "individual": -4846818
+    },
+    {
+      "date": "2025-05-29",
+      "foreign": -147273,
+      "institution": 1092586,
+      "individual": -1049904
+    },
+    {
+      "date": "2025-05-30",
+      "foreign": -143854,
+      "institution": 1983005,
+      "individual": -1838197
+    },
+    {
+      "date": "2025-06-02",
+      "foreign": 862608,
+      "institution": -600990,
+      "individual": -237061
+    },
+    {
+      "date": "2025-06-04",
+      "foreign": 2066760,
+      "institution": 1167290,
+      "individual": -3051217
+    },
+    {
+      "date": "2025-06-05",
+      "foreign": 4766305,
+      "institution": 2319804,
+      "individual": -7004765
+    },
+    {
+      "date": "2025-06-09",
+      "foreign": 5139695,
+      "institution": -2161043,
+      "individual": -2644859
+    },
+    {
+      "date": "2025-06-10",
+      "foreign": -922353,
+      "institution": -294787,
+      "individual": 1207691
+    },
+    {
+      "date": "2025-06-11",
+      "foreign": 2231164,
+      "institution": 407231,
+      "individual": -2474334
+    },
+    {
+      "date": "2025-06-12",
+      "foreign": 326870,
+      "institution": -1169471,
+      "individual": 907528
+    },
+    {
+      "date": "2025-06-13",
+      "foreign": 4939,
+      "institution": -3621831,
+      "individual": 3650750
+    },
+    {
+      "date": "2025-06-16",
+      "foreign": -6936197,
+      "institution": 716799,
+      "individual": 6163630
+    },
+    {
+      "date": "2025-06-17",
+      "foreign": 1788532,
+      "institution": 993603,
+      "individual": -2811650
+    },
+    {
+      "date": "2025-06-18",
+      "foreign": 3837978,
+      "institution": 737667,
+      "individual": -4524025
+    },
+    {
+      "date": "2025-06-19",
+      "foreign": -438270,
+      "institution": -1143259,
+      "individual": 1619343
+    },
+    {
+      "date": "2025-06-20",
+      "foreign": -837776,
+      "institution": 51082,
+      "individual": 783945
+    },
+    {
+      "date": "2025-06-23",
+      "foreign": -1341375,
+      "institution": -4239589,
+      "individual": 5524570
+    },
+    {
+      "date": "2025-06-24",
+      "foreign": 5431405,
+      "institution": 1857835,
+      "individual": -7304208
+    },
+    {
+      "date": "2025-06-25",
+      "foreign": 1965255,
+      "institution": -807968,
+      "individual": -1232486
+    },
+    {
+      "date": "2025-06-26",
+      "foreign": -1670898,
+      "institution": -1343036,
+      "individual": 2994600
+    },
+    {
+      "date": "2025-06-27",
+      "foreign": 613336,
+      "institution": 2059747,
+      "individual": -2746410
+    },
+    {
+      "date": "2025-06-30",
+      "foreign": -5280658,
+      "institution": 810571,
+      "individual": 4434023
+    },
+    {
+      "date": "2025-07-01",
+      "foreign": 134384,
+      "institution": 1118746,
+      "individual": -1257685
+    },
+    {
+      "date": "2025-07-02",
+      "foreign": -361861,
+      "institution": 925078,
+      "individual": -524578
+    },
+    {
+      "date": "2025-07-03",
+      "foreign": 9016629,
+      "institution": 4101822,
+      "individual": -13548764
+    },
+    {
+      "date": "2025-07-04",
+      "foreign": -187493,
+      "institution": -817885,
+      "individual": 758725
+    },
+    {
+      "date": "2025-07-07",
+      "foreign": -2815516,
+      "institution": -1020720,
+      "individual": 3970419
+    },
+    {
+      "date": "2025-07-08",
+      "foreign": -1921467,
+      "institution": -873548,
+      "individual": 2994943
+    },
+    {
+      "date": "2025-07-09",
+      "foreign": -3338833,
+      "institution": -2068875,
+      "individual": 4315164
+    },
+    {
+      "date": "2025-07-10",
+      "foreign": 642576,
+      "institution": -1749115,
+      "individual": 118237
+    },
+    {
+      "date": "2025-07-11",
+      "foreign": 4931682,
+      "institution": 66601,
+      "individual": -5992528
+    },
+    {
+      "date": "2025-07-14",
+      "foreign": -691146,
+      "institution": -149948,
+      "individual": -198187
+    },
+    {
+      "date": "2025-07-15",
+      "foreign": 3644735,
+      "institution": -417809,
+      "individual": -4256600
+    },
+    {
+      "date": "2025-07-16",
+      "foreign": 5776459,
+      "institution": -1032970,
+      "individual": -5705716
+    },
+    {
+      "date": "2025-07-17",
+      "foreign": 7958497,
+      "institution": 1872752,
+      "individual": -11060876
+    },
+    {
+      "date": "2025-07-18",
+      "foreign": 5916623,
+      "institution": -1624140,
+      "individual": -5229480
+    },
+    {
+      "date": "2025-07-21",
+      "foreign": 2807470,
+      "institution": -673906,
+      "individual": -3031666
+    },
+    {
+      "date": "2025-07-22",
+      "foreign": -703436,
+      "institution": -796099,
+      "individual": 773232
+    },
+    {
+      "date": "2025-07-23",
+      "foreign": -1092942,
+      "institution": -346932,
+      "individual": 552141
+    },
+    {
+      "date": "2025-07-24",
+      "foreign": 625287,
+      "institution": -938957,
+      "individual": -474030
+    },
+    {
+      "date": "2025-07-25",
+      "foreign": 766421,
+      "institution": -869600,
+      "individual": -756354
+    },
+    {
+      "date": "2025-07-28",
+      "foreign": 9848180,
+      "institution": 3709966,
+      "individual": -14328233
+    },
+    {
+      "date": "2025-07-29",
+      "foreign": 3589896,
+      "institution": -626808,
+      "individual": -3697952
+    },
+    {
+      "date": "2025-07-30",
+      "foreign": 8113238,
+      "institution": 1287183,
+      "individual": -9975407
+    },
+    {
+      "date": "2025-07-31",
+      "foreign": -1058355,
+      "institution": -2147850,
+      "individual": 2241112
+    },
+    {
+      "date": "2025-08-01",
+      "foreign": -515871,
+      "institution": -2430127,
+      "individual": 2020106
+    },
+    {
+      "date": "2025-08-04",
+      "foreign": -466423,
+      "institution": -934749,
+      "individual": 535317
+    },
+    {
+      "date": "2025-08-05",
+      "foreign": -2538902,
+      "institution": 104329,
+      "individual": 1433127
+    },
+    {
+      "date": "2025-08-06",
+      "foreign": -611730,
+      "institution": -945597,
+      "individual": 767674
+    },
+    {
+      "date": "2025-08-07",
+      "foreign": -390706,
+      "institution": 614600,
+      "individual": -1176932
+    },
+    {
+      "date": "2025-08-08",
+      "foreign": 2293942,
+      "institution": 937140,
+      "individual": -4186201
+    },
+    {
+      "date": "2025-08-11",
+      "foreign": -2029800,
+      "institution": -571822,
+      "individual": 1686273
+    },
+    {
+      "date": "2025-08-12",
+      "foreign": 517968,
+      "institution": -353992,
+      "individual": -1106457
+    },
+    {
+      "date": "2025-08-13",
+      "foreign": 289087,
+      "institution": -224433,
+      "individual": -1010021
+    },
+    {
+      "date": "2025-08-14",
+      "foreign": -1814682,
+      "institution": 1327501,
+      "individual": -480225
+    },
+    {
+      "date": "2025-08-18",
+      "foreign": -2483669,
+      "institution": -298892,
+      "individual": 1924747
+    },
+    {
+      "date": "2025-08-19",
+      "foreign": -1045143,
+      "institution": 714443,
+      "individual": -522582
+    },
+    {
+      "date": "2025-08-20",
+      "foreign": 75217,
+      "institution": 1906578,
+      "individual": -2824161
+    },
+    {
+      "date": "2025-08-21",
+      "foreign": 1914069,
+      "institution": -1325464,
+      "individual": -1480837
+    },
+    {
+      "date": "2025-08-22",
+      "foreign": 428499,
+      "institution": 34024,
+      "individual": -1365611
+    },
+    {
+      "date": "2025-08-25",
+      "foreign": -1921680,
+      "institution": -506058,
+      "individual": 1501511
+    },
+    {
+      "date": "2025-08-26",
+      "foreign": -2271718,
+      "institution": -905157,
+      "individual": 2329333
+    },
+    {
+      "date": "2025-08-27",
+      "foreign": -848232,
+      "institution": -82081,
+      "individual": 61784
+    },
+    {
+      "date": "2025-08-28",
+      "foreign": -3462829,
+      "institution": -793042,
+      "individual": 3327050
+    },
+    {
+      "date": "2025-08-29",
+      "foreign": -1779463,
+      "institution": -165432,
+      "individual": 1064906
+    },
+    {
+      "date": "2025-09-01",
+      "foreign": -2707270,
+      "institution": -1078375,
+      "individual": 2861486
+    },
+    {
+      "date": "2025-09-02",
+      "foreign": 1914612,
+      "institution": -805050,
+      "individual": -2003591
+    },
+    {
+      "date": "2025-09-03",
+      "foreign": 1387860,
+      "institution": -1111477,
+      "individual": -1234611
+    },
+    {
+      "date": "2025-09-04",
+      "foreign": 415114,
+      "institution": -645230,
+      "individual": -674788
+    },
+    {
+      "date": "2025-09-05",
+      "foreign": -1550793,
+      "institution": -103239,
+      "individual": 749207
+    },
+    {
+      "date": "2025-09-08",
+      "foreign": 682321,
+      "institution": -167019,
+      "individual": -1389241
+    },
+    {
+      "date": "2025-09-09",
+      "foreign": 3847532,
+      "institution": 1864337,
+      "individual": -6511482
+    },
+    {
+      "date": "2025-09-10",
+      "foreign": 5280895,
+      "institution": 4582471,
+      "individual": -10482254
+    },
+    {
+      "date": "2025-09-11",
+      "foreign": -76406,
+      "institution": 5558618,
+      "individual": -6067129
+    },
+    {
+      "date": "2025-09-12",
+      "foreign": 10543324,
+      "institution": 6015158,
+      "individual": -16962744
+    },
+    {
+      "date": "2025-09-15",
+      "foreign": 3396333,
+      "institution": 1660236,
+      "individual": -5419485
+    },
+    {
+      "date": "2025-09-16",
+      "foreign": 13065687,
+      "institution": 886516,
+      "individual": -13653413
+    },
+    {
+      "date": "2025-09-17",
+      "foreign": 2119727,
+      "institution": -797224,
+      "individual": -1992453
+    },
+    {
+      "date": "2025-09-18",
+      "foreign": 4353498,
+      "institution": 4524496,
+      "individual": -9438120
+    },
+    {
+      "date": "2025-09-19",
+      "foreign": 130014,
+      "institution": -1073051,
+      "individual": 146081
+    },
+    {
+      "date": "2025-09-22",
+      "foreign": 8006938,
+      "institution": 1932257,
+      "individual": -10294296
+    },
+    {
+      "date": "2025-09-23",
+      "foreign": 1918392,
+      "institution": -1300282,
+      "individual": -1232456
+    },
+    {
+      "date": "2025-09-24",
+      "foreign": 805588,
+      "institution": 517678,
+      "individual": -1712355
+    },
+    {
+      "date": "2025-09-25",
+      "foreign": 4889117,
+      "institution": 276865,
+      "individual": -5653744
+    },
+    {
+      "date": "2025-09-26",
+      "foreign": 1568146,
+      "institution": -2836910,
+      "individual": 810705
+    },
+    {
+      "date": "2025-09-29",
+      "foreign": 1042519,
+      "institution": 966344,
+      "individual": -2366007
+    },
+    {
+      "date": "2025-09-30",
+      "foreign": 1263686,
+      "institution": -240957,
+      "individual": -1115898
+    },
+    {
+      "date": "2025-10-01",
+      "foreign": 6152420,
+      "institution": 1484044,
+      "individual": -7449729
+    },
+    {
+      "date": "2025-10-02",
+      "foreign": 19112325,
+      "institution": 233409,
+      "individual": -19249147
+    },
+    {
+      "date": "2025-10-10",
+      "foreign": 6365411,
+      "institution": 366625,
+      "individual": -6505605
+    },
+    {
+      "date": "2025-10-13",
+      "foreign": -2438145,
+      "institution": 67960,
+      "individual": 2283798
+    },
+    {
+      "date": "2025-10-14",
+      "foreign": 2731139,
+      "institution": -2355665,
+      "individual": -512790
+    },
+    {
+      "date": "2025-10-15",
+      "foreign": 1732981,
+      "institution": 1592972,
+      "individual": -3334244
+    },
+    {
+      "date": "2025-10-16",
+      "foreign": 5761945,
+      "institution": 2000393,
+      "individual": -7625751
+    },
+    {
+      "date": "2025-10-17",
+      "foreign": 4052021,
+      "institution": -1069212,
+      "individual": -2907282
+    },
+    {
+      "date": "2025-10-20",
+      "foreign": -995287,
+      "institution": 970254,
+      "individual": -134577
+    },
+    {
+      "date": "2025-10-21",
+      "foreign": 652462,
+      "institution": 1271387,
+      "individual": -1849438
+    },
+    {
+      "date": "2025-10-22",
+      "foreign": -504443,
+      "institution": 1098158,
+      "individual": -512514
+    },
+    {
+      "date": "2025-10-23",
+      "foreign": -1184718,
+      "institution": -1560979,
+      "individual": 2643693
+    },
+    {
+      "date": "2025-10-24",
+      "foreign": 5223327,
+      "institution": 3565823,
+      "individual": -8645536
+    },
+    {
+      "date": "2025-10-27",
+      "foreign": 7752049,
+      "institution": 1615226,
+      "individual": -9256525
+    },
+    {
+      "date": "2025-10-28",
+      "foreign": -2587549,
+      "institution": -913950,
+      "individual": 3387485
+    },
+    {
+      "date": "2025-10-29",
+      "foreign": -2014869,
+      "institution": 855784,
+      "individual": 1048516
+    },
+    {
+      "date": "2025-10-30",
+      "foreign": 5132582,
+      "institution": 59109,
+      "individual": -5274854
+    },
+    {
+      "date": "2025-10-31",
+      "foreign": 17417030,
+      "institution": -15452058,
+      "individual": -2194927
+    },
+    {
+      "date": "2025-11-03",
+      "foreign": -2572193,
+      "institution": 2283333,
+      "individual": 188547
+    },
+    {
+      "date": "2025-11-04",
+      "foreign": -5492967,
+      "institution": -731109,
+      "individual": 6602532
+    },
+    {
+      "date": "2025-11-05",
+      "foreign": -1632752,
+      "institution": -1069851,
+      "individual": 3161844
+    },
+    {
+      "date": "2025-11-06",
+      "foreign": -7198749,
+      "institution": 1744157,
+      "individual": 5228324
+    },
+    {
+      "date": "2025-11-07",
+      "foreign": 2597021,
+      "institution": -1833179,
+      "individual": -670413
+    },
+    {
+      "date": "2025-11-10",
+      "foreign": 703232,
+      "institution": 1137212,
+      "individual": -1917458
+    },
+    {
+      "date": "2025-11-11",
+      "foreign": 2239548,
+      "institution": 1393210,
+      "individual": -3575513
+    },
+    {
+      "date": "2025-11-12",
+      "foreign": -4326840,
+      "institution": 1925957,
+      "individual": 2243924
+    },
+    {
+      "date": "2025-11-13",
+      "foreign": 1882606,
+      "institution": -4088635,
+      "individual": 2222221
+    },
+    {
+      "date": "2025-11-14",
+      "foreign": -5945086,
+      "institution": -3296936,
+      "individual": 8999141
+    },
+    {
+      "date": "2025-11-17",
+      "foreign": 3035482,
+      "institution": 356569,
+      "individual": -3330929
+    },
+    {
+      "date": "2025-11-18",
+      "foreign": 812607,
+      "institution": -1741093,
+      "individual": 953454
+    },
+    {
+      "date": "2025-11-19",
+      "foreign": -2083771,
+      "institution": 874849,
+      "individual": 1293442
+    },
+    {
+      "date": "2025-11-20",
+      "foreign": 5246781,
+      "institution": 1747180,
+      "individual": -7029081
+    },
+    {
+      "date": "2025-11-21",
+      "foreign": -8328938,
+      "institution": -111484,
+      "individual": 8309682
+    },
+    {
+      "date": "2025-11-24",
+      "foreign": 322617,
+      "institution": 3727780,
+      "individual": -4009460
+    },
+    {
+      "date": "2025-11-25",
+      "foreign": 93219,
+      "institution": 326332,
+      "individual": -613544
+    },
+    {
+      "date": "2025-11-26",
+      "foreign": 2067940,
+      "institution": 3682696,
+      "individual": -5962305
+    },
+    {
+      "date": "2025-11-27",
+      "foreign": 1432144,
+      "institution": 957997,
+      "individual": -2505197
+    },
+    {
+      "date": "2025-11-28",
+      "foreign": -5123789,
+      "institution": 1375870,
+      "individual": 3667448
+    },
+    {
+      "date": "2025-12-01",
+      "foreign": -11946,
+      "institution": -390446,
+      "individual": 447943
+    },
+    {
+      "date": "2025-12-02",
+      "foreign": 4133779,
+      "institution": 1185015,
+      "individual": -5275148
+    },
+    {
+      "date": "2025-12-03",
+      "foreign": 1256588,
+      "institution": 1760610,
+      "individual": -2893272
+    },
+    {
+      "date": "2025-12-04",
+      "foreign": -24865,
+      "institution": 498024,
+      "individual": -594891
+    },
+    {
+      "date": "2025-12-05",
+      "foreign": 4058756,
+      "institution": 1838285,
+      "individual": -5782364
+    },
+    {
+      "date": "2025-12-08",
+      "foreign": 1434205,
+      "institution": -587472,
+      "individual": -926573
+    },
+    {
+      "date": "2025-12-09",
+      "foreign": -3588776,
+      "institution": 426570,
+      "individual": 2945085
+    },
+    {
+      "date": "2025-12-10",
+      "foreign": -870935,
+      "institution": -987960,
+      "individual": 1834474
+    },
+    {
+      "date": "2025-12-11",
+      "foreign": 2489101,
+      "institution": -4352937,
+      "individual": 1800493
+    },
+    {
+      "date": "2025-12-12",
+      "foreign": -865104,
+      "institution": 3049014,
+      "individual": -2245372
+    },
+    {
+      "date": "2025-12-15",
+      "foreign": -6640175,
+      "institution": -1038292,
+      "individual": 7539547
+    },
+    {
+      "date": "2025-12-16",
+      "foreign": -1730798,
+      "institution": -170685,
+      "individual": 1888146
+    },
+    {
+      "date": "2025-12-17",
+      "foreign": 2194708,
+      "institution": 1901835,
+      "individual": -4156504
+    },
+    {
+      "date": "2025-12-18",
+      "foreign": -873792,
+      "institution": 417747,
+      "individual": 315477
+    },
+    {
+      "date": "2025-12-19",
+      "foreign": -6759652,
+      "institution": 1614758,
+      "individual": 4952520
+    },
+    {
+      "date": "2025-12-22",
+      "foreign": 7228137,
+      "institution": 5250125,
+      "individual": -12325196
+    },
+    {
+      "date": "2025-12-23",
+      "foreign": 5367347,
+      "institution": 1331000,
+      "individual": -6611880
+    },
+    {
+      "date": "2025-12-24",
+      "foreign": 460617,
+      "institution": 1248329,
+      "individual": -1646632
+    },
+    {
+      "date": "2025-12-26",
+      "foreign": 10849355,
+      "institution": 2925086,
+      "individual": -13859069
+    },
+    {
+      "date": "2025-12-29",
+      "foreign": -4636173,
+      "institution": -682301,
+      "individual": 5276406
+    },
+    {
+      "date": "2025-12-30",
+      "foreign": -1240182,
+      "institution": -275056,
+      "individual": 1459781
+    },
+    {
+      "date": "2026-01-02",
+      "foreign": 2366002,
+      "institution": -918307,
+      "individual": -1492572
+    },
+    {
+      "date": "2026-01-05",
+      "foreign": 2475284,
+      "institution": -3264831,
+      "individual": 401056
+    },
+    {
+      "date": "2026-01-06",
+      "foreign": -11191609,
+      "institution": 236370,
+      "individual": 10361493
+    },
+    {
+      "date": "2026-01-07",
+      "foreign": 2019337,
+      "institution": -2529731,
+      "individual": 609915
+    },
+    {
+      "date": "2026-01-08",
+      "foreign": -3734594,
+      "institution": -5130274,
+      "individual": 7039473
+    },
+    {
+      "date": "2026-01-09",
+      "foreign": -6672482,
+      "institution": 1990474,
+      "individual": 2886253
+    },
+    {
+      "date": "2026-01-12",
+      "foreign": -6786143,
+      "institution": 681722,
+      "individual": 4446235
+    },
+    {
+      "date": "2026-01-13",
+      "foreign": -3772770,
+      "institution": -83656,
+      "individual": 2174801
+    },
+    {
+      "date": "2026-01-14",
+      "foreign": 152616,
+      "institution": 1895093,
+      "individual": -3550369
+    },
+    {
+      "date": "2026-01-15",
+      "foreign": 261224,
+      "institution": 4001578,
+      "individual": -5729556
+    },
+    {
+      "date": "2026-01-16",
+      "foreign": 811557,
+      "institution": 1267814,
+      "individual": -3575750
+    },
+    {
+      "date": "2026-01-19",
+      "foreign": -70936,
+      "institution": -741247,
+      "individual": -732804
+    },
+    {
+      "date": "2026-01-20",
+      "foreign": -2944259,
+      "institution": -1963641,
+      "individual": 3370500
+    },
+    {
+      "date": "2026-01-21",
+      "foreign": 6600000,
+      "institution": 426468,
+      "individual": -8267123
+    },
+    {
+      "date": "2026-01-22",
+      "foreign": 1333121,
+      "institution": 136101,
+      "individual": -2905871
+    },
+    {
+      "date": "2026-01-23",
+      "foreign": -1729586,
+      "institution": -1501383,
+      "individual": 2419191
+    },
+    {
+      "date": "2026-01-26",
+      "foreign": 703937,
+      "institution": -2372345,
+      "individual": 1691743
+    },
+    {
+      "date": "2026-01-27",
+      "foreign": 3490691,
+      "institution": 827117,
+      "individual": -4316139
+    },
+    {
+      "date": "2026-01-28",
+      "foreign": -1761499,
+      "institution": -900399,
+      "individual": 2623324
+    },
+    {
+      "date": "2026-01-29",
+      "foreign": -7415509,
+      "institution": -1769435,
+      "individual": 9140430
+    },
+    {
+      "date": "2026-01-30",
+      "foreign": -3669445,
+      "institution": 1139860,
+      "individual": 1996127
+    },
+    {
+      "date": "2026-02-02",
+      "foreign": -6237202,
+      "institution": -3097649,
+      "individual": 8730278
+    },
+    {
+      "date": "2026-02-03",
+      "foreign": 4126708,
+      "institution": 3575465,
+      "individual": -8295594
+    },
+    {
+      "date": "2026-02-04",
+      "foreign": -5647362,
+      "institution": 3877159,
+      "individual": 879319
+    },
+    {
+      "date": "2026-02-05",
+      "foreign": -16017134,
+      "institution": -4566923,
+      "individual": 19450052
+    },
+    {
+      "date": "2026-02-06",
+      "foreign": -5705438,
+      "institution": 1252824,
+      "individual": 3328122
+    },
+    {
+      "date": "2026-02-09",
+      "foreign": 510164,
+      "institution": 4465185,
+      "individual": -5964986
+    },
+    {
+      "date": "2026-02-10",
+      "foreign": 1837045,
+      "institution": 880521,
+      "individual": -3616937
+    },
+    {
+      "date": "2026-02-11",
+      "foreign": 3681106,
+      "institution": -49410,
+      "individual": -4491982
+    },
+    {
+      "date": "2026-02-12",
+      "foreign": 13526444,
+      "institution": 244823,
+      "individual": -14428111
+    },
+    {
+      "date": "2026-02-13",
+      "foreign": -4715928,
+      "institution": 556164,
+      "individual": 3099928
+    },
+    {
+      "date": "2026-02-19",
+      "foreign": -5656680,
+      "institution": 1738080,
+      "individual": 2853975
+    },
+    {
+      "date": "2026-02-20",
+      "foreign": -10839769,
+      "institution": 3427880,
+      "individual": 6320615
+    },
+    {
+      "date": "2026-02-23",
+      "foreign": -5936436,
+      "institution": 754361,
+      "individual": 4154406
+    },
+    {
+      "date": "2026-02-24",
+      "foreign": -2294251,
+      "institution": 3776093,
+      "individual": -2406416
+    },
+    {
+      "date": "2026-02-25",
+      "foreign": -8781657,
+      "institution": 1393600,
+      "individual": 6242239
+    },
+    {
+      "date": "2026-02-26",
+      "foreign": -7738139,
+      "institution": 1604297,
+      "individual": 5011907
+    },
+    {
+      "date": "2026-02-27",
+      "foreign": -19602376,
+      "institution": 1554880,
+      "individual": 16794855
+    },
+    {
+      "date": "2026-03-03",
+      "foreign": -15559676,
+      "institution": 1036502,
+      "individual": 13104245
+    },
+    {
+      "date": "2026-03-04",
+      "foreign": -3721894,
+      "institution": 1534865,
+      "individual": 728144
+    },
+    {
+      "date": "2026-03-05",
+      "foreign": -1781451,
+      "institution": -3453742,
+      "individual": 4196425
+    },
+    {
+      "date": "2026-03-06",
+      "foreign": -6210646,
+      "institution": -3014565,
+      "individual": 8764447
+    },
+    {
+      "date": "2026-03-09",
+      "foreign": -8072158,
+      "institution": -3076268,
+      "individual": 10808050
+    },
+    {
+      "date": "2026-03-10",
+      "foreign": 4105267,
+      "institution": 1055834,
+      "individual": -5028051
+    },
+    {
+      "date": "2026-03-11",
+      "foreign": -782997,
+      "institution": 514922,
+      "individual": 228415
+    },
+    {
+      "date": "2026-03-12",
+      "foreign": -4868716,
+      "institution": 406662,
+      "individual": 4304042
+    },
+    {
+      "date": "2026-03-13",
+      "foreign": -2830759,
+      "institution": -2244049,
+      "individual": 5081822
+    },
+    {
+      "date": "2026-03-16",
+      "foreign": -497023,
+      "institution": 928815,
+      "individual": -580540
+    },
+    {
+      "date": "2026-03-17",
+      "foreign": 382076,
+      "institution": 1577618,
+      "individual": -1995899
+    },
+    {
+      "date": "2026-03-18",
+      "foreign": 1369284,
+      "institution": 4424253,
+      "individual": -5692499
+    },
+    {
+      "date": "2026-03-19",
+      "foreign": -2135532,
+      "institution": -1121429,
+      "individual": 3022988
+    },
+    {
+      "date": "2026-03-20",
+      "foreign": -196136,
+      "institution": -7302259,
+      "individual": 7351747
+    },
+    {
+      "date": "2026-03-23",
+      "foreign": -8017053,
+      "institution": -6477862,
+      "individual": 12536386
+    },
+    {
+      "date": "2026-03-24",
+      "foreign": -6163660,
+      "institution": -201009,
+      "individual": 4652734
+    },
+    {
+      "date": "2026-03-25",
+      "foreign": -6165053,
+      "institution": 2908773,
+      "individual": 1408964
+    },
+    {
+      "date": "2026-03-26",
+      "foreign": -11142414,
+      "institution": -1666880,
+      "individual": 10886475
+    },
+    {
+      "date": "2026-03-27",
+      "foreign": -10234613,
+      "institution": 675680,
+      "individual": 7687046
+    },
+    {
+      "date": "2026-03-30",
+      "foreign": -3993971,
+      "institution": 1550021,
+      "individual": 521615
+    },
+    {
+      "date": "2026-03-31",
+      "foreign": -11706834,
+      "institution": 598764,
+      "individual": 9092760
+    },
+    {
+      "date": "2026-04-01",
+      "foreign": -57187,
+      "institution": 6799851,
+      "individual": -8480984
+    },
+    {
+      "date": "2026-04-02",
+      "foreign": -1400484,
+      "institution": -3005402,
+      "individual": 2513841
+    },
+    {
+      "date": "2026-04-03",
+      "foreign": 516352,
+      "institution": 1916117,
+      "individual": -4955613
+    },
+    {
+      "date": "2026-04-06",
+      "foreign": 1198443,
+      "institution": 1672994,
+      "individual": -4684830
+    },
+    {
+      "date": "2026-04-07",
+      "foreign": -2732748,
+      "institution": 577919,
+      "individual": 275532
+    },
+    {
+      "date": "2026-04-08",
+      "foreign": 2338874,
+      "institution": 3775431,
+      "individual": -7765652
+    },
+    {
+      "date": "2026-04-09",
+      "foreign": 11077050,
+      "institution": -13418579,
+      "individual": 501344
+    },
+    {
+      "date": "2026-04-10",
+      "foreign": 465171,
+      "institution": -475614,
+      "individual": -1938572
+    },
+    {
+      "date": "2026-04-13",
+      "foreign": -1437638,
+      "institution": -2225119,
+      "individual": 1758260
+    },
+    {
+      "date": "2026-04-14",
+      "foreign": -505391,
+      "institution": 3088118,
+      "individual": -4370282
+    },
+    {
+      "date": "2026-04-15",
+      "foreign": 64984,
+      "institution": 575516,
+      "individual": -2591798
+    },
+    {
+      "date": "2026-04-16",
+      "foreign": 1689165,
+      "institution": 1432694,
+      "individual": -4968280
+    },
+    {
+      "date": "2026-04-17",
+      "foreign": -3177110,
+      "institution": 869054,
+      "individual": 418398
+    },
+    {
+      "date": "2026-04-20",
+      "foreign": -2876209,
+      "institution": 119525,
+      "individual": 1363818
+    },
+    {
+      "date": "2026-04-21",
+      "foreign": 1295451,
+      "institution": 1226321,
+      "individual": -2499998
+    },
+    {
+      "date": "2026-04-22",
+      "foreign": -1304307,
+      "institution": -653920,
+      "individual": 1950044
+    },
+    {
+      "date": "2026-04-23",
+      "foreign": 3298847,
+      "institution": 677286,
+      "individual": -3920976
+    },
+    {
+      "date": "2026-04-24",
+      "foreign": -4887720,
+      "institution": -66031,
+      "individual": 4827781
+    },
+    {
+      "date": "2026-04-27",
+      "foreign": 4504491,
+      "institution": 2050701,
+      "individual": -6479795
+    },
+    {
+      "date": "2026-04-28",
+      "foreign": -3066611,
+      "institution": 895779,
+      "individual": 2149031
+    },
+    {
+      "date": "2026-04-29",
+      "foreign": 2028533,
+      "institution": 1075301,
+      "individual": -3034454
+    },
+    {
+      "date": "2026-04-30",
+      "foreign": -840944,
+      "institution": 158634,
+      "individual": 617606
+    },
+    {
+      "date": "2026-05-04",
+      "foreign": 5214979,
+      "institution": 4335045,
+      "individual": -9497468
+    },
+    {
+      "date": "2026-05-06",
+      "foreign": 11842188,
+      "institution": -2222367,
+      "individual": -9324089
+    },
+    {
+      "date": "2026-05-07",
+      "foreign": -10344332,
+      "institution": 638888,
+      "individual": 9555243
+    },
+    {
+      "date": "2026-05-08",
+      "foreign": -9595937,
+      "institution": 1074644,
+      "individual": 8324987
+    },
+    {
+      "date": "2026-05-11",
+      "foreign": -7997922,
+      "institution": 1599184,
+      "individual": 6163844
+    },
+    {
+      "date": "2026-05-12",
+      "foreign": -7824233,
+      "institution": -78144,
+      "individual": 7805001
+    },
+    {
+      "date": "2026-05-13",
+      "foreign": -5675844,
+      "institution": 1642009,
+      "individual": 3734208
+    },
+    {
+      "date": "2026-05-14",
+      "foreign": 757349,
+      "institution": 260989,
+      "individual": -1040591
+    },
+    {
+      "date": "2026-05-15",
+      "foreign": -8855741,
+      "institution": -1529944,
+      "individual": 10257346
+    },
+    {
+      "date": "2026-05-18",
+      "foreign": -4486093,
+      "institution": 2803397,
+      "individual": 1689597
+    },
+    {
+      "date": "2026-05-19",
+      "foreign": -9263047,
+      "institution": 1418906,
+      "individual": 7818601
+    },
+    {
+      "date": "2026-05-20",
+      "foreign": -5733354,
+      "institution": 2756787,
+      "individual": 2765915
+    },
+    {
+      "date": "2026-05-21",
+      "foreign": 3672423,
+      "institution": 2608486,
+      "individual": -5931378
+    },
+    {
+      "date": "2026-05-22",
+      "foreign": -3419695,
+      "institution": -307631,
+      "individual": 3602972
+    },
+    {
+      "date": "2026-05-26",
+      "foreign": 1891734,
+      "institution": 1513469,
+      "individual": -3263161
+    },
+    {
+      "date": "2026-05-27",
+      "foreign": -274173,
+      "institution": 1550904,
+      "individual": -1105685
+    },
+    {
+      "date": "2026-05-28",
+      "foreign": -5173125,
+      "institution": -1613562,
+      "individual": 6500347
+    },
+    {
+      "date": "2026-05-29",
+      "foreign": -1061741,
+      "institution": 5314304,
+      "individual": -4237361
+    },
+    {
+      "date": "2026-06-01",
+      "foreign": -180865,
+      "institution": 3832695,
+      "individual": -3173072
+    },
+    {
+      "date": "2026-06-02",
+      "foreign": -11016912,
+      "institution": 3088203,
+      "individual": 7943201
+    },
+    {
+      "date": "2026-06-04",
+      "foreign": -12414744,
+      "institution": 3253812,
+      "individual": 9000051
+    },
+    {
+      "date": "2026-06-05",
+      "foreign": -4240844,
+      "institution": -1446498,
+      "individual": 5414215
+    },
+    {
+      "date": "2026-06-08",
+      "foreign": -1174306,
+      "institution": -3937194,
+      "individual": 4830335
+    },
+    {
+      "date": "2026-06-09",
+      "foreign": -1596173,
+      "institution": 1767022,
+      "individual": -331618
+    },
+    {
+      "date": "2026-06-10",
+      "foreign": -3840270,
+      "institution": -2851841,
+      "individual": 6424717
+    },
+    {
+      "date": "2026-06-11",
+      "foreign": 549645,
+      "institution": -5437840,
+      "individual": 4721925
+    },
+    {
+      "date": "2026-06-12",
+      "foreign": 2880306,
+      "institution": 3295009,
+      "individual": -5933301
+    },
+    {
+      "date": "2026-06-15",
+      "foreign": -1828940,
+      "institution": 531697,
+      "individual": 1306068
+    },
+    {
+      "date": "2026-06-16",
+      "foreign": -27451,
+      "institution": 839414,
+      "individual": -743977
+    },
+    {
+      "date": "2026-06-17",
+      "foreign": -2000080,
+      "institution": 1133803,
+      "individual": 874426
+    },
+    {
+      "date": "2026-06-18",
+      "foreign": 2424675,
+      "institution": 1943262,
+      "individual": -4166249
+    },
+    {
+      "date": "2026-06-19",
+      "foreign": -2468914,
+      "institution": -1380348,
+      "individual": 3872271
+    },
+    {
+      "date": "2026-06-22",
+      "foreign": -1266729,
+      "institution": -328401,
+      "individual": 1528227
+    },
+    {
+      "date": "2026-06-23",
+      "foreign": -2251501,
+      "institution": -4359775,
+      "individual": 6503234
+    },
+    {
+      "date": "2026-06-24",
+      "foreign": -596340,
+      "institution": 2969153,
+      "individual": -2337684
+    },
+    {
+      "date": "2026-06-25",
+      "foreign": -1773490,
+      "institution": 3411480,
+      "individual": -1686755
+    },
+    {
+      "date": "2026-06-26",
+      "foreign": -5975701,
+      "institution": -3593889,
+      "individual": 9298204
+    },
+    {
+      "date": "2026-06-29",
+      "foreign": -11904952,
+      "institution": 2446957,
+      "individual": 9127270
+    },
+    {
+      "date": "2026-06-30",
+      "foreign": -2627167,
+      "institution": 2731943,
+      "individual": -97602
+    },
+    {
+      "date": "2026-07-01",
+      "foreign": -3377992,
+      "institution": -1855765,
+      "individual": 5183205
+    },
+    {
+      "date": "2026-07-02",
+      "foreign": -5007053,
+      "institution": -2166435,
+      "individual": 6951718
+    },
+    {
+      "date": "2026-07-03",
+      "foreign": -1365575,
+      "institution": 4369649,
+      "individual": -3029168
+    },
+    {
+      "date": "2026-07-06",
+      "foreign": -2018562,
+      "institution": 14823,
+      "individual": 1917050
+    },
+    {
+      "date": "2026-07-07",
+      "foreign": -6145090,
+      "institution": -1852807,
+      "individual": 7870568
+    },
+    {
+      "date": "2026-07-08",
+      "foreign": -3015093,
+      "institution": 971031,
+      "individual": 2031705
+    },
+    {
+      "date": "2026-07-09",
+      "foreign": 845552,
+      "institution": 1107761,
+      "individual": -1739937
+    },
+    {
+      "date": "2026-07-10",
+      "foreign": 625985,
+      "institution": 2313745,
+      "individual": -2851466
+    },
+    {
+      "date": "2026-07-13",
+      "foreign": -716994,
+      "institution": -3246131,
+      "individual": 4206987
+    },
+    {
+      "date": "2026-07-14",
+      "foreign": -1128775,
+      "institution": 5326105,
+      "individual": -4132630
+    },
+    {
+      "date": "2026-07-15",
+      "foreign": 1799843,
+      "institution": -413531,
+      "individual": -1363799
+    },
+    {
+      "date": "2026-07-16",
+      "foreign": -826076,
+      "institution": -4567849,
+      "individual": 5211886
+    },
+    {
+      "date": "2026-07-20",
+      "foreign": 1129083,
+      "institution": -1468948,
+      "individual": 255913
+    },
+    {
+      "date": "2026-07-21",
+      "foreign": 1943936,
+      "institution": 1823763,
+      "individual": -3654326
+    },
+    {
+      "date": "2026-07-22",
+      "foreign": 2136159,
+      "institution": -1718094,
+      "individual": -381003
+    },
+    {
+      "date": "2026-07-23",
+      "foreign": 1299490,
+      "institution": -120579,
+      "individual": -1181665
+    },
+    {
+      "date": "2026-07-24",
+      "foreign": -3428259,
+      "institution": -3378638,
+      "individual": 6675340
+    },
+    {
+      "date": "2026-07-27",
+      "foreign": -3319368,
+      "institution": 487617,
+      "individual": 2801281
+    },
+    {
+      "date": "2026-07-28",
+      "foreign": -6554668,
+      "institution": -635592,
+      "individual": 7377129
+    },
+    {
+      "date": "2026-07-29",
+      "foreign": -3550689,
+      "institution": 5971830,
+      "individual": -2434946
+    },
+    {
+      "date": "2026-07-30",
+      "foreign": 656680,
+      "institution": -237928,
+      "individual": -413758
+    },
+    {
+      "date": "2026-07-31",
+      "foreign": 8359011,
+      "institution": 3618959,
+      "individual": -11681307
+    },
+    {
+      "date": "2026-08-03",
+      "foreign": -3896489,
+      "institution": -5039954,
+      "individual": 8658155
+    },
+    {
+      "date": "2026-08-04",
+      "foreign": 850527,
+      "institution": -3924513,
+      "individual": 2927753
+    },
+    {
+      "date": "2026-08-05",
+      "foreign": 2298577,
+      "institution": -2078706,
+      "individual": -222721
+    },
+    {
+      "date": "2026-08-06",
+      "foreign": -3134136,
+      "institution": -1220335,
+      "individual": 4225347
+    },
+    {
+      "date": "2026-08-07",
+      "foreign": -1737367,
+      "institution": 36604,
+      "individual": 633738
+    },
+    {
+      "date": "2026-08-10",
+      "foreign": -4394465,
+      "institution": 625055,
+      "individual": 3655311
+    },
+    {
+      "date": "2026-08-11",
+      "foreign": 2462529,
+      "institution": 319290,
+      "individual": -2684904
+    },
+    {
+      "date": "2026-08-12",
+      "foreign": 5802466,
+      "institution": 776871,
+      "individual": -6022669
+    },
+    {
+      "date": "2026-08-13",
+      "foreign": -401379,
+      "institution": 5544777,
+      "individual": -5097051
+    },
+    {
+      "date": "2026-08-14",
+      "foreign": 4913433,
+      "institution": -1830920,
+      "individual": -3049225
+    },
+    {
+      "date": "2026-08-18",
+      "foreign": 577859,
+      "institution": -941461,
+      "individual": 410513
+    },
+    {
+      "date": "2026-08-19",
+      "foreign": -4177513,
+      "institution": -2923301,
+      "individual": 6797682
+    },
+    {
+      "date": "2026-08-20",
+      "foreign": 4221606,
+      "institution": 599886,
+      "individual": -4742281
+    },
+    {
+      "date": "2026-08-21",
+      "foreign": 1567349,
+      "institution": 1306652,
+      "individual": -2671260
+    },
+    {
+      "date": "2026-08-24",
+      "foreign": -6882379,
+      "institution": -6269240,
+      "individual": 11125505
+    },
+    {
+      "date": "2026-08-25",
+      "foreign": -5003317,
+      "institution": 203484,
+      "individual": 2784825
+    },
+    {
+      "date": "2026-08-26",
+      "foreign": 2518326,
+      "institution": 503532,
+      "individual": -4862846
+    },
+    {
+      "date": "2026-08-27",
+      "foreign": 1381786,
+      "institution": -97433,
+      "individual": -3223427
+    },
+    {
+      "date": "2026-08-28",
+      "foreign": -1927155,
+      "institution": -1652437,
+      "individual": 1589169
+    },
+    {
+      "date": "2026-08-31",
+      "foreign": -2293,
+      "institution": -2349842,
+      "individual": 333167
+    },
+    {
+      "date": "2026-09-01",
+      "foreign": -707536,
+      "institution": -339843,
+      "individual": -935990
+    },
+    {
+      "date": "2026-09-02",
+      "foreign": -1321536,
+      "institution": -2977902,
+      "individual": 2332837
+    },
+    {
+      "date": "2026-09-03",
+      "foreign": 91825,
+      "institution": -839601,
+      "individual": -1234260
+    },
+    {
+      "date": "2026-09-04",
+      "foreign": -115377,
+      "institution": 2489812,
+      "individual": -4343948
+    },
+    {
+      "date": "2026-09-07",
+      "foreign": 3246247,
+      "institution": 4568427,
+      "individual": -9648846
+    },
+    {
+      "date": "2026-09-08",
+      "foreign": 3332528,
+      "institution": 2406250,
+      "individual": -7674481
+    },
+    {
+      "date": "2026-09-09",
+      "foreign": -2884161,
+      "institution": 1740154,
+      "individual": -920131
+    },
+    {
+      "date": "2026-09-10",
+      "foreign": -5769453,
+      "institution": 4266985,
+      "individual": -434111
+    },
+    {
+      "date": "2026-09-11",
+      "foreign": -3531147,
+      "institution": -2208594,
+      "individual": 3643746
+    },
+    {
+      "date": "2026-09-14",
+      "foreign": -3466765,
+      "institution": -1817020,
+      "individual": 3570705
+    },
+    {
+      "date": "2026-09-15",
+      "foreign": -1088039,
+      "institution": -2321959,
+      "individual": 1379866
+    },
+    {
+      "date": "2026-09-16",
+      "foreign": -1906839,
+      "institution": 1660246,
+      "individual": -1730267
+    },
+    {
+      "date": "2026-09-17",
+      "foreign": -2170687,
+      "institution": 196838,
+      "individual": -39299
+    },
+    {
+      "date": "2026-09-18",
+      "foreign": -1673323,
+      "institution": 2746972,
+      "individual": -2975813
+    },
+    {
+      "date": "2026-09-21",
+      "foreign": 4080410,
+      "institution": 4186614,
+      "individual": -10152588
+    },
+    {
+      "date": "2026-09-22",
+      "foreign": 659851,
+      "institution": 259459,
+      "individual": -2707452
+    },
+    {
+      "date": "2026-09-23",
+      "foreign": 4513767,
+      "institution": 1346883,
+      "individual": -7630126
+    },
+    {
+      "date": "2026-09-28",
+      "foreign": -4999903,
+      "institution": -2410724,
+      "individual": 5330121
+    },
+    {
+      "date": "2026-09-29",
+      "foreign": -2508369,
+      "institution": 53759,
+      "individual": 422277
+    },
+    {
+      "date": "2026-09-30",
+      "foreign": -3191284,
+      "institution": -1409182,
+      "individual": 2546037
+    },
+    {
+      "date": "2026-10-01",
+      "foreign": -758236,
+      "institution": 46127,
+      "individual": -1292880
+    },
+    {
+      "date": "2026-10-02",
+      "foreign": -350942,
+      "institution": 614278,
+      "individual": -2217946
+    },
+    {
+      "date": "2026-10-06",
+      "foreign": -2064174,
+      "institution": -193422,
+      "individual": 1273618
+    },
+    {
+      "date": "2026-10-07",
+      "foreign": -118283,
+      "institution": -819541,
+      "individual": 957691
+    },
+    {
+      "date": "2026-10-08",
+      "foreign": -1307041,
+      "institution": -4087636,
+      "individual": 5259380
+    },
+    {
+      "date": "2026-10-12",
+      "foreign": -2178086,
+      "institution": -1719656,
+      "individual": 3855827
+    },
+    {
+      "date": "2026-10-13",
+      "foreign": -5943474,
+      "institution": 1016744,
+      "individual": 5221370
+    },
+    {
+      "date": "2026-10-14",
+      "foreign": -829758,
+      "institution": 310050,
+      "individual": 505494
+    },
+    {
+      "date": "2026-10-15",
+      "foreign": -7280040,
+      "institution": 2391459,
+      "individual": 4658533
+    },
+    {
+      "date": "2026-10-16",
+      "foreign": 906438,
+      "institution": -1447523,
+      "individual": -40774
+    },
+    {
+      "date": "2026-10-19",
+      "foreign": 1241581,
+      "institution": -42900,
+      "individual": -880224
+    },
+    {
+      "date": "2026-10-20",
+      "foreign": 1801659,
+      "institution": -2760235,
+      "individual": 903908
+    },
+    {
+      "date": "2026-10-21",
+      "foreign": 2055241,
+      "institution": 313027,
+      "individual": -2324529
+    },
+    {
+      "date": "2026-10-22",
+      "foreign": -585787,
+      "institution": -400833,
+      "individual": 977352
+    },
+    {
+      "date": "2026-10-23",
+      "foreign": -868997,
+      "institution": 627670,
+      "individual": -61043
+    },
+    {
+      "date": "2026-10-26",
+      "foreign": -984399,
+      "institution": 627948,
+      "individual": 324939
+    },
+    {
+      "date": "2026-10-27",
+      "foreign": 1052520,
+      "institution": 412198,
+      "individual": -1576114
+    },
+    {
+      "date": "2026-10-28",
+      "foreign": 1522344,
+      "institution": 1620180,
+      "individual": -3084370
+    },
+    {
+      "date": "2026-10-29",
+      "foreign": -518762,
+      "institution": 245680,
+      "individual": 614637
+    },
+    {
+      "date": "2026-10-30",
+      "foreign": -1072820,
+      "institution": 1742739,
+      "individual": -85248
+    },
+    {
+      "date": "2026-11-02",
+      "foreign": 515900,
+      "institution": 733138,
+      "individual": -1810914
+    },
+    {
+      "date": "2026-11-03",
+      "foreign": -953731,
+      "institution": -157913,
+      "individual": 1289652
+    },
+    {
+      "date": "2026-11-04",
+      "foreign": -3828533,
+      "institution": 770856,
+      "individual": 3260043
+    },
+    {
+      "date": "2026-11-05",
+      "foreign": -5772197,
+      "institution": 75714,
+      "individual": 6012006
+    },
+    {
+      "date": "2026-11-06",
+      "foreign": -655978,
+      "institution": -242926,
+      "individual": 858557
+    },
+    {
+      "date": "2026-11-09",
+      "foreign": -458714,
+      "institution": 1509865,
+      "individual": -817749
+    },
+    {
+      "date": "2026-11-10",
+      "foreign": 46582,
+      "institution": 822596,
+      "individual": -815224
+    },
+    {
+      "date": "2026-11-11",
+      "foreign": 2648292,
+      "institution": -629449,
+      "individual": -2057578
+    },
+    {
+      "date": "2026-11-12",
+      "foreign": 3611532,
+      "institution": -1283117,
+      "individual": -2223328
+    },
+    {
+      "date": "2026-11-13",
+      "foreign": 8216,
+      "institution": -328604,
+      "individual": 285654
+    },
+    {
+      "date": "2026-11-16",
+      "foreign": -3105597,
+      "institution": 852610,
+      "individual": 2197588
+    },
+    {
+      "date": "2026-11-17",
+      "foreign": -2484383,
+      "institution": 875284,
+      "individual": 1564790
+    },
+    {
+      "date": "2026-11-18",
+      "foreign": -869394,
+      "institution": 1104534,
+      "individual": -294766
+    },
+    {
+      "date": "2026-11-19",
+      "foreign": -561332,
+      "institution": -186318,
+      "individual": 735721
+    },
+    {
+      "date": "2026-11-20",
+      "foreign": -2299994,
+      "institution": -1915397,
+      "individual": 4051865
+    },
+    {
+      "date": "2026-11-23",
+      "foreign": -45179,
+      "institution": 661271,
+      "individual": -673869
+    },
+    {
+      "date": "2026-11-24",
+      "foreign": 2348072,
+      "institution": 1176494,
+      "individual": -3400633
+    }
+  ]
+}
