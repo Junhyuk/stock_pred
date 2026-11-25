@@ -622,7 +622,7 @@ function renderAutomationStatus(data) {
     const dates = Object.entries(run.asof_dates ?? {}).map(([market, date]) => `${market} ${date ?? '확인 불가'}`).join(', ') || '확인 불가';
     return `${label}: 공개 ${formatAutomationTime(run.publication_checked_at)} (한국 시각), 기준 종가일 ${dates}`;
   };
-  return `자동 확인 ${checked} (한국 시각) · ${decision} ${summary('한국', data.korea)} · ${summary('미국', data.us)}. KST 월~금 18:00 장 마감 후 수집·검증하며 실제 공개 시각은 각 카드에서 확인하세요. 외부 데이터 지연·누락 시 준비 미완료로 남습니다.`;
+  return `자동 확인 ${checked} (한국 시각) · ${decision} ${summary('한국', data.korea)} · ${summary('미국', data.us)}. 월~토 08:00 KST에 수집을 시작합니다. 실제 공개 시각은 각 카드에서 확인할 수 있습니다.`;
 }
 
 function renderForecastGrid(markets, order, now = Date.now()) {

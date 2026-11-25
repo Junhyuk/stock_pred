@@ -132,9 +132,8 @@ assert.ok(text.includes('2026. 11. 14. 오전 7:55:00 (한국 시각)'), text);
 assert.ok(!text.includes('2026-11-13T22:55:00Z'));
 assert.equal(formatAutomationTime('invalid'), '확인 불가');
 assert.equal(formatAutomationTime(null), '확인 불가');
-const daily = renderAutomationStatus({mode: 'postclose', inputs: {status: 'ready'}});
-assert.ok(daily.includes('월~금 18:00'), daily);
-assert.ok(daily.includes('장 마감 후'), daily);
+const daily = renderAutomationStatus({mode: 'morning', inputs: {status: 'ready'}});
+assert.ok(daily.includes('월~토 08:00'), daily);
 assert.ok(daily.includes('실제 공개 시각'), daily);
 assert.ok(!daily.includes('08:00 발행'), daily);
 '''
