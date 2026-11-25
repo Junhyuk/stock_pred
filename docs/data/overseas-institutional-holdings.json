@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "status": "ready",
+  "as_of": "2026-11-25",
+  "coverage": "selected_filings",
+  "securities": {
+    "SKHY": {
+      "cusip": "78392B206",
+      "filings": [
+        {
+          "manager": "Metavasi Capital LP",
+          "shares": 70311,
+          "market_value_usd": 12947771,
+          "period_end": "2026-09-30",
+          "filed_at": "2026-11-16T16:31:06-05:00",
+          "accession": "0001892688-26-000184",
+          "table_url": "https://www.sec.gov/Archives/edgar/data/1864835/000189268826000184/xslForm13F_X02/metavasi13fsep2026.xml"
+        },
+        {
+          "manager": "GQG Partners LLC",
+          "shares": 166168,
+          "market_value_usd": 30600839,
+          "period_end": "2026-09-30",
+          "filed_at": "2026-11-13T08:36:33-05:00",
+          "accession": "0001062993-26-005956",
+          "table_url": "https://www.sec.gov/Archives/edgar/data/1697233/000106299326005956/xslForm13F_X02/form13fInfoTable.xml"
+        },
+        {
+          "manager": "Makena Capital Management LLC",
+          "shares": 78205,
+          "market_value_usd": 14401451,
+          "period_end": "2026-09-30",
+          "filed_at": "2026-11-06T13:56:42-05:00",
+          "accession": "0001359262-26-000006",
+          "table_url": "https://www.sec.gov/Archives/edgar/data/1359262/000135926226000006/xslForm13F_X02/Form13FInfoTable-Q3-26.xml"
+        }
+      ]
+    },
+    "KORU": {
+      "cusip": "25461A387",
+      "filings": [
+        {
+          "manager": "Cantor Fitzgerald, L. P.",
+          "shares": 20001,
+          "market_value_usd": 400420,
+          "period_end": "2026-09-30",
+          "filed_at": "2026-11-16T15:29:06-05:00",
+          "accession": "0000929638-26-004323",
+          "table_url": "https://www.sec.gov/Archives/edgar/data/1024896/000092963826004323/xslForm13F_X02/infotable.xml"
+        },
+        {
+          "manager": "Capstone Capital Management Ltd",
+          "shares": 128820,
+          "market_value_usd": 2578976,
+          "period_end": "2026-09-30",
+          "filed_at": "2026-10-21T06:15:02-04:00",
+          "accession": "0002069260-26-000005",
+          "table_url": "https://www.sec.gov/Archives/edgar/data/2069260/000206926026000005/xslForm13F_X02/2026Q3.xml"
+        },
+        {
+          "manager": "Millennium Capital Advisors, LLC",
+          "shares": 10968,
+          "market_value_usd": 219584,
+          "period_end": "2026-09-30",
+          "filed_at": "2026-10-16T12:26:54-04:00",
+          "accession": "0001172661-26-004565",
+          "table_url": "https://www.sec.gov/Archives/edgar/data/2097025/000117266126004565/xslForm13F_X02/infotable.xml"
+        }
+      ]
+    }
+  }
+}

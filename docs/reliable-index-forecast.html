@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="assets/site.css" />
   <link rel="stylesheet" href="assets/margin-credit.css" />
   <link rel="stylesheet" href="assets/kospi-flow.css" />
+  <link rel="stylesheet" href="assets/overseas-market-charts.css" />
   <style>
     .notice {
       padding: 16px;
@@ -220,6 +221,7 @@
   <nav class="quick-nav" aria-label="리포트와 시장 지표">
     <a href="index-forecast.html">1D/2D 리포트</a>
     <a href="dashboard.html">일일 대시보드</a>
+    <a href="#overseas-market-charts">SK하이닉스 ADR·KORU</a>
     <a href="#cross-assets">환율·금리·원유</a>
     <a href="#extra-numerics">추가 수치</a>
     <a href="#kospi-flow">누적 순매수</a>
@@ -320,6 +322,42 @@
       <div id="model-c-cards"></div>
     </section>
   </details>
+  <section id="overseas-market-charts" class="notice overseas-market" aria-labelledby="overseas-market-charts-title">
+    <h2 id="overseas-market-charts-title">SK하이닉스 ADR·KORU 가격과 투자자 수급</h2>
+    <div class="overseas-market-controls">
+      <p id="overseas-price-status" class="overseas-market-meta" role="status">미국 정규장 종가를 불러오는 중입니다.</p>
+      <label for="overseas-chart-range">최근 거래일
+        <select id="overseas-chart-range" disabled>
+          <option value="30">30거래일</option>
+          <option value="90">90거래일</option>
+          <option value="180">180거래일</option>
+        </select>
+      </label>
+    </div>
+    <div class="overseas-price-grid">
+      <article class="overseas-market-card" aria-labelledby="overseas-skhy-title">
+        <h3 id="overseas-skhy-title">SK하이닉스 ADR</h3>
+        <p class="overseas-market-meta">SKHY · Nasdaq · USD</p>
+        <div id="overseas-price-SKHY"><p class="overseas-chart-empty">종가 확인 중</p></div>
+      </article>
+      <article class="overseas-market-card" aria-labelledby="overseas-koru-title">
+        <h3 id="overseas-koru-title">KORU 한국 주식 일일 3배 ETF</h3>
+        <p class="overseas-market-meta">KORU · NYSE Arca · USD</p>
+        <div id="overseas-price-KORU"><p class="overseas-chart-empty">종가 확인 중</p></div>
+      </article>
+    </div>
+    <section class="overseas-market-card overseas-investors" aria-labelledby="sk-hynix-flow-title">
+      <h3 id="sk-hynix-flow-title">SK하이닉스(000660) 일별 투자자 순매수</h3>
+      <p class="overseas-market-meta">한국거래소 원주 수급입니다. 미국의 공개 자료에서는 SKHY·KORU의 외국인·기관·개인별 일별 순매수를 같은 기준으로 확인할 수 없습니다.</p>
+      <div id="sk-hynix-flow-content" aria-busy="true"><p class="overseas-chart-empty">국내 수급 확인 중</p></div>
+    </section>
+    <details class="overseas-market-card overseas-investors overseas-market-details">
+      <summary>미국 기관 보유 공시 (SEC 13F)</summary>
+      <p class="overseas-market-meta">SEC 공시에서 확인한 일부 운용사의 분기 말 보유 주식 수입니다. 미국 밖 운용사도 포함됩니다.</p>
+      <div id="overseas-holdings-content" aria-busy="true"><p class="overseas-chart-empty">공시 확인 중</p></div>
+    </details>
+    <noscript><p class="overseas-chart-empty">차트와 표를 보려면 자바스크립트를 켜 주세요.</p></noscript>
+  </section>
   <section id="cross-assets" class="notice" aria-labelledby="cross-assets-title">
     <h2 id="cross-assets-title">환율·금리·원유</h2>
     <p id="cross-assets-status" role="status">환율·금리·원유를 불러오는 중입니다.</p>
@@ -643,6 +681,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) refr
 <script src="assets/kospi-flow.js"></script>
 <script src="assets/margin-credit.js"></script>
 <script src="assets/market-indicators.js"></script>
+<script src="assets/overseas-market-charts.js"></script>
 <script src="assets/cross-assets.js?v=20261123"></script>
 <script src="assets/unofficial-numerics.js?v=20261123"></script>
 <script src="assets/forecast-ranges.js"></script>

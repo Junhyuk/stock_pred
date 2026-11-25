@@ -91,6 +91,16 @@ jobs:
         # The runner's sqlite never holds investor_flow history, so the committed JSON is
         # the seed: new Naver sessions are merged in and a failure leaves the file untouched.
         run: python scripts/collect_kospi_investor_flow_chart.py --output docs/data/kospi_investor_flow_chart.json
+      - name: Collect SKHY and KORU closing prices
+        if: steps.operation.outputs.collect == 'true'
+        timeout-minutes: 1
+        continue-on-error: true
+        run: python scripts/export_overseas_market_prices.py --output docs/data/overseas-market-prices.json
+      - name: Collect SK hynix investor-class flows
+        if: steps.operation.outputs.collect == 'true'
+        timeout-minutes: 1
+        continue-on-error: true
+        run: python scripts/export_sk_hynix_investor_flow.py --output docs/data/sk-hynix-investor-flow.json
       - name: Refresh prices
         id: refresh
         if: steps.operation.outputs.collect == 'true'
@@ -207,6 +217,9 @@ jobs:
             --seed docs/data/kospi_investor_flow_chart.json \
             --output "$RUNNER_TEMP/kospi-flow-validation/kospi_investor_flow_chart.json" \
             --raw-dir "$RUNNER_TEMP/kospi-flow-validation/raw" | tee "$RUNNER_TEMP/kospi-flow-validation/summary.json"
+      - name: Validate overseas charts without publication
+        if: steps.operation.outputs.mode == 'validate'
+        run: python -m pytest -q tests/test_overseas_market_prices.py tests/test_sk_hynix_investor_flow.py tests/test_overseas_institutional_holdings.py
       - name: Validate without publication
         if: steps.operation.outputs.mode == 'validate' && !inputs.indicators_only
         run: |
