@@ -1,0 +1,12 @@
+#cfd-status { color: var(--muted); margin: 0 0 14px; }
+#cfd-charts h3 { font-size: 1rem; margin: 18px 0 10px; }
+.cfd-chart-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.cfd-chart-card { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; min-width: 0; }
+.cfd-chart-card h4 { margin: 0 0 5px; }
+.cfd-chart-card canvas { display: block; width: 100%; height: auto; }
+.cfd-value { margin: 0; font-size: 1.28rem; font-weight: 700; }
+.cfd-caption { margin: 4px 0; color: var(--muted); font-size: .82rem; }
+.cfd-value-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.cfd-value-table th, .cfd-value-table td { text-align: left; padding: 5px; border-bottom: 1px solid var(--line); }
+.cfd-value-table th:last-child, .cfd-value-table td:last-child { text-align: right; }
+@media (max-width: 580px) { .cfd-chart-grid { grid-template-columns: 1fr; } }

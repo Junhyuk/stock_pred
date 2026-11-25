@@ -50,6 +50,8 @@ INDEX_FORECAST_PAGE_FILES = (
     "assets/kospi-flow.css",
     "assets/overseas-market-charts.css",
     "assets/overseas-market-charts.js",
+    "assets/cfd-balance.js",
+    "assets/cfd-balance.css",
     "data/overseas-institutional-holdings.json",
     "data/index_forecast.json",
     # Copy the local GPU results during static export; the runner allowlist is separate.

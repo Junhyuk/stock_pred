@@ -101,6 +101,19 @@ jobs:
         timeout-minutes: 1
         continue-on-error: true
         run: python scripts/export_sk_hynix_investor_flow.py --output docs/data/sk-hynix-investor-flow.json
+      - name: Check CFD disclosures and refresh reviewed balances
+        if: steps.operation.outputs.collect == 'true'
+        timeout-minutes: 2
+        continue-on-error: true
+        env:
+          CFD_KOFIA_AGGREGATES_APPROVED: ${{ vars.CFD_KOFIA_AGGREGATES_APPROVED }}
+        run: |
+          set -euo pipefail
+          cfd_args=(--output-dir docs/data)
+          if [[ "${CFD_KOFIA_AGGREGATES_APPROVED}" == "true" ]]; then
+            cfd_args+=(--publish-approved-aggregates)
+          fi
+          python scripts/refresh_cfd_dashboard.py "${cfd_args[@]}"
       - name: Refresh prices
         id: refresh
         if: steps.operation.outputs.collect == 'true'
@@ -220,6 +233,9 @@ jobs:
       - name: Validate overseas charts without publication
         if: steps.operation.outputs.mode == 'validate'
         run: python -m pytest -q tests/test_overseas_market_prices.py tests/test_sk_hynix_investor_flow.py tests/test_overseas_institutional_holdings.py
+      - name: Validate CFD refresh without publication
+        if: steps.operation.outputs.mode == 'validate'
+        run: python -m pytest -q tests/test_cfd_research.py tests/test_cfd_daily_refresh.py tests/test_frees_is_cfd.py
       - name: Validate without publication
         if: steps.operation.outputs.mode == 'validate' && !inputs.indicators_only
         run: |
