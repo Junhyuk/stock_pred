@@ -1,60 +1,70 @@
 {
-  "schema_version": "model_b_forecast_v1",
-  "model_name": "모델 B",
   "architecture": "장후 종가 유지 · 방향 과거 빈도",
-  "trigger": "manual_gpu",
-  "production_weight": 0.0,
+  "asof_date": "2026-11-25",
+  "fit_device": "cpu",
+  "generated_at": "2026-11-25T14:51:47.579673+00:00",
+  "historical_input_mode": "reconstructed",
+  "inference_device": "cpu",
   "issue_stage": "postclose",
-  "generated_at": "2026-11-25T09:32:57.628613+00:00",
-  "gpu": "NVIDIA GeForce RTX 3090",
   "markets": [
     {
-      "market": "KOSPI",
       "asof_date": "2026-11-25",
-      "target_date": "2026-11-26",
       "close": 4697.51,
-      "p_up": 0.55,
-      "p_down": 0.44999999999999996,
-      "trained_through": "2026-11-25",
-      "variant": "장후 검증 기준선 · 종가 유지",
-      "expected_return": 0.0,
-      "expected_index": 4697.51,
       "evaluation_2026": {
-        "n": 220,
         "close_mae": 179.78217365056784,
+        "direction_brier": 0.2437301751797417,
         "direction_hit": 0.5954545454545455,
-        "direction_brier": 0.2437301751797417
+        "n": 220
       },
+      "expected_index": 4697.51,
+      "expected_return": 0.0,
       "interval": {
-        "low": 4476.349447621009,
-        "high": 4918.6705523789915,
+        "evaluation_coverage": 0.8181818181818182,
+        "high": 4918.670552378993,
         "level": 0.8,
-        "evaluation_coverage": 0.8181818181818182
-      }
+        "low": 4476.349447621008
+      },
+      "market": "KOSPI",
+      "p_down": 0.44999999999999996,
+      "p_up": 0.55,
+      "prediction_cutoff": "2026-11-25T14:51:44.232285+00:00",
+      "target_date": "2026-11-26",
+      "trained_through": "2026-11-25",
+      "variant": "장후 검증 기준선 · 종가 유지"
     },
     {
-      "market": "KOSDAQ",
       "asof_date": "2026-11-25",
-      "target_date": "2026-11-26",
       "close": 650.64,
-      "p_up": 0.5421875,
-      "p_down": 0.45781249999999996,
-      "trained_through": "2026-11-25",
-      "variant": "장후 검증 기준선 · 종가 유지",
-      "expected_return": 0.0,
-      "expected_index": 650.64,
       "evaluation_2026": {
-        "n": 220,
         "close_mae": 23.25386354758518,
+        "direction_brier": 0.25041859702424457,
         "direction_hit": 0.5181818181818182,
-        "direction_brier": 0.25041859702424457
+        "n": 220
       },
+      "expected_index": 650.64,
+      "expected_return": 0.0,
       "interval": {
-        "low": 618.6045711745244,
-        "high": 682.6754288254755,
+        "evaluation_coverage": 0.7954545454545454,
+        "high": 682.6754288254757,
         "level": 0.8,
-        "evaluation_coverage": 0.7954545454545454
-      }
+        "low": 618.6045711745243
+      },
+      "market": "KOSDAQ",
+      "p_down": 0.45781249999999996,
+      "p_up": 0.5421875,
+      "prediction_cutoff": "2026-11-25T14:51:44.232285+00:00",
+      "target_date": "2026-11-26",
+      "trained_through": "2026-11-25",
+      "variant": "장후 검증 기준선 · 종가 유지"
     }
-  ]
+  ],
+  "model_name": "모델 B",
+  "prediction_cutoff": "2026-11-25T14:51:44.232285+00:00",
+  "production_weight": 0.0,
+  "publication_id": "741d7e63c7c0750da59c2372018523604b96ae524fb83c1106c76da37df8cbd9",
+  "run_id": null,
+  "schema_version": "model_b_forecast_v1",
+  "target_close_at": "2026-11-26T06:30:00+00:00",
+  "target_date": "2026-11-26",
+  "trigger": "local_cpu"
 }

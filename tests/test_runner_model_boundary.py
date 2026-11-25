@@ -1,8 +1,7 @@
-"""The GitHub runner forecasts with Model A only and otherwise collects data.
+"""Only reviewed CPU forecasts and collection run on the GitHub runner.
 
-Models B and C are trained and run on the local GPU machine. These checks fail if a
-workflow starts referencing them, if the runner's install pulls in the GPU stack, or if
-another automatic forecast appears on the runner without being listed here.
+The local GPU experiments stay outside the runner. The daily B/C CPU step
+uses the same verified price snapshot and schedule as the after-close job.
 """
 from __future__ import annotations
 
@@ -86,3 +85,19 @@ def test_runner_install_excludes_the_gpu_stack():
     for name, text in WORKFLOWS.items():
         assert "[gpu" not in text, f"{name} installs the gpu extra"
         assert "torch" not in text.lower(), f"{name} mentions torch"
+
+
+def test_cpu_bc_uses_existing_daily_snapshot_and_bounded_step():
+    workflow = "premarket-research-forecast.yml"
+    name = "scripts/run_bc_cpu_afterclose.py"
+    assert {file for file, text in WORKFLOWS.items() if name in text} == {workflow}
+    config = yaml.safe_load(WORKFLOWS[workflow])
+    steps = config["jobs"]["forecast"]["steps"]
+    cpu = next(step for step in steps if step.get("id") == "bc_cpu")
+    assert cpu["timeout-minutes"] == 1
+    assert cpu["continue-on-error"] is True
+    assert "steps.operation.outputs.mode == 'postclose'" in cpu["if"]
+    assert "steps.prices.outputs.status == 'ready'" in cpu["if"]
+    assert "steps.prices.outputs.prepared_manifest" in cpu["run"]
+    assert steps.index(cpu) < next(i for i, step in enumerate(steps) if step.get("id") == "publish")
+    assert config[True]["schedule"] == [{"cron": "0 9 * * 1-5"}]

@@ -40,6 +40,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
+          ref: ${{ github.ref_name == 'master' && 'master' || github.sha }}
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -51,7 +52,7 @@ jobs:
         run: python scripts/accuracy_operation.py --phase gate --mode "${{ inputs.mode || 'auto' }}" --schedule "${{ github.event.schedule }}"
       - name: Install forecast and verification stack
         if: steps.operation.outputs.allowed == 'true'
-        run: python -m pip install -e '.[forecast,dev]'
+        run: python -m pip install -e '.[forecast,dev]' 'scikit-learn==1.9.1'
       - name: Verify premarket gate and refresh contracts
         if: steps.operation.outputs.allowed == 'true'
         run: python -m pytest -q tests/test_premarket_trading_day_gate.py tests/test_premarket_workflow_smoke.py tests/test_postclose_protocol.py
@@ -271,6 +272,16 @@ jobs:
       - name: Record operational state
         if: steps.operation.outputs.allowed == 'true' && steps.operation.outputs.mode != 'validate' && success()
         run: python scripts/accuracy_operation.py --phase status --mode "${{ steps.operation.outputs.mode }}" --kr-outcome "${{ steps.kr_forecast.outcome }}" --us-outcome "${{ steps.us_forecast.outcome }}" --reason "${{ steps.prices.outputs.reason || 'completed' }}"
+      - name: Forecast Model B and conditionally Model C on CPU
+        id: bc_cpu
+        if: steps.operation.outputs.mode == 'postclose' && steps.prices.outputs.status == 'ready'
+        continue-on-error: true
+        timeout-minutes: 1
+        env:
+          OMP_NUM_THREADS: 1
+          OPENBLAS_NUM_THREADS: 1
+          MKL_NUM_THREADS: 1
+        run: python scripts/run_bc_cpu_afterclose.py --prepared-manifest "${{ steps.prices.outputs.prepared_manifest }}"
       - name: Refresh CFD charts for Pages
         if: steps.operation.outputs.collect == 'true'
         timeout-minutes: 2
@@ -301,7 +312,10 @@ jobs:
           if not staged.issubset(allowed):
               raise SystemExit('staged path outside reviewed public allowlist')
           PY
-          if git diff --cached --quiet; then exit 0; fi
+          if git diff --cached --quiet; then
+            if [[ "${{ steps.bc_cpu.outputs.redeploy }}" == "true" ]]; then echo 'published=true' >> "$GITHUB_OUTPUT"; fi
+            exit 0
+          fi
           git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Publish verified forecast context and economic calendar observations.'
           git push origin HEAD:master
           echo 'published=true' >> "$GITHUB_OUTPUT"

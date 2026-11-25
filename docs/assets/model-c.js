@@ -2,12 +2,18 @@
   'use strict';
   const status = document.getElementById('model-c-status');
   const cards = document.getElementById('model-c-cards');
+  const section = document.getElementById('model-c');
+  const nav = document.getElementById('model-c-nav');
   const names = { KOSPI: '코스피', KOSDAQ: '코스닥' };
 
   const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, ch => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
   }[ch]));
-  const day = value => /^\d{4}-\d{2}-\d{2}$/.test(value || '') ? value : '';
+  const day = value => {
+    if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return '';
+    const parsed = new Date(`${value}T00:00:00Z`);
+    return Number.isFinite(parsed.valueOf()) && parsed.toISOString().slice(0, 10) === value ? value : '';
+  };
   const kstStamp = value => {
     if (typeof value !== 'string' || !/(?:Z|[+-]\d{2}:\d{2})$/.test(value)) return '';
     const date = new Date(value);
@@ -102,8 +108,10 @@
     const threeWay = data.probability_mode === 'three_way';
     if (status) {
       const stage = data.issue_stage === 'postclose' ? '장후' : data.issue_stage === 'premarket' ? '장전' : '수동';
+      const triggers = Object.keys(names).filter(market => Math.abs(data.trigger_returns[market]) >= 0.03)
+        .map(market => `${names[market]} ${signedReturn(data.trigger_returns[market])}`).join(' · ');
       status.textContent = threeWay
-        ? `${stage} 예측 · ${when} · 종가 수익률의 급등·중립·급락 확률 · 연구용`
+        ? `${stage} 예측 · ${when} · ${data.asof_date} 종가 변동 ${triggers} · 종가 수익률의 급등·중립·급락 확률 · 연구용`
         : `수동 GPU 예측 · ${data.architecture || '8층 미세조정 복사'} · ${when} · ${data.gpu || 'GPU 확인 불가'} · 운영 반영 비중 0. 급등·급락 전용이며 절대 수익률 ${threshold} 이상인 날만 적중과 오차에 넣습니다. 매매 지시가 아닙니다.`;
     }
     if (!cards) return;
@@ -123,13 +131,48 @@
     }
   };
 
+  const hide = () => {
+    if (section) section.hidden = true;
+    if (nav) nav.hidden = true;
+    if (cards) cards.replaceChildren();
+    if (status) status.textContent = '';
+  };
+  const valid = data => {
+    if (data?.schema_version !== 'model_c_forecast_v1' || data.status !== 'ready'
+      || data.production_weight !== 0 || data.probability_mode !== 'three_way' || data.threshold !== 0.03
+      || !day(data.asof_date) || !day(data.target_date) || data.asof_date >= data.target_date
+      || typeof data.target_close_at !== 'string' || !/(?:Z|[+-]\d{2}:\d{2})$/.test(data.target_close_at)
+      || !data.trigger_returns || typeof data.trigger_returns !== 'object' || Array.isArray(data.trigger_returns)
+      || !Array.isArray(data.markets)) return false;
+    const close = new Date(data.target_close_at);
+    if (!Number.isFinite(close.valueOf()) || close.valueOf() <= Date.now()
+      || kstStamp(data.target_close_at).slice(0, 10) !== data.target_date) return false;
+    const returns = Object.keys(names).filter(market => Object.hasOwn(data.trigger_returns, market))
+      .map(market => data.trigger_returns[market]);
+    if (!returns.length || !returns.every(Number.isFinite) || !returns.some(value => Math.abs(value) >= 0.03)) return false;
+    const rows = data.markets.filter(row => row && names[row.market]);
+    return rows.length > 0 && rows.every(row => row.asof_date === data.asof_date && row.target_date === data.target_date
+      && Number.isFinite(row.close) && row.close > 0 && validThreeWay(row));
+  };
+  let deadline = 0;
+  const checkExpiry = () => {
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) { hide(); return; }
+    setTimeout(checkExpiry, Math.min(remaining, 2147483647));
+  };
+  document.addEventListener('visibilitychange', () => {
+    if (deadline && Date.now() >= deadline) hide();
+  });
+  hide();
   fetch('data/model_c_forecast.json', { cache: 'no-store' })
     .then(response => { if (!response.ok) throw new Error(); return response.json(); })
     .then(data => {
-      if (data?.schema_version !== 'model_c_forecast_v1' || !Array.isArray(data.markets) || data.production_weight !== 0) {
-        throw new Error();
-      }
+      if (!valid(data)) return;
+      deadline = new Date(data.target_close_at).valueOf();
       render(data);
+      if (section) section.hidden = false;
+      if (nav) nav.hidden = false;
+      checkExpiry();
     })
-    .catch(() => { if (status) status.textContent = '모델 C 결과를 확인하지 못했습니다.'; });
+    .catch(hide);
 })();

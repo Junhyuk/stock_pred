@@ -81,27 +81,76 @@ def test_manual_model_c_is_separate_from_main_model_c():
     assert 'id="model-a"' in page and 'id="model-b"' in page
 
 
-def test_three_way_card_displays_neutral_without_a_close_forecast():
+def test_model_c_display_requires_verified_extreme_and_expires_at_close():
     script = ROOT / "docs/assets/model-c.js"
-    program = """
+    program = r"""
 const fs = require('node:fs');
 const vm = require('node:vm');
-const status = {textContent: ''};
-const cards = {items: [], replaceChildren() {}, appendChild(item) { this.items.push(item); }};
-const kospi = {market: 'KOSPI', asof_date: '2026-11-25', target_date: '2026-11-26',
+const assert = require('node:assert/strict');
+const code = fs.readFileSync(process.argv[1], 'utf8');
+const row = {market: 'KOSPI', asof_date: '2026-11-25', target_date: '2026-11-26',
   close: 4697.51, p_up: .2, p_normal: .53, p_down: .27};
-const payload = {schema_version: 'model_c_forecast_v1', probability_mode: 'three_way',
-  issue_stage: 'postclose', production_weight: 0, markets: [kospi, {...kospi, market: 'KOSDAQ', p_normal: .8}]};
-vm.runInNewContext(fs.readFileSync(process.argv[1], 'utf8'), {
-  document: {getElementById: id => id === 'model-c-status' ? status : cards, createElement: () => ({})},
-  fetch: async () => ({ok: true, json: async () => payload})
-});
-setImmediate(() => console.log(status.textContent, ...cards.items.map(item => item.innerHTML)));
+const good = {schema_version: 'model_c_forecast_v1', status: 'ready', probability_mode: 'three_way',
+  issue_stage: 'postclose', production_weight: 0, threshold: .03, asof_date: '2026-11-25',
+  target_date: '2026-11-26', target_close_at: '2026-11-26T15:30:00+09:00',
+  trigger_returns: {KOSPI: .03}, markets: [row]};
+async function run(payload, now = '2026-11-26T06:29:59Z', fail = false) {
+  let ms = Date.parse(now), timer;
+  class Clock extends Date { static now() { return ms; } }
+  const nodes = {
+    'model-c': {hidden: true}, 'model-c-nav': {hidden: true},
+    'model-c-status': {textContent: ''},
+    'model-c-cards': {items: [], replaceChildren() { this.items = []; }, appendChild(item) { this.items.push(item); }}
+  };
+  vm.runInNewContext(code, {
+    Date: Clock, Intl, setTimeout: fn => { timer = fn; },
+    document: {getElementById: id => nodes[id], createElement: () => ({}), addEventListener() {}},
+    fetch: async () => { if (fail) throw Error(); return {ok: true, json: async () => payload}; }
+  });
+  await new Promise(resolve => setImmediate(resolve));
+  return {nodes, expire() { ms = Date.parse('2026-11-26T06:30:00Z'); timer(); }};
+}
+(async () => {
+  for (const move of [.03, -.03]) {
+    const result = await run({...good, trigger_returns: {KOSDAQ: move}});
+    assert.equal(result.nodes['model-c'].hidden, false);
+    assert.equal(result.nodes['model-c-nav'].hidden, false);
+    assert.match(result.nodes['model-c-status'].textContent, /코스닥/);
+    assert.match(result.nodes['model-c-status'].textContent, /2026-11-25/);
+    assert.match(result.nodes['model-c-status'].textContent, move > 0 ? /\+3.00%/ : /-3.00%/);
+    assert.match(result.nodes['model-c-cards'].items[0].innerHTML, /중립<\/span><strong>53.00%/);
+    result.expire();
+    assert.equal(result.nodes['model-c'].hidden, true);
+    assert.equal(result.nodes['model-c-nav'].hidden, true);
+    assert.equal(result.nodes['model-c-cards'].items.length, 0);
+  }
+  const invalid = [
+    {...good, status: 'not_triggered'}, {...good, status: 'not_ready'},
+    {...good, status: undefined}, {...good, trigger_returns: {KOSPI: .0299}},
+    {...good, trigger_returns: {KOSPI: '0.03'}}, {...good, trigger_returns: {KOSPI: NaN}},
+    {...good, target_close_at: '2026-11-26T15:30:00'},
+    {...good, target_close_at: '2026-11-27T15:30:00+09:00'},
+    {...good, asof_date: '2026-02-30'},
+    {...good, markets: [{...row, asof_date: '2026-11-24'}]},
+    {...good, markets: [{...row, target_date: '2026-11-27'}]},
+    {...good, markets: [{...row, p_normal: .9}]}, {...good, markets: []}
+  ];
+  for (const payload of invalid) {
+    const result = await run(payload);
+    assert.equal(result.nodes['model-c'].hidden, true);
+    assert.equal(result.nodes['model-c-nav'].hidden, true);
+  }
+  for (const result of [await run(good, '2026-11-26T06:30:00Z'), await run(good, undefined, true)]) {
+    assert.equal(result.nodes['model-c'].hidden, true);
+    assert.equal(result.nodes['model-c-nav'].hidden, true);
+  }
+})().catch(error => { console.error(error); process.exitCode = 1; });
 """
-    output = subprocess.check_output(["node", "-e", program, str(script)], text=True)
-    assert "장후 예측" in output
-    assert "2026-11-26" in output
-    assert "중립</span><strong>53.00%" in output
-    assert "3% 이상 하락</span><strong>27.00%" in output
-    assert "예상 지수" not in output
-    assert "모델 C 결과가 없습니다." in output
+    subprocess.run(["node", "-e", program, str(script)], check=True)
+
+
+def test_model_c_is_hidden_before_javascript_runs():
+    html = (ROOT / "docs/reliable-index-forecast.html").read_text()
+    import re
+    assert re.search(r'<a\b(?=[^>]*id="model-c-nav")(?=[^>]*\bhidden\b)[^>]*>', html)
+    assert re.search(r'<section\b(?=[^>]*id="model-c")(?=[^>]*\bhidden\b)[^>]*>', html)

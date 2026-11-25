@@ -41,12 +41,14 @@ def _hash(value):
     return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False).encode()).hexdigest()
 
 
-def atomic_json(path, value):
+def atomic_json(path, value, *, indent=None):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.NamedTemporaryFile(mode='w', dir=path.parent, delete=False) as stream:
         temporary = Path(stream.name)
-        json.dump(value, stream, ensure_ascii=False, allow_nan=False, sort_keys=True)
+        json.dump(value, stream, ensure_ascii=False, allow_nan=False, sort_keys=True, indent=indent)
+        if indent is not None:
+            stream.write('\n')
         stream.flush()
         os.fsync(stream.fileno())
     os.replace(temporary, path)
@@ -411,6 +413,10 @@ def public_payload_paths(directory):
                 or payload.get('artifact_hash') != _hash({k: v for k, v in payload.items() if k != 'artifact_hash'})):
                 raise ValueError(f'invalid public model artifact: {path}')
             result.append(path)
+    from roboquant.index_forecast.bc_publication import B_FILE, C_FILE, read_payload, valid_pair
+    b, c = (read_payload(directory / name) for name in (B_FILE, C_FILE))
+    if b.get("trigger") == "github_actions_cpu" and valid_pair(b, c) and not (_contains_rows(b) or _contains_rows(c)):
+        result.extend(directory / name for name in (B_FILE, C_FILE))
     return result
 
 

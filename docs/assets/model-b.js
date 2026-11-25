@@ -41,7 +41,7 @@
       const row = byMarket.get(market);
       const holder = document.createElement('div');
       if (!row || !Number.isFinite(row.p_up) || !Number.isFinite(row.close)) {
-        holder.textContent = `${market} 수동 예측 결과가 없습니다.`;
+        holder.textContent = `${market} 예측 결과가 없습니다.`;
       } else {
         const trained = day(row.trained_through) || '확인 불가';
         const variant = row.variant ? ` · ${escapeHtml(row.variant)}` : '';
@@ -49,7 +49,8 @@
         const review = evaluation?.n > 0 && Number.isFinite(evaluation.close_mae)
           ? `<p class="model-run-note">2026년 장후 재구성 · ${escapeHtml(evaluation.n)}거래일 · 종가 MAE ${evaluation.close_mae.toFixed(2)}점</p>`
           : '';
-        holder.innerHTML = `<p class="model-run-note">학습 마지막 ${trained}${variant}</p>${renderCard(modelBItem(row), 'research_only')}${review}`;
+        const previous = row.carried_forward === true ? '이전 예측 · ' : '';
+        holder.innerHTML = `<p class="model-run-note">${previous}학습 마지막 ${trained}${variant}</p>${renderCard(modelBItem(row), 'research_only')}${review}`;
       }
       cards.appendChild(holder);
     }

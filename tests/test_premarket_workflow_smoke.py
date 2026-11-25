@@ -30,7 +30,8 @@ def test_pages_deploy_follows_successful_default_branch_push():
     assert "github.ref == 'refs/heads/master'" in text
     assert "          ref: master" in text
     assert 'git push origin HEAD:master' in text
-    assert text.index('git push origin HEAD:master') < text.index("echo 'published=true'")
+    assert text.index('git push origin HEAD:master') < text.rindex("echo 'published=true'")
+    assert "steps.bc_cpu.outputs.redeploy" in text
     assert "needs.forecast.outputs.published == 'true'" in text
     assert "actions/deploy-pages@v4" in text
     assert "--phase status" in text

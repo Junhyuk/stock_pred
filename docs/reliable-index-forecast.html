@@ -31,6 +31,7 @@
     .forecast-nav a b { font-size: 12px; }
     .model-a { --model-accent: #156258; --model-tint: #e9f4f1; --model-line: #b3d6cc; }
     .model-b { --model-accent: #554497; --model-tint: #f1eef9; --model-line: #d0c7ea; }
+    #model-c[hidden], #model-c-nav[hidden] { display: none; }
     .model-c { --model-accent: #8a5216; --model-tint: #faf1e4; --model-line: #e7cca9; }
     .model-band {
       border-block: 3px solid var(--model-accent);
@@ -217,7 +218,7 @@
   <nav class="quick-nav forecast-nav" aria-label="예측 모델">
     <a href="#model-a" class="model-a"><b>A</b> 자동 지수 예측</a>
     <a href="#model-b" class="model-b"><b>B</b> 종가 범위 예측</a>
-    <a href="#model-c" class="model-c"><b>C</b> 급등·급락 확률</a>
+    <a id="model-c-nav" href="#model-c" class="model-c" hidden><b>C</b> 급등·급락 확률</a>
   </nav>
   <nav class="quick-nav" aria-label="리포트와 시장 지표">
     <a href="#stock-investor-flow">종목별 2년 누적 수급</a>
@@ -279,17 +280,17 @@
         <span class="model-letter" aria-hidden="true">B</span>
         <div><h2 id="model-b-title" aria-label="모델 B 종가 범위 예측">종가 범위 예측</h2><p>예상 종가와 상승·하락 확률 · 연구용</p></div>
       </div>
-      <p class="model-date-line" id="model-b-status" role="status">수동 예측을 확인하는 중입니다.</p>
+      <p class="model-date-line" id="model-b-status" role="status">예측을 확인하는 중입니다.</p>
     </header>
     <div class="forecast-grid" id="manual-model-b-cards"></div>
   </section>
-  <section id="model-c" class="model-band model-c" aria-labelledby="model-c-title">
+  <section id="model-c" class="model-band model-c" aria-labelledby="model-c-title" hidden>
     <header class="model-heading">
       <div class="model-identity">
         <span class="model-letter" aria-hidden="true">C</span>
         <div><h2 id="model-c-title" aria-label="모델 C 급등·급락 확률">급등·급락 확률</h2><p>3% 이상 상승·하락, 또는 중립 · 연구용</p></div>
       </div>
-      <p class="model-date-line" id="model-c-status" role="status">수동 급등·급락 확률을 확인하는 중입니다.</p>
+      <p class="model-date-line" id="model-c-status" role="status">급등·급락 확률을 확인하는 중입니다.</p>
     </header>
     <div class="forecast-grid" id="model-c-cards"></div>
   </section>
@@ -695,8 +696,8 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) refr
 <script src="assets/overseas-market-charts.js?v=20261125-top"></script>
 <script src="assets/cross-assets.js?v=20261123"></script>
 <script src="assets/unofficial-numerics.js?v=20261123"></script>
-<script src="assets/forecast-ranges.js"></script>
-<script src="assets/model-b.js?v=20261125"></script>
-<script src="assets/model-c.js"></script>
+<script src="assets/forecast-ranges.js?v=bc-cpu-v1"></script>
+<script src="assets/model-b.js?v=bc-cpu-v1"></script>
+<script src="assets/model-c.js?v=bc-cpu-v1"></script>
 </body>
 </html>
