@@ -4,7 +4,7 @@
   "source": "naver_investor_trend_unofficial",
   "source_url": "https://stock.naver.com/market/stock/kr/trend/trader",
   "source_endpoint": "https://stock.naver.com/api/domestic/market/trend/daily",
-  "snapshot_received_at": "2026-11-25T09:14:24.236733+00:00",
+  "snapshot_received_at": "2026-11-25T09:34:00.264726+00:00",
   "production_weight": 0.0,
   "window_start": "2025-10-25",
   "window_label": "1년 1개월",
@@ -1608,9 +1608,9 @@
         },
         {
           "date": "2026-11-25",
-          "foreign_eok": -18617.0,
-          "institution_eok": -30.8,
-          "personal_eok": 13882.4
+          "foreign_eok": -18583.3,
+          "institution_eok": -42.5,
+          "personal_eok": 13862.9
         }
       ]
     },
@@ -3208,9 +3208,9 @@
         },
         {
           "date": "2026-11-25",
-          "foreign_eok": 24.4,
+          "foreign_eok": 25.9,
           "institution_eok": 275.9,
-          "personal_eok": -362.6
+          "personal_eok": -366.2
         }
       ]
     }

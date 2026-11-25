@@ -1,13 +1,13 @@
 {
   "schema_version": "unofficial_numerics_v1",
-  "received_at": "2026-11-25T09:14:11.501530+00:00",
+  "received_at": "2026-11-25T09:33:48.175109+00:00",
   "production_weight": 0.0,
   "series": [
     {
       "id": "kospi_foreignValue",
       "label": "KOSPI 외국인 순매수",
-      "value": -18617.0,
-      "display": "-18,617억",
+      "value": -18607.0,
+      "display": "-18,607억",
       "change_pct": null,
       "date": "2026-11-25",
       "source": "naver_index_trend_unofficial",
@@ -16,8 +16,8 @@
     {
       "id": "kospi_institutionalValue",
       "label": "KOSPI 기관 순매수",
-      "value": -31.0,
-      "display": "-31억",
+      "value": -42.0,
+      "display": "-42억",
       "change_pct": null,
       "date": "2026-11-25",
       "source": "naver_index_trend_unofficial",
@@ -56,8 +56,8 @@
     {
       "id": "kosdaq_personalValue",
       "label": "KOSDAQ 개인 순매수",
-      "value": -363.0,
-      "display": "-363억",
+      "value": -364.0,
+      "display": "-364억",
       "change_pct": null,
       "date": "2026-11-25",
       "source": "naver_index_trend_unofficial",
@@ -96,9 +96,9 @@
     {
       "id": "usdkrw",
       "label": "원/달러",
-      "value": 1343.3,
-      "display": "1,343.30원",
-      "change_pct": 0.1655,
+      "value": 1344.6,
+      "display": "1,344.60원",
+      "change_pct": 0.2627,
       "date": "2026-11-25",
       "source": "yahoo_chart_unofficial",
       "unit": "원"
@@ -106,9 +106,9 @@
     {
       "id": "dxy",
       "label": "달러 인덱스",
-      "value": 104.013,
-      "display": "104.01",
-      "change_pct": 0.192,
+      "value": 104.031,
+      "display": "104.03",
+      "change_pct": 0.209,
       "date": "2026-11-25",
       "source": "yahoo_chart_unofficial",
       "unit": "index"
@@ -116,9 +116,9 @@
     {
       "id": "btc",
       "label": "비트코인",
-      "value": 58996.4,
-      "display": "58,996.40달러",
-      "change_pct": -1.523,
+      "value": 58823.57,
+      "display": "58,823.57달러",
+      "change_pct": -1.811,
       "date": "2026-11-25",
       "source": "yahoo_chart_unofficial",
       "unit": "USD"
@@ -126,9 +126,9 @@
     {
       "id": "eth",
       "label": "이더리움",
-      "value": 1641.45,
-      "display": "1,641.45달러",
-      "change_pct": -2.3957,
+      "value": 1637.79,
+      "display": "1,637.79달러",
+      "change_pct": -2.6134,
       "date": "2026-11-25",
       "source": "yahoo_chart_unofficial",
       "unit": "USD"
@@ -136,9 +136,9 @@
     {
       "id": "wti",
       "label": "WTI (서부 텍사스 원유)",
-      "value": 81.36,
-      "display": "81.36달러",
-      "change_pct": -0.841,
+      "value": 81.4,
+      "display": "81.40달러",
+      "change_pct": -0.792,
       "date": "2026-11-25",
       "source": "yahoo_chart_unofficial",
       "unit": "USD"
@@ -146,9 +146,9 @@
     {
       "id": "brent",
       "label": "브렌트유",
-      "value": 88.17,
-      "display": "88.17달러",
-      "change_pct": -0.687,
+      "value": 88.2,
+      "display": "88.20달러",
+      "change_pct": -0.653,
       "date": "2026-11-25",
       "source": "yahoo_chart_unofficial",
       "unit": "USD"
@@ -156,9 +156,9 @@
     {
       "id": "vix",
       "label": "VIX",
-      "value": 27.95,
-      "display": "27.95",
-      "change_pct": 6.03,
+      "value": 28.49,
+      "display": "28.49",
+      "change_pct": 8.074,
       "date": "2026-11-25",
       "source": "yahoo_chart_unofficial",
       "unit": "index"
@@ -176,9 +176,9 @@
     {
       "id": "gold",
       "label": "금 선물",
-      "value": 3562.3,
-      "display": "3,562.30달러",
-      "change_pct": -0.802,
+      "value": 3555.2,
+      "display": "3,555.20달러",
+      "change_pct": -1.0,
       "date": "2026-11-25",
       "source": "yahoo_chart_unofficial",
       "unit": "USD"
@@ -186,9 +186,9 @@
     {
       "id": "copper",
       "label": "구리 선물",
-      "value": 5.431,
-      "display": "5.43달러",
-      "change_pct": -0.413,
+      "value": 5.411,
+      "display": "5.41달러",
+      "change_pct": -0.779,
       "date": "2026-11-25",
       "source": "yahoo_chart_unofficial",
       "unit": "USD"
@@ -196,9 +196,9 @@
     {
       "id": "nq_futures",
       "label": "나스닥 선물",
-      "value": 25787.75,
-      "display": "25,787.75",
-      "change_pct": -1.857,
+      "value": 25700.5,
+      "display": "25,700.50",
+      "change_pct": -2.189,
       "date": "2026-11-25",
       "source": "yahoo_chart_unofficial",
       "unit": "index"
@@ -206,9 +206,9 @@
     {
       "id": "es_futures",
       "label": "S&P 선물",
-      "value": 7148.75,
-      "display": "7,148.75",
-      "change_pct": -0.953,
+      "value": 7127.25,
+      "display": "7,127.25",
+      "change_pct": -1.25,
       "date": "2026-11-25",
       "source": "yahoo_chart_unofficial",
       "unit": "index"
