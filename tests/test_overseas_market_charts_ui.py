@@ -7,6 +7,16 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "docs/assets/overseas-market-charts.js"
 
 
+def test_two_year_flow_and_cfd_charts_appear_before_forecasts():
+    html = (ROOT / "docs/reliable-index-forecast.html").read_text()
+    assert (
+        html.index('<section id="stock-investor-flow"')
+        < html.index('<section id="cfd-balance"')
+        < html.index('<section id="model-a"')
+        < html.index('<section id="overseas-market-charts"')
+    )
+
+
 def render(prices, flow, selected_range=None, holdings=None, samsung=None):
     program = r"""
 const fs = require('node:fs');

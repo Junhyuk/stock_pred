@@ -220,18 +220,41 @@
     <a href="#model-c" class="model-c"><b>C</b> 급등·급락 확률</a>
   </nav>
   <nav class="quick-nav" aria-label="리포트와 시장 지표">
+    <a href="#stock-investor-flow">종목별 2년 누적 수급</a>
+    <a href="#cfd-balance">CFD 잔고</a>
     <a href="index-forecast.html">1D/2D 리포트</a>
     <a href="dashboard.html">일일 대시보드</a>
     <a href="#overseas-market-charts">SK하이닉스 ADR·KORU</a>
-    <a href="#stock-investor-flow">종목별 2년 누적 수급</a>
     <a href="#cross-assets">환율·금리·원유</a>
     <a href="#extra-numerics">추가 수치</a>
     <a href="#kospi-flow">누적 순매수</a>
     <a href="#margin-credit">신용융자 잔고</a>
-    <a href="#cfd-balance">CFD 잔고</a>
     <a href="#market-indicators">시장 지표</a>
   </nav>
   <div id="automation-status" hidden></div>
+  <section id="stock-investor-flow" class="notice overseas-market" aria-labelledby="stock-investor-flow-title">
+    <h2 id="stock-investor-flow-title">한국거래소 투자자별 2년 누적 순매수</h2>
+    <div class="overseas-price-grid">
+      <article class="overseas-market-card" aria-labelledby="sk-hynix-flow-title">
+        <h3 id="sk-hynix-flow-title">SK하이닉스 (000660)</h3>
+        <div id="sk-hynix-flow-content" aria-busy="true"><p class="overseas-chart-empty">SK하이닉스 수급 확인 중</p></div>
+      </article>
+      <article class="overseas-market-card" aria-labelledby="samsung-electronics-flow-title">
+        <h3 id="samsung-electronics-flow-title">삼성전자 (005930)</h3>
+        <div id="samsung-electronics-flow-content" aria-busy="true"><p class="overseas-chart-empty">삼성전자 수급 확인 중</p></div>
+      </article>
+    </div>
+  </section>
+  <section id="cfd-balance" class="notice" aria-labelledby="cfd-title">
+    <h2 id="cfd-title">CFD 잔고</h2>
+    <p id="cfd-status" role="status">금융투자협회 공시 상태를 불러오는 중입니다.</p>
+    <div id="cfd-charts"></div>
+    <p class="credit-source">
+      <a href="https://www.kofia.or.kr/brd/m_198/list.do">금융투자협회 국내 종목별 공시</a>
+      · <a href="https://freesis.kofia.or.kr/stat/FreeSIS.do?parentDivId=MSIS30060000000000&amp;serviceId=STATDRV0100000320&amp;divisionId=MSIS30060010000000">FreeSIS 증거금 포함</a>
+      · <a href="https://freesis.kofia.or.kr/stat/FreeSIS.do?parentDivId=MSIS30060000000000&amp;serviceId=STATDRV0100000310&amp;divisionId=MSIS30060020000000">FreeSIS 증거금 차감</a>
+    </p>
+  </section>
   <section class="notice" aria-labelledby="market-closes-title">
     <h2 id="market-closes-title">최근 확인한 한국 지수 종가</h2>
     <div id="market-closes" class="close-grid">종가 확인 중</div>
@@ -315,7 +338,7 @@
   </section>
   <!-- model-bc-range:end -->
   <section id="overseas-market-charts" class="notice overseas-market" aria-labelledby="overseas-market-charts-title">
-    <h2 id="overseas-market-charts-title">SK하이닉스 ADR·KORU 가격과 투자자 수급</h2>
+    <h2 id="overseas-market-charts-title">SK하이닉스 ADR·KORU 가격</h2>
     <div class="overseas-market-controls">
       <p id="overseas-price-status" class="overseas-market-meta" role="status">미국 정규장 종가를 불러오는 중입니다.</p>
       <label for="overseas-chart-range">미국 종가 기간
@@ -338,19 +361,6 @@
         <div id="overseas-price-KORU"><p class="overseas-chart-empty">종가 확인 중</p></div>
       </article>
     </div>
-    <section id="stock-investor-flow" class="overseas-investors" aria-labelledby="stock-investor-flow-title">
-      <h3 id="stock-investor-flow-title">한국거래소 투자자별 2년 누적 순매수</h3>
-      <div class="overseas-price-grid">
-        <article class="overseas-market-card" aria-labelledby="sk-hynix-flow-title">
-          <h4 id="sk-hynix-flow-title">SK하이닉스 (000660)</h4>
-          <div id="sk-hynix-flow-content" aria-busy="true"><p class="overseas-chart-empty">SK하이닉스 수급 확인 중</p></div>
-        </article>
-        <article class="overseas-market-card" aria-labelledby="samsung-electronics-flow-title">
-          <h4 id="samsung-electronics-flow-title">삼성전자 (005930)</h4>
-          <div id="samsung-electronics-flow-content" aria-busy="true"><p class="overseas-chart-empty">삼성전자 수급 확인 중</p></div>
-        </article>
-      </div>
-    </section>
     <details class="overseas-market-card overseas-investors overseas-market-details">
       <summary>미국 기관 보유 공시 (SEC 13F)</summary>
       <p class="overseas-market-meta">SEC 공시에서 확인한 일부 운용사의 분기 말 보유 주식 수입니다. 미국 밖 운용사도 포함됩니다.</p>
@@ -389,17 +399,6 @@
     <div id="margin-credit-content"></div>
     <p class="credit-source">출처 <a href="https://freesis.kofia.or.kr/stat/FreeSIS.do?parentDivId=MSIS10000000000000&amp;serviceId=STATSCU0100000140">금융투자협회 FreeSIS</a></p>
   </section>
-  <section id="cfd-balance" class="notice" aria-labelledby="cfd-title">
-    <h2 id="cfd-title">CFD 잔고</h2>
-    <p id="cfd-status" role="status">금융투자협회 공시 상태를 불러오는 중입니다.</p>
-    <div id="cfd-charts"></div>
-    <p class="credit-source">
-      <a href="https://www.kofia.or.kr/brd/m_198/list.do">금융투자협회 국내 종목별 공시</a>
-      · <a href="https://freesis.kofia.or.kr/stat/FreeSIS.do?parentDivId=MSIS30060000000000&amp;serviceId=STATDRV0100000320&amp;divisionId=MSIS30060010000000">FreeSIS 증거금 포함</a>
-      · <a href="https://freesis.kofia.or.kr/stat/FreeSIS.do?parentDivId=MSIS30060000000000&amp;serviceId=STATDRV0100000310&amp;divisionId=MSIS30060020000000">FreeSIS 증거금 차감</a>
-    </p>
-  </section>
-
   <section id="market-indicators" class="notice" aria-labelledby="market-indicators-title">
     <h2 id="market-indicators-title">국채 금리와 전체 신용융자</h2>
     <p id="market-indicators-status" role="status">수집 상태를 확인하는 중입니다.</p>
@@ -693,7 +692,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) refr
 <script src="assets/margin-credit.js"></script>
 <script src="assets/cfd-balance.js?v=20261125-flow"></script>
 <script src="assets/market-indicators.js"></script>
-<script src="assets/overseas-market-charts.js?v=20261125-flow"></script>
+<script src="assets/overseas-market-charts.js?v=20261125-top"></script>
 <script src="assets/cross-assets.js?v=20261123"></script>
 <script src="assets/unofficial-numerics.js?v=20261123"></script>
 <script src="assets/forecast-ranges.js"></script>

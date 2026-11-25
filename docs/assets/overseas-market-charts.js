@@ -371,7 +371,10 @@
 
   range.addEventListener('change', renderPrices);
   if (typeof ResizeObserver === 'function') {
-    new ResizeObserver(drawPlots).observe(section);
+    const observer = new ResizeObserver(drawPlots);
+    observer.observe(section);
+    const stockSection = document.getElementById('stock-investor-flow');
+    if (stockSection) observer.observe(stockSection);
   } else {
     window.addEventListener('resize', drawPlots);
   }
