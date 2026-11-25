@@ -66,12 +66,12 @@ def test_setting_selector_does_not_use_2026_rows():
     assert tied == 1e-5
 
 
-def test_model_c_section_is_outside_the_model_a_runner():
+def test_manual_model_c_is_separate_from_main_model_c():
     html = (ROOT / "docs" / "reliable-index-forecast.html").read_text()
     assert html.count('id="model-c"') == 1
     assert html.count("assets/model-c.js") == 1
-    assert html.index('id="model-compare"') < html.index('id="model-c"') < html.index('id="model-a"')
-    assert html.index('id="content"') < html.index('id="model-b"')
+    assert html.index('id="model-a"') < html.index('id="model-c"') < html.index('<details id="model-compare"')
+    assert html.index('<details id="model-compare"') < html.index('id="model-c-cards"')
     assert "assets/model-b.js" in html
     script = (ROOT / "docs" / "assets" / "model-c.js").read_text()
     assert "급등·급락 전용" in script

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>한국·미국 다음 거래일 확률·예측구간</title>
+  <title>다음 거래일 지수 예측 · 코스피·코스닥·미국</title>
   <link rel="stylesheet" href="assets/site.css" />
   <link rel="stylesheet" href="assets/margin-credit.css" />
   <link rel="stylesheet" href="assets/kospi-flow.css" />
@@ -17,61 +17,75 @@
       font-size: 14px;
       color: var(--ink);
     }
-    h1, .notice > h2, #model-a > h2, #model-b > h2, .market-region h2, .forecast-card h3, .card-dates, .detail-line { word-break: keep-all; }
-    #model-a > h2, #model-b > h2 { font-size: 18px; margin: 8px 0; }
-    .compare-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 0 0 16px; }
-    .compare-side h2 { font-size: 18px; margin: 0 0 8px; }
-    #model-b-status, .model-run-note { color: var(--muted); font-size: 13px; margin: 0 0 12px; }
-    @media (max-width: 800px) { .compare-row { grid-template-columns: minmax(0, 1fr); } }
+    h1, .notice > h2, .model-heading, .forecast-card h3, .card-dates, .detail-line { word-break: keep-all; }
     .notice > h2 { font-size: 18px; margin: 0 0 8px; }
     #economic-calendar h3 { font-size: 16px; margin: 16px 0 8px; }
+    .forecast-header { align-items: center; justify-content: space-between; }
+    .forecast-header h1 { margin: 0 0 5px; font-size: clamp(27px, 4vw, 38px); letter-spacing: -.035em; }
+    .forecast-header p { color: var(--muted); font-size: 14px; }
+    #kst-clock { flex: 0 0 auto; font-size: 12px; font-variant-numeric: tabular-nums; }
+    .forecast-nav a { gap: 7px; min-height: 42px; color: var(--model-accent); border-color: var(--model-line); background: var(--model-tint); }
+    .forecast-nav a:hover { color: var(--model-accent); border-color: var(--model-accent); }
+    .forecast-nav a b { font-size: 12px; }
+    .model-a { --model-accent: #156258; --model-tint: #e9f4f1; --model-line: #b3d6cc; }
+    .model-b { --model-accent: #554497; --model-tint: #f1eef9; --model-line: #d0c7ea; }
+    .model-c { --model-accent: #8a5216; --model-tint: #faf1e4; --model-line: #e7cca9; }
+    .model-band {
+      border-block: 3px solid var(--model-accent);
+      border-bottom-width: 1px;
+      background: var(--model-tint);
+      margin: 24px 0;
+      padding: clamp(12px, 2.5vw, 24px);
+      scroll-margin-top: 12px;
+    }
+    .model-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px 20px; flex-wrap: wrap; margin-bottom: 16px; }
+    .model-identity { display: flex; align-items: center; gap: 10px; }
+    .model-letter { display: grid; place-items: center; flex: 0 0 36px; height: 36px; border-radius: 8px; background: var(--model-accent); color: #fff; font-size: 19px; font-weight: 800; }
+    .model-heading h2 { color: var(--model-accent); margin: 0; font-size: clamp(20px, 3vw, 26px); letter-spacing: -.025em; }
+    .model-heading p, .model-run-note, #model-b-status { color: var(--muted); font-size: 13px; line-height: 1.5; }
+    .model-heading p strong, .model-heading time { color: var(--ink); font-weight: 700; }
+    .model-date-line { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; font-variant-numeric: tabular-nums; }
+    .model-date-line > span { white-space: nowrap; }
+    .secondary-forecast { margin-top: 16px; border-top: 1px solid var(--model-line); padding-top: 12px; }
+    .secondary-forecast > h3 { color: var(--model-accent); font-size: 15px; margin: 0 0 10px; }
+    .model-run-note, #model-b-status { margin: 0 0 10px; }
     #status {
       color: var(--muted);
       font-weight: 700;
-      margin-bottom: 12px;
+      font-size: 14px;
     }
-    .forecast-grid {
+    #status:not(:empty) { margin-bottom: 12px; }
+    .forecast-grid, .compare-row, .close-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 0;
-      align-items: start;
+      gap: 12px;
     }
-    .forecast-grid.bc-range-grid { gap: 16px; background: none; }
-    .market-region { min-width: 0; display: grid; gap: 16px; padding: 0 16px; }
-    .market-region:first-child { padding-left: 0; }
-    .market-region + .market-region { border-left: 1px solid var(--line); }
-    .market-region h2 { margin: 0; font-size: 20px; }
-    @media (min-width: 801px) {
-      .forecast-grid {
-        gap: 16px 32px;
-        align-items: stretch;
-        background: linear-gradient(to right, transparent calc(50% - .5px), var(--line) calc(50% - .5px), var(--line) calc(50% + .5px), transparent calc(50% + .5px));
-      }
-      .market-region { display: contents; }
-      .market-region:first-child > * { grid-column: 1; }
-      .market-region:last-child > * { grid-column: 2; }
-      .market-region > h2 { grid-row: 1; }
-      .market-region > .forecast-card:nth-of-type(1), .market-region > p { grid-row: 2; }
-      .market-region > .forecast-card:nth-of-type(2) { grid-row: 3; }
-      .forecast-card > .card-dates.session-dates { min-height: 4.8em; }
-    }
-    @media (max-width: 800px) {
-      .forecast-grid { grid-template-columns: minmax(0, 1fr); gap: 24px; }
-      .market-region, .market-region:first-child { padding: 0; }
-      .market-region + .market-region { border-left: 0; border-top: 1px solid var(--line); padding-top: 24px; }
+    .close-card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; }
+    .close-value { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 3px; }
+    .close-value > strong { font-size: 20px; }
+    .close-card p { color: var(--muted); font-size: 12px; }
+    .close-card, .forecast-card { font-variant-numeric: tabular-nums; }
+    .market-label { display: inline-flex; align-items: baseline; gap: 6px; background: var(--market-tint); color: var(--market-ink); padding: 3px 8px; border-radius: 5px; line-height: 1.4; }
+    .market-label span { font-size: 11px; font-weight: 700; letter-spacing: .02em; }
+    [data-market="KOSPI"] { --market-ink: #35561d; --market-tint: #edf4e5; }
+    [data-market="KOSDAQ"] { --market-ink: #783955; --market-tint: #f8eaf1; }
+    @media (max-width: 680px) {
+      .forecast-header { align-items: flex-start; gap: 6px; }
+      .forecast-grid, .compare-row, .close-grid { grid-template-columns: minmax(0, 1fr); }
+      .model-heading { gap: 8px; }
     }
     .forecast-card {
       min-width: 0;
       background: var(--panel);
       border: 1px solid var(--line);
       border-radius: 10px;
-      padding: 20px;
+      padding: clamp(12px, 2vw, 18px);
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 10px;
     }
-    .forecast-card h3 {
-      font-size: 20px;
+    .forecast-card h3, .forecast-card h4 {
+      font-size: 18px;
       margin: 0;
       color: var(--ink);
       letter-spacing: -0.02em;
@@ -82,17 +96,20 @@
       line-height: 1.45;
     }
     .card-dates strong { color: var(--ink); font-weight: 700; }
+    .session-dates { display: flex; align-items: baseline; flex-wrap: wrap; gap: 3px 12px; }
+    .session-dates .us-hours { flex: 0 0 100%; }
+    .session-ended { font-size: 11px; color: var(--muted); border: 1px solid var(--line); padding-inline: 4px; border-radius: 3px; }
     .hero-metrics {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
+      gap: 8px;
     }
     .hero-metric {
       min-width: 0;
-      padding: 12px;
+      padding: 8px 10px;
       border-radius: 8px;
-      background: var(--bg);
-      border: 1px solid var(--line);
+      background: var(--model-tint, var(--bg));
+      border: 1px solid var(--model-line, var(--line));
     }
     .hero-metric span {
       display: block;
@@ -104,43 +121,48 @@
     .hero-metric strong {
       display: block;
       overflow-wrap: anywhere;
-      font-size: 26px;
+      font-size: clamp(20px, 2.8vw, 27px);
       line-height: 1.15;
-      color: var(--teal);
+      color: var(--model-accent, var(--teal));
       font-weight: 800;
     }
+    .expected-close { color: var(--muted); font-size: 14px; }
+    .expected-close strong { color: var(--ink); font-size: 17px; }
     .prob-row {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
+      gap: 8px;
     }
+    .prob-row.three-way { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .prob-box {
       min-width: 0;
       text-align: center;
-      padding: 14px 10px;
+      padding: 8px 5px;
       border-radius: 8px;
       border: 1px solid var(--line);
     }
     .prob-box.up { background: #fff0ed; border-color: #efc3bc; }
     .prob-box.down { background: #eef4ff; border-color: #c2d4f5; }
+    .prob-box.neutral { background: #f1f3f5; color: #414953; }
     .prob-box span {
       display: block;
       font-size: 12px;
       font-weight: 700;
       color: var(--muted);
       margin-bottom: 4px;
+      word-break: keep-all;
     }
     .prob-box strong {
       display: block;
       overflow-wrap: anywhere;
-      font-size: 28px;
+      font-size: clamp(18px, 2.6vw, 25px);
       font-weight: 800;
       line-height: 1.1;
     }
     .prob-box.up span, .prob-box.up strong { color: #a3201b; }
     .prob-box.down span, .prob-box.down strong { color: #174b9a; }
     .detail-line {
-      font-size: 15px;
+      font-size: 14px;
       line-height: 1.45;
       padding: 8px 0 0;
       border-top: 1px solid var(--line);
@@ -157,6 +179,13 @@
     .card-status.ok { background: var(--green-bg); color: var(--teal); }
     .card-status.warn { background: var(--amber-bg); color: var(--amber); }
     .card-status.blocked { background: #f0f2f5; color: var(--muted); }
+    .forecast-support, .market-evaluation { font-size: 13px; color: var(--muted); line-height: 1.5; }
+    .forecast-support summary, .market-evaluation summary { cursor: pointer; color: var(--ink); font-weight: 700; }
+    .forecast-support summary { font-size: 15px; }
+    .forecast-support[open] > :not(summary), .market-evaluation[open] > :not(summary) { margin-block: 8px 0; }
+    .forecast-support h3 { margin: 14px 0 5px; font-size: 16px; }
+    .forecast-support .detail-line { font-size: 13px; }
+    #model-bc-range:not(.range-enhanced) > p { margin-block: 8px; }
     .empty-state {
       padding: 24px;
       text-align: center;
@@ -176,18 +205,21 @@
 </head>
 <body>
 <main>
-  <header class="topbar">
+  <header class="topbar forecast-header">
     <div>
-      <h1>한국·미국 다음 거래일 확률·예측구간</h1>
-      <p id="kst-clock">현재 한국 시각 확인 중</p>
+      <h1>다음 거래일 지수 예측</h1>
+      <p>코스피 · 코스닥 · 미국 주요 지수</p>
     </div>
+    <p id="kst-clock">현재 한국 시각 확인 중</p>
   </header>
-  <nav class="quick-nav" aria-label="예측 페이지 메뉴">
+  <nav class="quick-nav forecast-nav" aria-label="예측 모델">
+    <a href="#model-a" class="model-a"><b>A</b> 자동 지수 예측</a>
+    <a href="#model-bc-range" data-range-nav="model-b" class="model-b"><b>B</b> 종가 범위 예측</a>
+    <a href="#model-bc-range" data-range-nav="model-c" class="model-c"><b>C</b> 급등·급락 확률</a>
+  </nav>
+  <nav class="quick-nav" aria-label="리포트와 시장 지표">
     <a href="index-forecast.html">1D/2D 리포트</a>
     <a href="dashboard.html">일일 대시보드</a>
-    <a href="#model-a">모델 A</a>
-    <a href="#model-b">모델 B</a>
-    <a href="#model-bc-range">B·C 종가 범위</a>
     <a href="#cross-assets">환율·금리·원유</a>
     <a href="#extra-numerics">추가 수치</a>
     <a href="#kospi-flow">누적 순매수</a>
@@ -197,7 +229,41 @@
   <div id="automation-status" hidden></div>
   <section class="notice" aria-labelledby="market-closes-title">
     <h2 id="market-closes-title">최근 확인한 한국 지수 종가</h2>
-    <div id="market-closes">종가 확인 중</div>
+    <div id="market-closes" class="close-grid">종가 확인 중</div>
+  </section>
+  <section id="model-a" class="model-band model-a" aria-labelledby="model-a-title">
+    <header class="model-heading">
+      <div class="model-identity">
+        <span class="model-letter" aria-hidden="true">A</span>
+        <div><h2 id="model-a-title" aria-label="모델 A 자동 지수 예측">자동 지수 예측</h2><p>평일 자동 예측 · 연구용</p></div>
+      </div>
+    </header>
+    <div id="status" role="status">자동 예측을 읽는 중입니다.</div>
+    <div id="korea-forecast"></div>
+    <section class="secondary-forecast" aria-labelledby="model-a-us-title">
+      <h3 id="model-a-us-title">미국 지수</h3>
+      <div id="content"></div>
+    </section>
+  </section>
+  <section id="model-b" class="model-band model-b" aria-labelledby="model-b-title" hidden>
+    <header class="model-heading">
+      <div class="model-identity">
+        <span class="model-letter" aria-hidden="true">B</span>
+        <div><h2 id="model-b-title" aria-label="모델 B 종가 범위 예측">종가 범위 예측</h2><p>예상 종가와 상승·하락 확률 · 연구용</p></div>
+      </div>
+      <p class="model-date-line" data-range-dates></p>
+    </header>
+    <div class="forecast-grid" data-range-cards></div>
+  </section>
+  <section id="model-c" class="model-band model-c" aria-labelledby="model-c-title" hidden>
+    <header class="model-heading">
+      <div class="model-identity">
+        <span class="model-letter" aria-hidden="true">C</span>
+        <div><h2 id="model-c-title" aria-label="모델 C 급등·급락 확률">급등·급락 확률</h2><p>3% 이상 상승·하락, 또는 중립 · 연구용</p></div>
+      </div>
+      <p class="model-date-line" data-range-dates></p>
+    </header>
+    <div class="forecast-grid" data-range-cards></div>
   </section>
   <!-- model-bc-range:start -->
   <section id="model-bc-range" class="notice" aria-labelledby="model-bc-range-title" data-target-date="2026-11-25">
@@ -241,22 +307,19 @@
     <ul><li>코스피 219거래일 · B 단독 MAE 177.76 → 178.16점 (219일) · C Brier 0.6531 → 0.6621</li><li>코스닥 219거래일 · B 단독 MAE 23.29 → 23.27점 (219일) · C Brier 0.5651 → 0.5613</li></ul>
   </section>
   <!-- model-bc-range:end -->
-  <section id="model-compare" aria-labelledby="model-compare-title">
-    <h2 id="model-compare-title">모델 A · 모델 B</h2>
-    <p id="model-b-status" role="status">수동 예측 날짜를 확인하는 중입니다.</p>
-    <div id="paired-forecast"></div>
-  </section>
-  <section id="model-c" class="notice" aria-labelledby="model-c-title">
-    <h2 id="model-c-title">모델 C · 급등·급락 전용</h2>
-    <p id="model-c-status" class="model-run-note" role="status">급등·급락 전용 예측을 확인하는 중입니다.</p>
-    <div id="model-c-cards"></div>
-  </section>
-  <section id="model-a" aria-labelledby="model-a-title">
-    <h2 id="model-a-title">모델 A · 미국</h2>
-    <div id="status" role="status">로컬 연구 결과를 읽는 중입니다.</div>
-    <div id="content"></div>
-  </section>
-  <section id="model-b" hidden></section>
+  <details id="model-compare" class="notice forecast-support">
+    <summary>별도 수동 실행 기록 · 모델 B·C</summary>
+    <section aria-labelledby="manual-model-b-title">
+      <h3 id="manual-model-b-title">모델 B · 수동 종가 예측</h3>
+      <p id="model-b-status" role="status">수동 예측을 확인하는 중입니다.</p>
+      <div id="manual-model-b-cards" class="compare-row"></div>
+    </section>
+    <section aria-labelledby="manual-model-c-title">
+      <h3 id="manual-model-c-title">모델 C · 수동 급등·급락 전용</h3>
+      <p id="model-c-status" class="model-run-note" role="status">수동 예측을 확인하는 중입니다.</p>
+      <div id="model-c-cards"></div>
+    </section>
+  </details>
   <section id="cross-assets" class="notice" aria-labelledby="cross-assets-title">
     <h2 id="cross-assets-title">환율·금리·원유</h2>
     <p id="cross-assets-status" role="status">환율·금리·원유를 불러오는 중입니다.</p>
@@ -310,8 +373,15 @@ const MARKET_LABELS = {
   US_SPX: 'S&P 500',
   US_NASDAQ: 'Nasdaq',
 };
+const KOREAN_MARKET_LABELS = { KOSPI: '코스피', KOSDAQ: '코스닥' };
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+
+function marketLabelMarkup(market) {
+  const english = escapeHtml(MARKET_LABELS[market] ?? market);
+  const korean = KOREAN_MARKET_LABELS[market];
+  return korean ? `<span class="market-label" data-market="${escapeHtml(market)}">${korean} <span>${english}</span></span>` : english;
+}
 
 const pct = value => {
   if (value == null || value === '') return '—';
@@ -382,7 +452,11 @@ function renderMarketClose(market, item) {
   const labels = {verified:'두 소스 일치', single_source:'단일 소스', conflict:'소스 충돌', stale:'이전 값', unavailable:'자료 없음'};
   const source = String(item?.source ?? '확인 불가').split(';')[0].trim() || '확인 불가';
   const received = item?.received_at ? formatKstClock(item.received_at) : '확인 불가';
-  return `<div class="detail-line"><strong>${escapeHtml(MARKET_LABELS[market] ?? market)}</strong> ${escapeHtml(level(item?.close))} · ${escapeHtml(item?.session_date ?? '확인 불가')} · ${escapeHtml(labels[item?.status] ?? '상태 확인 불가')} · ${escapeHtml(source)} · 수신 ${escapeHtml(received)} KST</div>`;
+  return `<article class="close-card">
+    <div class="close-value">${marketLabelMarkup(market)} <strong>${escapeHtml(level(item?.close))}</strong></div>
+    <p>${escapeHtml(item?.session_date ?? '확인 불가')} · ${escapeHtml(labels[item?.status] ?? '상태 확인 불가')}</p>
+    <p>${escapeHtml(source)} · 수신 ${escapeHtml(received)} KST</p>
+  </article>`;
 }
 
 async function loadMarketCloses() {
@@ -402,8 +476,8 @@ async function loadMarketCloses() {
 function renderCard(item, runStatus, now = Date.now()) {
   const f = item.forecast ?? {};
   const c = item.context ?? {};
-  const marketName = MARKET_LABELS[item.market] ?? item.market;
   const isUS = String(item.market).startsWith('US_');
+  const heading = isUS ? 'h4' : 'h3';
   const blocked = String(runStatus).startsWith('blocked_') || String(f.status ?? '').startsWith('blocked_');
   const showNumbers = runStatus !== 'unpublished' && !blocked && f.status !== 'not_ready';
   const ref = item.incumbent_reference;
@@ -422,12 +496,11 @@ function renderCard(item, runStatus, now = Date.now()) {
   const rangeText = (idxLo === '—' || idxHi === '—') ? '' : `${idxLo} ~ ${idxHi}`;
 
   return `<article class="forecast-card">
-    <h3>${escapeHtml(marketName)}</h3>
-    ${item.carried_forward ? '<div class="card-dates">이전 공개 결과</div>' : ''}
+    <${heading}>${marketLabelMarkup(item.market)}</${heading}>
     <div class="card-dates session-dates">
       <div><strong>${isUS ? '기준 종가일 (미국 거래일)' : '기준 종가일'}</strong> ${escapeHtml(c.asof_date ?? '—')}${isUS ? '' : relativeDateMarkup(c.asof_date, now, 'asof')}</div>
-      <div><strong>${isUS ? '목표 미국 거래일' : '다음 거래일'}</strong> ${escapeHtml(c.target_date ?? '—')}${isUS ? '' : relativeDateMarkup(c.target_date, now, 'target')} <span data-target-date="${escapeHtml(c.target_date ?? '')}" data-target-close="${escapeHtml(c.target_close_at ?? '')}" ${targetEnded(c, now) ? '' : 'hidden'}>이미 종료</span></div>
-      ${isUS ? `<div>한국 시각 · 개장 ${escapeHtml(formatOptionalKstTime(c.issuance_deadline))} · 종료 ${escapeHtml(formatOptionalKstTime(c.target_close_at))}</div>` : ''}
+      <div><strong>${isUS ? '목표 미국 거래일' : '대상 거래일'}</strong> ${escapeHtml(c.target_date ?? '—')}${isUS ? '' : relativeDateMarkup(c.target_date, now, 'target')} <span class="session-ended" data-target-date="${escapeHtml(c.target_date ?? '')}" data-target-close="${escapeHtml(c.target_close_at ?? '')}" ${isUS ? '' : 'data-kr-session'} ${targetEnded(c, now) ? '' : 'hidden'}>이미 종료</span></div>
+      ${isUS ? `<div class="us-hours">한국 시각 · 개장 ${escapeHtml(formatOptionalKstTime(c.issuance_deadline))} · 종료 ${escapeHtml(formatOptionalKstTime(c.target_close_at))}</div>` : ''}
     </div>
     <div class="hero-metrics">
       <div class="hero-metric"><span>기준 종가</span><strong>${escapeHtml(latestClose)}</strong></div>
@@ -439,6 +512,8 @@ function renderCard(item, runStatus, now = Date.now()) {
     </div>
     <div class="detail-line"><span>예상 수익률 </span><strong>${escapeHtml(expRet)}</strong></div>
     ${rangeText ? `<div class="detail-line"><span>80% 지수 구간 </span><strong>${escapeHtml(rangeText)}</strong></div>` : ''}
+    ${item.carried_forward ? '<div class="card-dates">이전 공개 결과</div>' : ''}
+    ${showReference ? '<div class="card-dates">기존 보정 모델 참고값</div>' : ''}
   </article>`;
 }
 
@@ -501,16 +576,13 @@ function renderAutomationStatus(data) {
   return `자동 확인 ${checked} (한국 시각) · ${decision} ${summary('한국', data.korea)} · ${summary('미국', data.us)}. KST 월~금 18:00 장 마감 후 수집·검증하며 실제 공개 시각은 각 카드에서 확인하세요. 외부 데이터 지연·누락 시 준비 미완료로 남습니다.`;
 }
 
-function renderForecastGrid(markets, now = Date.now(), groups = null) {
-  groups = groups || [
-    { label: '한국', order: ['KOSPI', 'KOSDAQ'] },
-    { label: '미국', order: ['US_SPX', 'US_NASDAQ'] },
-  ];
-  return `<div class="forecast-grid">${groups.map(group => {
-    const cards = markets.filter(({item}) => group.order.includes(item.market))
-      .sort((a, b) => group.order.indexOf(a.item.market) - group.order.indexOf(b.item.market));
-    return `<section class="market-region" aria-label="${group.label}"><h2>${group.label}</h2>${cards.length ? cards.map(({item, runStatus}) => renderCard(item, runStatus, now)).join('') : '<p>표시할 연구 결과가 없습니다.</p>'}</section>`;
-  }).join('')}</div>`;
+function renderForecastGrid(markets, order, now = Date.now()) {
+  const byMarket = new Map(markets.map(card => [card.item.market, card]));
+  const cards = order.filter(market => byMarket.has(market)).map(market => {
+    const { item, runStatus } = byMarket.get(market);
+    return renderCard(item, runStatus, now);
+  });
+  return cards.length ? `<div class="forecast-grid">${cards.join('')}</div>` : '';
 }
 
 function refreshKstLabels(now = Date.now()) {
@@ -520,9 +592,27 @@ function refreshKstLabels(now = Date.now()) {
     const label = node.dataset.kstKind === 'asof' && relative !== '오늘' ? '' : relative;
     node.textContent = label ? ` (${label})` : '';
   });
-  document.querySelectorAll('[data-target-date]').forEach(node => {
-    node.hidden = !targetEnded({target_date: node.dataset.targetDate, target_close_at: node.dataset.targetClose}, now);
+  const sessionLabels = [...document.querySelectorAll('.session-ended')];
+  const koreanCloseTimes = new Map(sessionLabels.filter(({dataset}) => dataset.krSession !== undefined && dataset.targetClose)
+    .map(({dataset}) => [dataset.targetDate, dataset.targetClose]));
+  sessionLabels.forEach(node => {
+    const { targetDate, targetClose, krSession } = node.dataset;
+    const close = targetClose || (krSession !== undefined ? koreanCloseTimes.get(targetDate) : undefined);
+    node.hidden = !targetEnded({target_date: targetDate, target_close_at: close}, now);
   });
+}
+
+async function showAutomaticForecast(base, order, contentId) {
+  const content = document.getElementById(contentId);
+  try {
+    const run = await loadPublishedRun(base);
+    const cards = renderForecastGrid(cardsFromRun(run), order);
+    const reason = (run.reasons ?? []).filter(Boolean).join(' · ');
+    content.innerHTML = cards || `<p class="empty-state">${escapeHtml(reason || '표시할 연구 결과가 없습니다.')}</p>`;
+  } catch {
+    content.innerHTML = '<p class="empty-state">자동 예측 자료를 확인할 수 없습니다.</p>';
+  }
+  refreshKstLabels();
 }
 
 fetch('data/automation_status.json', { cache: 'no-store' })
@@ -535,37 +625,12 @@ loadMarketCloses().then(data => {
 }).catch(() => { document.getElementById('market-closes').textContent = '검증된 종가 자료를 확인할 수 없습니다.'; });
 
 Promise.all([
-  loadPublishedRun(),
-  loadPublishedRun('data/us').catch(() => null),
-]).then(results => {
-  const runs = results.filter(Boolean);
-  const markets = runs.flatMap(cardsFromRun);
-
+  showAutomaticForecast('data', ['KOSPI', 'KOSDAQ'], 'korea-forecast'),
+  showAutomaticForecast('data/us', ['US_SPX', 'US_NASDAQ'], 'content'),
+]).finally(() => {
   document.getElementById('status').textContent = '';
-
-  const content = document.getElementById('content');
-  if (!markets.length) {
-    const reasons = runs.flatMap(r => r.reasons ?? []).filter(Boolean);
-    content.innerHTML = reasons.length
-      ? `<p class="empty-state">${escapeHtml(reasons.join(' · '))}</p>`
-      : '<p class="empty-state">표시할 연구 결과가 없습니다.</p>';
-    return;
-  }
-
-  window.__forecastCards = markets;
-  document.dispatchEvent(new Event('forecast-cards-ready'));
-  const unitedStates = markets.filter(({item}) => String(item.market).startsWith('US_'))
-    .sort((a, b) => ['US_SPX', 'US_NASDAQ'].indexOf(a.item.market) - ['US_SPX', 'US_NASDAQ'].indexOf(b.item.market));
-  content.innerHTML = unitedStates.length
-    ? `<div class="forecast-grid">${unitedStates.map(({item, runStatus}) => renderCard(item, runStatus)).join('')}</div>`
-    : '<p class="empty-state">표시할 미국 결과가 없습니다.</p>';
-  refreshKstLabels();
-}).catch(error => {
-  document.getElementById('status').textContent = error.message;
-  window.__forecastCards = window.__forecastCards || [];
-  document.dispatchEvent(new Event('forecast-cards-ready'));
-}).finally(() => {
-  if (['#model-a', '#model-b', '#cross-assets', '#kospi-flow', '#margin-credit', '#market-indicators', '#extra-numerics'].includes(location.hash)) document.querySelector(location.hash)?.scrollIntoView();
+  const destination = document.getElementById(location.hash.slice(1));
+  if (destination?.matches('section, details')) destination.scrollIntoView();
 });
 </script>
 <script>
@@ -580,7 +645,8 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) refr
 <script src="assets/market-indicators.js"></script>
 <script src="assets/cross-assets.js?v=20261123"></script>
 <script src="assets/unofficial-numerics.js?v=20261123"></script>
-<script src="assets/model-b.js"></script>
+<script src="assets/forecast-ranges.js"></script>
+<script src="assets/model-b.js?v=20261125"></script>
 <script src="assets/model-c.js"></script>
 </body>
 </html>

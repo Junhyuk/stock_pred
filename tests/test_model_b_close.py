@@ -68,30 +68,29 @@ const payload = {
 };
 const seen = [];
 const notes = [];
+const status = {textContent: ''};
 const document = {
   getElementById(id) {
-    if (id === 'paired-forecast') return {
+    if (id === 'manual-model-b-cards') return {
       replaceChildren() {},
       appendChild(node) { notes.push(node.innerHTML); }
     };
-    return {textContent: ''};
+    return status;
   },
   createElement() { return {className: '', innerHTML: ''}; },
-  addEventListener() { throw new Error('cards should render immediately'); }
 };
-const window = {__forecastCards: []};
 const fetch = async () => ({ok: true, json: async () => payload});
 const renderCard = (item, status) => {
   seen.push({market: item.market, status, forecast: item.forecast});
   return '<article></article>';
 };
-new Function('document', 'window', 'fetch', 'renderCard', source)(document, window, fetch, renderCard);
+new Function('document', 'fetch', 'renderCard', 'escapeHtml', source)(document, fetch, renderCard, value => value);
 setTimeout(() => {
   if (seen.length !== 2) {
     console.error(JSON.stringify(seen));
     process.exit(1);
   }
-  console.log(JSON.stringify({seen, notes}));
+  console.log(JSON.stringify({seen, notes, status: status.textContent}));
 }, 200);
 """.replace("SOURCE", json.dumps(source))
     import subprocess
@@ -107,7 +106,7 @@ setTimeout(() => {
     assert kosdaq["expected_index"] == pytest.approx(635.45 * (1 - 0.002))
     assert kosdaq["expected_return"] == pytest.approx(-0.002)
     rendered = "\n".join(payload["notes"])
-    assert "수동 예측" in rendered
+    assert "수동 예측" in payload["status"]
     assert "8층 미세조정" in rendered
 
 

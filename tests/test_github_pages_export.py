@@ -81,7 +81,7 @@ def test_export_github_pages_site_writes_static_json_and_relative_assets(tmp_pat
     landing = (output / "index.html").read_text(encoding="utf-8")
     assert 'href="reliable-index-forecast.html"' in landing
     assert 'Top50 Daily Dashboard' not in landing
-    for relative in ("reliable-index-forecast.html", "assets/margin-credit.js", "assets/margin-credit.css",
+    for relative in ("reliable-index-forecast.html", "assets/forecast-ranges.js", "assets/margin-credit.js", "assets/margin-credit.css",
                      "assets/economic-calendar.js", "data/margin_credit_chart.json", "data/economic_calendar.json",
                      "data/market_closes.json", "data/market_closes_publication.json", "data/automation_status.json"):
         assert (output / relative).read_bytes() == (ROOT / "docs" / relative).read_bytes()

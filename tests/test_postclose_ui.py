@@ -117,15 +117,16 @@ def test_us_card_preserves_exchange_session_dates_and_kst_open_close():
     assert '내일' not in out
 
 
-def test_probability_labels_and_region_grouping_follow_requested_order():
+def test_probability_labels_and_market_cards_follow_display_order():
     item = {'market': 'KOSPI', 'context': {}, 'forecast': {'status': 'not_ready'}, 'incumbent_reference': {'calibration_ready': True, 'status': 'rejected', 'p_up': 0.63, 'p_down': 0.37}}
     out = run_ui('console.log(renderCard(' + json.dumps(item) + ", 'research_only'));")
     assert '상승 확률' in out
     assert '하락 확률' in out
     assert '(연구용)' not in out
     entries = [{'item': {'market': m, 'context': {}, 'forecast': {'status': 'not_ready'}}, 'runStatus': 'research_only'} for m in ['US_NASDAQ', 'KOSDAQ', 'US_SPX', 'KOSPI']]
-    grid = run_ui('console.log(renderForecastGrid(' + json.dumps(entries) + '));')
-    assert grid.index('한국') < grid.index('KOSPI') < grid.index('KOSDAQ') < grid.index('미국') < grid.index('S&amp;P 500') < grid.index('Nasdaq')
+    grid = run_ui('console.log(renderForecastGrid(' + json.dumps(entries) + ", ['KOSPI', 'KOSDAQ']));")
+    assert grid.index('코스피') < grid.index('코스닥')
+    assert 'S&amp;P 500' not in grid
 
 
 def test_missing_live_anchor_explains_saved_model_not_missing_prices_and_shows_carry_forward():
@@ -140,18 +141,24 @@ def test_missing_live_anchor_explains_saved_model_not_missing_prices_and_shows_c
 def test_clock_refresh_updates_relative_dates_and_expiry_without_fetch():
     program = '''
 const clock = {}, asof = {dataset:{kstDate:'2026-11-16',kstKind:'asof'}}, target = {dataset:{kstDate:'2026-11-17',kstKind:'target'}};
-const expiry = {dataset:{targetDate:'2026-11-17',targetClose:'2026-11-17T06:30:00Z'}};
-globalThis.document = {getElementById:()=>clock, querySelectorAll: selector => selector === '[data-kst-date]' ? [asof,target] : [expiry]};
+const expiry = {dataset:{targetDate:'2026-11-17',targetClose:'2026-11-17T06:30:00Z',krSession:''}};
+const rangeExpiry = {dataset:{targetDate:'2026-11-17',krSession:''}};
+const unknownUSExpiry = {dataset:{targetDate:'2026-11-17'}};
+const rangePublication = {dataset:{targetDate:'2026-11-17'},hidden:false};
+globalThis.document = {getElementById:()=>clock, querySelectorAll: selector => ({
+  '[data-kst-date]': [asof,target], '[data-target-date]': [expiry,rangePublication],
+  '.session-ended': [expiry,rangeExpiry,unknownUSExpiry]
+})[selector]};
 globalThis.fetch = () => { throw Error('unexpected data fetch'); };
 refreshKstLabels(Date.parse('2026-11-16T15:30:00Z'));
 console.log(JSON.stringify([clock.textContent,asof.textContent,target.textContent,expiry.hidden]));
 refreshKstLabels(Date.parse('2026-11-17T06:31:00Z'));
-console.log(JSON.stringify([expiry.hidden]));
+console.log(JSON.stringify([expiry.hidden,rangeExpiry.hidden,unknownUSExpiry.hidden,rangePublication.hidden]));
 '''
     lines = run_ui(program).splitlines()
     clock, asof, target, hidden = json.loads(lines[0])
     assert '2026-11-17 00:30' in clock and asof == '' and target == ' (오늘)' and hidden
-    assert json.loads(lines[1]) == [False]
+    assert json.loads(lines[1]) == [False, False, True, False]
 
 
 def test_us_next_refit_date_is_identified_as_exchange_date_not_completion_date():
@@ -176,9 +183,11 @@ console.log(formatKstClock(now));
     assert lines[4] == '2026-11-16 12:00'
 
 
-def test_existing_forecast_section_is_named_model_a():
+def test_page_places_automatic_korea_and_us_in_a_then_separate_research_models():
     html = HTML.read_text()
-    assert 'href="#model-a">모델 A</a>' in html
-    assert html.index('id="model-compare"') < html.index('id="content"') < html.index('id="model-b"')
-    assert '모델 A · 모델 B' in html
+    assert 'href="#model-a"' in html
+    assert html.index('id="model-a"') < html.index('id="korea-forecast"') < html.index('id="content"')
+    assert html.index('id="content"') < html.index('id="model-b"') < html.index('id="model-c"')
+    assert html.index('id="model-c"') < html.index('id="model-bc-range"') < html.index('id="model-compare"')
+    assert 'assets/forecast-ranges.js' in html
     assert '수동 예측' in (HTML.parent / 'assets/model-b.js').read_text()
