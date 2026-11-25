@@ -101,19 +101,6 @@ jobs:
         timeout-minutes: 1
         continue-on-error: true
         run: python scripts/export_sk_hynix_investor_flow.py --output docs/data/sk-hynix-investor-flow.json
-      - name: Check CFD disclosures and refresh reviewed balances
-        if: steps.operation.outputs.collect == 'true'
-        timeout-minutes: 2
-        continue-on-error: true
-        env:
-          CFD_KOFIA_AGGREGATES_APPROVED: ${{ vars.CFD_KOFIA_AGGREGATES_APPROVED }}
-        run: |
-          set -euo pipefail
-          cfd_args=(--output-dir docs/data)
-          if [[ "${CFD_KOFIA_AGGREGATES_APPROVED}" == "true" ]]; then
-            cfd_args+=(--publish-approved-aggregates)
-          fi
-          python scripts/refresh_cfd_dashboard.py "${cfd_args[@]}"
       - name: Refresh prices
         id: refresh
         if: steps.operation.outputs.collect == 'true'
@@ -279,6 +266,19 @@ jobs:
       - name: Record operational state
         if: steps.operation.outputs.allowed == 'true' && steps.operation.outputs.mode != 'validate' && success()
         run: python scripts/accuracy_operation.py --phase status --mode "${{ steps.operation.outputs.mode }}" --kr-outcome "${{ steps.kr_forecast.outcome }}" --us-outcome "${{ steps.us_forecast.outcome }}" --reason "${{ steps.prices.outputs.reason || 'completed' }}"
+      - name: Refresh CFD charts for Pages
+        if: steps.operation.outputs.collect == 'true'
+        timeout-minutes: 2
+        continue-on-error: true
+        env:
+          CFD_KOFIA_AGGREGATES_APPROVED: ${{ vars.CFD_KOFIA_AGGREGATES_APPROVED }}
+        run: |
+          set -euo pipefail
+          cfd_args=(--output-dir docs/data)
+          if [[ "${CFD_KOFIA_AGGREGATES_APPROVED}" == "true" ]]; then
+            cfd_args+=(--publish-approved-aggregates)
+          fi
+          python scripts/refresh_cfd_dashboard.py "${cfd_args[@]}"
       - name: Commit reviewed public payloads
         id: publish
         if: steps.operation.outputs.allowed == 'true' && steps.operation.outputs.mode != 'validate' && success()

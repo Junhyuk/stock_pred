@@ -9,6 +9,8 @@ from __future__ import annotations
 import tomllib
 from pathlib import Path
 
+import yaml
+
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOWS = {path.name: path.read_text(encoding="utf-8") for path in sorted((ROOT / ".github/workflows").glob("*.yml"))}
 
@@ -52,6 +54,28 @@ def test_model_a_is_forecast_by_the_after_close_workflow_only():
 def test_other_automatic_forecasts_on_the_runner_are_exactly_the_listed_ones():
     for script, allowed in OTHER_AUTOMATIC_FORECASTS.items():
         assert {name for name, text in WORKFLOWS.items() if script in text} == allowed
+
+
+def test_cfd_chart_refresh_runs_after_forecasting_and_before_pages_staging():
+    workflow = "premarket-research-forecast.yml"
+    script = "scripts/refresh_cfd_dashboard.py"
+    assert {name for name, text in WORKFLOWS.items() if script in text} == {workflow}
+    steps = yaml.safe_load(WORKFLOWS[workflow])["jobs"]["forecast"]["steps"]
+    [chart_index] = [i for i, step in enumerate(steps) if script in step.get("run", "")]
+    chart = steps[chart_index]
+    assert steps[chart_index + 1]["id"] == "publish"
+    model_steps = [
+        i
+        for i, step in enumerate(steps)
+        if step.get("id") in {"kr_forecast", "us_forecast", "seal"}
+        or "--phase publish-models" in step.get("run", "")
+    ]
+    assert len(model_steps) == 4
+    assert max(model_steps) < chart_index
+    assert chart["if"] == "steps.operation.outputs.collect == 'true'"
+    assert chart["continue-on-error"] is True
+    assert "--output-dir docs/data" in chart["run"]
+    assert "vars.CFD_KOFIA_AGGREGATES_APPROVED" in chart["env"]["CFD_KOFIA_AGGREGATES_APPROVED"]
 
 
 def test_runner_install_excludes_the_gpu_stack():
