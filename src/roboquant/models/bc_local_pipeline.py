@@ -139,6 +139,7 @@ def check_forecast_payload(payload: dict, schema: str, *, require_expected: bool
     markets = payload.get("markets")
     if not isinstance(markets, list) or not markets:
         return problems + ["markets is not a non-empty list"]
+    three_way = schema == "model_c_forecast_v1" and payload.get("probability_mode") == "three_way"
     for row in markets:
         name = row.get("market")
         for key in ("asof_date", "target_date"):
@@ -152,11 +153,17 @@ def check_forecast_payload(payload: dict, schema: str, *, require_expected: bool
         p_up, p_down = row.get("p_up"), row.get("p_down")
         if not (_finite(p_up) and 0.0 <= p_up <= 1.0):
             problems.append(f"{name} p_up is not a probability")
+        elif three_way:
+            p_normal = row.get("p_normal")
+            if not all(_finite(p) and 0 <= p <= 1 for p in (p_down, p_normal)):
+                problems.append(f"{name} p_down or p_normal is not a probability")
+            elif abs(p_up + p_down + p_normal - 1.0) > 1e-3:
+                problems.append(f"{name} p_up, p_down and p_normal do not sum to 1")
         elif not (_finite(p_down) and abs(p_up + p_down - 1.0) <= 1e-3):
             problems.append(f"{name} p_up and p_down do not sum to 1")
         if not _finite(row.get("close")):
             problems.append(f"{name} close is not finite")
-        if require_expected:
+        if require_expected and not three_way:
             ret, index = row.get("expected_return"), row.get("expected_index")
             if not (_finite(ret) and _finite(index)):
                 problems.append(f"{name} expected_return/expected_index missing")

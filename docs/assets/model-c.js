@@ -67,23 +67,57 @@
     </article>`;
   };
 
+  const validThreeWay = row => {
+    const values = [row.p_up, row.p_normal, row.p_down];
+    return values.every(value => Number.isFinite(value) && value >= 0 && value <= 1)
+      && Math.abs(values.reduce((sum, value) => sum + value, 0) - 1) <= 0.001;
+  };
+
+  const renderThreeWay = (row, threshold) => {
+    const evaluation = row.evaluation_2026;
+    const review = evaluation?.n > 0 && Number.isFinite(evaluation.brier)
+      ? `<div class="detail-line">2026년 장후 재구성 · ${escapeHtml(evaluation.n)}거래일 · Brier ${evaluation.brier.toFixed(4)}${Number.isFinite(evaluation.baseline_brier) ? ` · 기준 ${evaluation.baseline_brier.toFixed(4)}` : ''}</div>`
+      : '';
+    return `<article class="forecast-card research-card">
+      <h3>${escapeHtml(names[row.market])}</h3>
+      <div class="card-dates session-dates">
+        <div><strong>기준 종가일</strong> ${escapeHtml(day(row.asof_date) || '확인 불가')}</div>
+        <div><strong>대상 거래일</strong> ${escapeHtml(day(row.target_date) || '확인 불가')}</div>
+      </div>
+      <div class="hero-metric"><span>기준 종가</span><strong>${escapeHtml(level(row.close))}</strong></div>
+      <div class="prob-row three-way">
+        <div class="prob-box up"><span>${escapeHtml(threshold)} 이상 상승</span><strong>${escapeHtml(probability(row.p_up))}</strong></div>
+        <div class="prob-box neutral"><span>중립</span><strong>${escapeHtml(probability(row.p_normal))}</strong></div>
+        <div class="prob-box down"><span>${escapeHtml(threshold)} 이상 하락</span><strong>${escapeHtml(probability(row.p_down))}</strong></div>
+      </div>
+      ${row.variant ? `<div class="detail-line">${escapeHtml(row.variant)}</div>` : ''}
+      ${review}
+    </article>`;
+  };
+
   const render = data => {
     const threshold = thresholdText(data.threshold);
     const generated = kstStamp(data.generated_at);
     const when = generated ? `생성 ${generated} KST` : '생성 시각 확인 불가';
+    const threeWay = data.probability_mode === 'three_way';
     if (status) {
-      status.textContent = `수동 GPU 예측 · ${data.architecture || '8층 미세조정 복사'} · ${when} · ${data.gpu || 'GPU 확인 불가'} · 운영 반영 비중 0. 급등·급락 전용이며 절대 수익률 ${threshold} 이상인 날만 적중과 오차에 넣습니다. 매매 지시가 아닙니다.`;
+      const stage = data.issue_stage === 'postclose' ? '장후' : data.issue_stage === 'premarket' ? '장전' : '수동';
+      status.textContent = threeWay
+        ? `${stage} 예측 · ${when} · 종가 수익률의 급등·중립·급락 확률 · 연구용`
+        : `수동 GPU 예측 · ${data.architecture || '8층 미세조정 복사'} · ${when} · ${data.gpu || 'GPU 확인 불가'} · 운영 반영 비중 0. 급등·급락 전용이며 절대 수익률 ${threshold} 이상인 날만 적중과 오차에 넣습니다. 매매 지시가 아닙니다.`;
     }
     if (!cards) return;
     const byMarket = new Map((data.markets || []).filter(row => row && names[row.market]).map(row => [row.market, row]));
-    cards.className = 'compare-row';
     cards.replaceChildren();
     for (const market of Object.keys(names)) {
       const row = byMarket.get(market);
       const holder = document.createElement('div');
       holder.className = 'compare-side';
-      holder.innerHTML = row && Number.isFinite(row.p_up) && Number.isFinite(row.close) && Number.isFinite(row.expected_index)
-        ? renderCard(row, threshold)
+      const canDisplay = row && Number.isFinite(row.close) && (threeWay
+        ? validThreeWay(row)
+        : Number.isFinite(row.p_up) && Number.isFinite(row.expected_index));
+      holder.innerHTML = canDisplay
+        ? (threeWay ? renderThreeWay(row, threshold) : renderCard(row, threshold))
         : '<p>모델 C 결과가 없습니다.</p>';
       cards.appendChild(holder);
     }

@@ -92,6 +92,20 @@ def test_published_files_pass_the_checks_and_match_the_renderers():
     assert "'model_c_forecast_v1'" in script_c and "production_weight !== 0" in script_c
 
 
+def test_model_c_three_way_probabilities_are_checked_without_a_point_forecast():
+    row = good_row(p_up=0.1, p_down=0.2, p_normal=0.7)
+    del row["expected_return"], row["expected_index"]
+    payload = {
+        "schema_version": "model_c_forecast_v1",
+        "probability_mode": "three_way",
+        "production_weight": 0,
+        "markets": [row],
+    }
+    assert lp.check_forecast_payload(payload, "model_c_forecast_v1", require_expected=True) == []
+    row["p_normal"] = 0.8
+    assert lp.check_forecast_payload(payload, "model_c_forecast_v1", require_expected=True)
+
+
 def test_ledger_is_hash_chained_append_only_and_refuses_a_second_issue(tmp_path):
     ledger = tmp_path / "ledger.jsonl"
     first = lp.append_ledger(ledger, {"variant": "v", "market": "KOSPI", "target_date": "2026-11-25", "value": 0.1})

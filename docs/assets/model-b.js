@@ -25,13 +25,16 @@
       p_down: row.p_down,
       expected_index: row.expected_index,
       expected_return: row.expected_return,
+      index_range_low: row.interval?.level === 0.8 ? row.interval.low : undefined,
+      index_range_high: row.interval?.level === 0.8 ? row.interval.high : undefined,
     },
   });
 
   const render = data => {
     if (!cards) return;
     const generated = kstStamp(data.generated_at);
-    if (status) status.textContent = generated ? `수동 예측 · 생성 ${generated} KST · 연구용` : '수동 예측 생성 시각을 확인하지 못했습니다.';
+    const stage = data.issue_stage === 'postclose' ? '장후' : data.issue_stage === 'premarket' ? '장전' : '수동';
+    if (status) status.textContent = generated ? `${stage} 예측 · 생성 ${generated} KST · 연구용` : '수동 예측 생성 시각을 확인하지 못했습니다.';
     const byMarket = new Map(data.markets.filter(row => row && names.includes(row.market)).map(row => [row.market, row]));
     cards.replaceChildren();
     for (const market of names) {
@@ -42,7 +45,11 @@
       } else {
         const trained = day(row.trained_through) || '확인 불가';
         const variant = row.variant ? ` · ${escapeHtml(row.variant)}` : '';
-        holder.innerHTML = `<p class="model-run-note">학습 마지막 ${trained}${variant}</p>${renderCard(modelBItem(row), 'research_only')}`;
+        const evaluation = row.evaluation_2026;
+        const review = evaluation?.n > 0 && Number.isFinite(evaluation.close_mae)
+          ? `<p class="model-run-note">2026년 장후 재구성 · ${escapeHtml(evaluation.n)}거래일 · 종가 MAE ${evaluation.close_mae.toFixed(2)}점</p>`
+          : '';
+        holder.innerHTML = `<p class="model-run-note">학습 마지막 ${trained}${variant}</p>${renderCard(modelBItem(row), 'research_only')}${review}`;
       }
       cards.appendChild(holder);
     }

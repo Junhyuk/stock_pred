@@ -1,4 +1,5 @@
 import importlib.util
+import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -71,10 +72,36 @@ def test_manual_model_c_is_separate_from_main_model_c():
     assert html.count('id="model-c"') == 1
     assert html.count("assets/model-c.js") == 1
     assert html.index('id="model-a"') < html.index('id="model-c"') < html.index('<details id="model-compare"')
-    assert html.index('<details id="model-compare"') < html.index('id="model-c-cards"')
+    assert html.index('id="model-c"') < html.index('id="model-c-cards"') < html.index('<details id="model-compare"')
     assert "assets/model-b.js" in html
     script = (ROOT / "docs" / "assets" / "model-c.js").read_text()
     assert "급등·급락 전용" in script
     assert "3%" in script
     page = html
     assert 'id="model-a"' in page and 'id="model-b"' in page
+
+
+def test_three_way_card_displays_neutral_without_a_close_forecast():
+    script = ROOT / "docs/assets/model-c.js"
+    program = """
+const fs = require('node:fs');
+const vm = require('node:vm');
+const status = {textContent: ''};
+const cards = {items: [], replaceChildren() {}, appendChild(item) { this.items.push(item); }};
+const kospi = {market: 'KOSPI', asof_date: '2026-11-25', target_date: '2026-11-26',
+  close: 4697.51, p_up: .2, p_normal: .53, p_down: .27};
+const payload = {schema_version: 'model_c_forecast_v1', probability_mode: 'three_way',
+  issue_stage: 'postclose', production_weight: 0, markets: [kospi, {...kospi, market: 'KOSDAQ', p_normal: .8}]};
+vm.runInNewContext(fs.readFileSync(process.argv[1], 'utf8'), {
+  document: {getElementById: id => id === 'model-c-status' ? status : cards, createElement: () => ({})},
+  fetch: async () => ({ok: true, json: async () => payload})
+});
+setImmediate(() => console.log(status.textContent, ...cards.items.map(item => item.innerHTML)));
+"""
+    output = subprocess.check_output(["node", "-e", program, str(script)], text=True)
+    assert "장후 예측" in output
+    assert "2026-11-26" in output
+    assert "중립</span><strong>53.00%" in output
+    assert "3% 이상 하락</span><strong>27.00%" in output
+    assert "예상 지수" not in output
+    assert "모델 C 결과가 없습니다." in output

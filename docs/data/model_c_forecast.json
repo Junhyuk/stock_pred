@@ -1,63 +1,83 @@
 {
   "schema_version": "model_c_forecast_v1",
   "model_name": "모델 C",
-  "architecture": "8층 미세조정 복사",
+  "probability_mode": "three_way",
+  "probability_class_order": [
+    "down",
+    "neutral",
+    "up"
+  ],
+  "architecture": "전체 거래일 급변 3분류",
   "trigger": "manual_gpu",
+  "issue_stage": "postclose",
+  "prediction_cutoff": "2026-11-25T18:00:00+09:00",
+  "generated_at": "2026-11-25T09:33:02.614662+00:00",
   "production_weight": 0.0,
-  "generated_at": "2026-11-24T12:55:08Z",
-  "gpu": "NVIDIA GeForce RTX 3090",
   "threshold": 0.03,
-  "scope": "급등·급락 전용",
-  "counting_rule": "다음 세션 종가 수익률의 절대값이 3% 이상이고 다음 종가가 있는 날만 학습하고 채점한다.",
+  "gpu": "NVIDIA GeForce RTX 3090",
+  "fit_device": "cpu",
+  "inference_device": "cuda",
+  "scope": "다음 KRX 거래일 종가의 전일 대비 수익률",
+  "counting_rule": "모든 거래일을 평가하며, 다음 종가 수익률 -3% 이하·-3% 초과 3% 미만·3% 이상을 3분류합니다.",
+  "evaluation_scope": "2026년 재구성 검증 220거래일. 실시간 전향 검증은 아직 확보되지 않았습니다.",
+  "input_scope": "국내 종가 기반 지표. 이번 장후 모델의 검증된 입력은 1일·5일 수익률과 20일 변동성입니다.",
   "markets": [
     {
       "market": "KOSPI",
-      "asof_date": "2026-11-24",
-      "target_date": "2026-11-25",
-      "close": 5006.03,
-      "p_up": 0.3622,
-      "p_down": 0.6378,
-      "expected_return": -0.006761,
-      "expected_index": 4972.18,
-      "trained_through": "2026-11-23",
-      "examined": {
-        "pre_2026": {
-          "n": 18,
-          "direction_hit": 0.4444,
-          "brier": 0.2745,
-          "close_mae": 116.19
-        },
-        "year_2026": {
-          "n": 80,
-          "direction_hit": 0.55,
-          "brier": 0.2535,
-          "close_mae": 358.9
-        }
+      "asof_date": "2026-11-25",
+      "target_date": "2026-11-26",
+      "close": 4697.51,
+      "anchor_received_at": "2026-11-25T08:37:09.093355+00:00",
+      "method": "hist_gradient",
+      "variant": "히스토그램 그래디언트 부스팅",
+      "p_up": 0.19676370033012053,
+      "p_normal": 0.5325967393635677,
+      "p_down": 0.2706395603063118,
+      "p_extreme": 0.46740326063643234,
+      "p_up_given_extreme": 0.4209720318643056,
+      "trained_through": "2026-11-24",
+      "labels_received_through": "2026-11-25",
+      "evaluation_2026": {
+        "n": 220,
+        "first_target": "2026-01-02",
+        "last_target": "2026-11-25",
+        "brier": 0.5582601086089494,
+        "baseline_brier": 0.6444170125162114,
+        "extreme_average_precision": 0.49915705320509957,
+        "baseline_extreme_average_precision": 0.414819245082403,
+        "brier_difference_ci95": [
+          -0.12347281961196448,
+          -0.04593856007975355
+        ]
       }
     },
     {
       "market": "KOSDAQ",
-      "asof_date": "2026-11-24",
-      "target_date": "2026-11-25",
-      "close": 665.88,
-      "p_up": 0.4674,
-      "p_down": 0.5326,
-      "expected_return": -0.002862,
-      "expected_index": 663.97,
-      "trained_through": "2026-11-23",
-      "examined": {
-        "pre_2026": {
-          "n": 47,
-          "direction_hit": 0.7447,
-          "brier": 0.2126,
-          "close_mae": 28.26
-        },
-        "year_2026": {
-          "n": 68,
-          "direction_hit": 0.4412,
-          "brier": 0.312,
-          "close_mae": 48.76
-        }
+      "asof_date": "2026-11-25",
+      "target_date": "2026-11-26",
+      "close": 650.64,
+      "anchor_received_at": "2026-11-25T08:37:09.032369+00:00",
+      "method": "regime_prior",
+      "variant": "변동성 구간별 과거 빈도",
+      "p_up": 0.070001295001295,
+      "p_normal": 0.8293718434343434,
+      "p_down": 0.10062686156436156,
+      "p_extreme": 0.17062815656565655,
+      "p_up_given_extreme": 0.41025641025641024,
+      "trained_through": "2026-11-24",
+      "labels_received_through": "2026-11-25",
+      "evaluation_2026": {
+        "n": 220,
+        "first_target": "2026-01-02",
+        "last_target": "2026-11-25",
+        "brier": 0.5260962506540969,
+        "baseline_brier": 0.5260962506540969,
+        "extreme_average_precision": 0.37976386575933485,
+        "baseline_extreme_average_precision": 0.37976386575933485,
+        "brier_difference_ci95": [
+          0.0,
+          0.0
+        ]
       }
     }
   ]

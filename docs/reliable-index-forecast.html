@@ -216,8 +216,8 @@
   </header>
   <nav class="quick-nav forecast-nav" aria-label="예측 모델">
     <a href="#model-a" class="model-a"><b>A</b> 자동 지수 예측</a>
-    <a href="#model-bc-range" data-range-nav="model-b" class="model-b"><b>B</b> 종가 범위 예측</a>
-    <a href="#model-bc-range" data-range-nav="model-c" class="model-c"><b>C</b> 급등·급락 확률</a>
+    <a href="#model-b" class="model-b"><b>B</b> 종가 범위 예측</a>
+    <a href="#model-c" class="model-c"><b>C</b> 급등·급락 확률</a>
   </nav>
   <nav class="quick-nav" aria-label="리포트와 시장 지표">
     <a href="index-forecast.html">1D/2D 리포트</a>
@@ -249,29 +249,30 @@
       <div id="content"></div>
     </section>
   </section>
-  <section id="model-b" class="model-band model-b" aria-labelledby="model-b-title" hidden>
+  <section id="model-b" class="model-band model-b" aria-labelledby="model-b-title">
     <header class="model-heading">
       <div class="model-identity">
         <span class="model-letter" aria-hidden="true">B</span>
         <div><h2 id="model-b-title" aria-label="모델 B 종가 범위 예측">종가 범위 예측</h2><p>예상 종가와 상승·하락 확률 · 연구용</p></div>
       </div>
-      <p class="model-date-line" data-range-dates></p>
+      <p class="model-date-line" id="model-b-status" role="status">수동 예측을 확인하는 중입니다.</p>
     </header>
-    <div class="forecast-grid" data-range-cards></div>
+    <div class="forecast-grid" id="manual-model-b-cards"></div>
   </section>
-  <section id="model-c" class="model-band model-c" aria-labelledby="model-c-title" hidden>
+  <section id="model-c" class="model-band model-c" aria-labelledby="model-c-title">
     <header class="model-heading">
       <div class="model-identity">
         <span class="model-letter" aria-hidden="true">C</span>
         <div><h2 id="model-c-title" aria-label="모델 C 급등·급락 확률">급등·급락 확률</h2><p>3% 이상 상승·하락, 또는 중립 · 연구용</p></div>
       </div>
-      <p class="model-date-line" data-range-dates></p>
+      <p class="model-date-line" id="model-c-status" role="status">수동 급등·급락 확률을 확인하는 중입니다.</p>
     </header>
-    <div class="forecast-grid" data-range-cards></div>
+    <div class="forecast-grid" id="model-c-cards"></div>
   </section>
   <!-- model-bc-range:start -->
   <section id="model-bc-range" class="notice" aria-labelledby="model-bc-range-title" data-target-date="2026-11-25">
-    <h2 id="model-bc-range-title">모델 B·C 종가 범위 (연구용)</h2>
+    <details id="model-compare" class="forecast-support">
+      <summary id="model-bc-range-title">이전 장전 예측과 검증 결과 · 2026-11-25</summary>
     <p>대상 거래일 <strong>2026-11-25</strong> · 기준 종가일 2026-11-24 KST · 로컬 GPU · 미국 지수·EWY·KORU를 포함한 장전 예측 · 명목 80% 범위 · 추론 완료 <time datetime="2026-11-25T08:48:20+09:00">11/25 08:48:20 KST</time></p>
     <p>미국 11/24 세션 정규장 종가 · 11/25 06:00 KST · S&amp;P 500 -0.50% · Nasdaq -1.48% · SOX -7.88% · EWY -3.70% · KORU -10.77% · KORU 기준 가격 $5.47</p>
     <div class="forecast-grid bc-range-grid">
@@ -309,21 +310,9 @@
     <p>모델 B는 최근 120건의 종가 예측 오차로 범위를 잡습니다. 모델 C는 급락·중립·급등 확률과 과거 수익률 분포를 결합하고 최근 120건의 오차로 보정합니다. 범위 적중률은 2026년 과거 재구성 평가입니다.</p>
     <p>2026년 동일 거래일 재구성 평가 · 기존 미국 입력 → KORU 추가 · 오차가 낮을수록 좋습니다.</p>
     <ul><li>코스피 219거래일 · B 단독 MAE 177.76 → 178.16점 (219일) · C Brier 0.6531 → 0.6621</li><li>코스닥 219거래일 · B 단독 MAE 23.29 → 23.27점 (219일) · C Brier 0.5651 → 0.5613</li></ul>
+    </details>
   </section>
   <!-- model-bc-range:end -->
-  <details id="model-compare" class="notice forecast-support">
-    <summary>별도 수동 실행 기록 · 모델 B·C</summary>
-    <section aria-labelledby="manual-model-b-title">
-      <h3 id="manual-model-b-title">모델 B · 수동 종가 예측</h3>
-      <p id="model-b-status" role="status">수동 예측을 확인하는 중입니다.</p>
-      <div id="manual-model-b-cards" class="compare-row"></div>
-    </section>
-    <section aria-labelledby="manual-model-c-title">
-      <h3 id="manual-model-c-title">모델 C · 수동 급등·급락 전용</h3>
-      <p id="model-c-status" class="model-run-note" role="status">수동 예측을 확인하는 중입니다.</p>
-      <div id="model-c-cards"></div>
-    </section>
-  </details>
   <section id="overseas-market-charts" class="notice overseas-market" aria-labelledby="overseas-market-charts-title">
     <h2 id="overseas-market-charts-title">SK하이닉스 ADR·KORU 가격과 투자자 수급</h2>
     <div class="overseas-market-controls">
