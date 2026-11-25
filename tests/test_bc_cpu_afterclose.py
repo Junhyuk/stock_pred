@@ -20,10 +20,12 @@ CUTOFF = "2026-11-25T09:13:00+00:00"
 NOW = "2026-11-25T09:14:00+00:00"
 
 
-def prepared_inputs(tmp_path, moves, *, conflicts=()):
+def prepared_inputs(tmp_path, moves, *, conflicts=(), asof=ASOF, received=RECEIVED,
+                    cutoff=CUTOFF, operation_mode=None, observations=None):
     tmp_path.mkdir(parents=True, exist_ok=True)
     sqlite = tmp_path / "input.sqlite"
-    sessions, _ = session_schedule("2019-01-01", ASOF)
+    sessions, _ = session_schedule("2019-01-01", asof)
+    prior = sessions["date"].iloc[-2]
     markets = {}
     with closing(connect_index_forecast(sqlite)) as db:
         for market, endpoint in moves.items():
@@ -34,34 +36,41 @@ def prepared_inputs(tmp_path, moves, *, conflicts=()):
             levels[-2:] = [1000.0, endpoint]
             db.executemany(
                 "INSERT INTO index_eod(index_code,session_date,close,source,ingested_at) VALUES(?,?,?,?,?)",
-                [(market, day, close, "smoke_history", RECEIVED)
+                [(market, day, close, "smoke_history", received)
                  for day, close in zip(sessions["date"], levels, strict=True)],
             )
             db.commit()
-            for day, close in zip((PRIOR, ASOF), levels[-2:], strict=True):
+            for day, close in zip((prior, asof), levels[-2:], strict=True):
                 if (market, day) not in conflicts:
                     status = "verified"
                 else:
                     status = "conflict"
                 record_observation(db, {
                     "index_code": market, "session_date": day, "close": close, "source": "smoke_pair",
-                    "received_at": RECEIVED, "status": status,
+                    "received_at": received, "status": status,
                 })
             markets[market] = {
-                "session_date": ASOF, "close": endpoint, "received_at": RECEIVED, "source": "smoke_pair",
-                "status": "conflict" if (market, ASOF) in conflicts else "verified",
+                "session_date": asof, "close": endpoint, "received_at": received, "source": "smoke_pair",
+                "status": "conflict" if (market, asof) in conflicts else "verified",
             }
     public = tmp_path / "market_closes.json"
     write_market_closes(
-        {"schema_version": "market_closes_v1", "run_id": "smoke", "checked_at": RECEIVED, "markets": markets},
-        public, published_at=RECEIVED,
+        {"schema_version": "market_closes_v1", "run_id": "smoke", "checked_at": received, "markets": markets},
+        public, published_at=received,
     )
     frozen = tmp_path / "frozen"
-    automation_state.freeze_inputs(
-        {"sqlite": sqlite, "market_closes": public,
-         "market_closes_receipt": public.with_name("market_closes_publication.json")},
-        frozen, prepared_at=CUTOFF, code_hash=automation_state.source_fingerprint(), issuance_protocol=PROTOCOL,
-    )
+    files = {"sqlite": sqlite, "market_closes": public,
+             "market_closes_receipt": public.with_name("market_closes_publication.json")}
+    if operation_mode == "morning":
+        us = tmp_path / "us.csv"
+        if observations is None:
+            us.write_text("symbol,close\n^GSPC,1000\n")
+        else:
+            observations.to_csv(us, index=False)
+        files["us_csv"] = us
+    automation_state.freeze_inputs(files, frozen, prepared_at=cutoff,
+                                   code_hash=automation_state.source_fingerprint(),
+                                   issuance_protocol=PROTOCOL, operation_mode=operation_mode)
     return frozen / "manifest.json"
 
 
@@ -206,3 +215,53 @@ def test_partial_or_mismatched_cpu_pair_is_excluded_from_staging(tmp_path, monke
     b["publication_id"] = "different"
     (output / "model_b_forecast.json").write_text(json.dumps(b))
     assert not automation_state.public_payload_paths(output)
+
+
+def test_morning_saturday_and_monday_use_same_completed_anchor_but_update_daily(tmp_path, monkeypatch):
+    calls = []
+    stub_forecast(monkeypatch)
+
+    def predict(market, closes, *, close_received_at, **kwargs):
+        assert close_received_at["2026-11-27"].isoformat() == kwargs["prediction_cutoff"].isoformat()
+        calls.append(market)
+        close = closes[-1]
+        return {"close": close, "expected_index": close * 1.01, "expected_return": .01,
+                "p_up": .55, "p_down": .45, "interval": {"level": .8, "low": close * .95, "high": close * 1.05}}
+
+    monkeypatch.setattr(daily, "forecast_morning_market", predict)
+    output = tmp_path / "publish"
+    for date in ("2026-11-28", "2026-11-30"):
+        stamp = date + "T08:04:00+09:00"
+        manifest = prepared_inputs(tmp_path / date, {"KOSPI": 1030, "KOSDAQ": 1000}, asof="2026-11-27",
+                                   received=stamp, cutoff=stamp, operation_mode="morning")
+        assert daily.run_prepared(manifest, output, now=stamp, operation_mode="morning")["status"] == "published"
+        b, c = payloads(output)
+        assert b["issue_stage"] == "premarket" and c["status"] == "ready"
+        assert b["run_date"] == date
+        assert (c["asof_date"], c["target_date"]) == ("2026-11-27", "2026-11-30")
+        assert all(row["close"] != row["expected_index"] for row in b["markets"])
+        assert daily.run_prepared(manifest, output, now=stamp, operation_mode="morning")["status"] == "already_published"
+    assert calls == ["KOSPI", "KOSDAQ"] * 2
+    assert daily.run_prepared(manifest, output, now="2026-11-30T18:00:00+09:00",
+                              operation_mode="morning")["status"] == "outside_morning_window"
+
+
+def test_full_cpu_morning_run(tmp_path):
+    from roboquant.index_forecast.us_market_inputs import us_close_schedule
+    from test_bc_morning import BASE_SYMBOLS, observations_for
+
+    dates = us_close_schedule("2018-12-26", "2026-11-25")
+    us_dates = dates.loc[dates["symbol"].eq("^GSPC"), "session_date"].tolist()
+    stamp = "2026-11-26T08:04:00+09:00"
+    observations = observations_for(us_dates, (*BASE_SYMBOLS, "KORU"))
+    manifest = prepared_inputs(tmp_path, {"KOSPI": 1030, "KOSDAQ": 991}, received=stamp,
+                               cutoff=stamp, operation_mode="morning", observations=observations)
+    output = tmp_path / "publish"
+    outcome = daily.run_prepared(manifest, output, now=stamp, operation_mode="morning")
+    assert outcome["status"] == "published" and outcome["model_b_unavailable"] == {}
+    b, c = payloads(output)
+    assert c["status"] == "ready" and len(c["markets"]) == 2
+    assert len(b["markets"]) == 2
+    for row in b["markets"]:
+        assert round(row["expected_index"], 2) != round(row["close"], 2)
+        assert row["expected_index"] == pytest.approx(row["close"] * (1 + row["expected_return"]))

@@ -1,16 +1,16 @@
-name: After-close research forecast
+name: Morning research forecast
 
 on:
   schedule:
-    # KST Monday–Friday18:00: collect completed closes, freeze actual receipts, publish.
-    - cron: "0 9 * * 1-5"
+    # Monday–Saturday 08:00 KST, including Friday's closes on Saturday.
+    - cron: "0 23 * * 0-5"
   workflow_dispatch:
     inputs:
       mode:
         description: Actual-clock operation; validate never publishes a forecast
         type: choice
         default: validate
-        options: [validate, postclose, daily, prepare, predict, latest]
+        options: [validate, morning, postclose, daily, prepare, predict, latest]
       indicators_only:
         description: Run only the market indicator checks in validate mode
         type: boolean
@@ -112,7 +112,9 @@ jobs:
         if: steps.operation.outputs.collect == 'true'
         run: |
           set -euo pipefail
-          if [ "${{ steps.operation.outputs.mode }}" = postclose ]; then
+          if [ "${{ steps.operation.outputs.mode }}" = morning ]; then
+            python scripts/run_postclose_prices.py --morning | tee "$RUNNER_TEMP/prices.json"
+          elif [ "${{ steps.operation.outputs.frozen_forecast }}" = true ]; then
             python scripts/run_postclose_prices.py | tee "$RUNNER_TEMP/prices.json"
           else
             python scripts/refresh_premarket_prices.py | tee "$RUNNER_TEMP/prices.json"
@@ -131,11 +133,11 @@ jobs:
         run: python scripts/collect_applied_model_inputs.py --sqlite "${{ steps.refresh.outputs.sqlite }}"
       - name: Freeze actual preparation inputs
         id: freeze
-        if: steps.operation.outputs.collect == 'true' && (steps.operation.outputs.mode != 'postclose' || steps.cache_open.outputs.cache_ready == 'true')
+        if: steps.operation.outputs.collect == 'true' && (steps.operation.outputs.frozen_forecast != 'true' || steps.cache_open.outputs.cache_ready == 'true')
         run: python scripts/accuracy_operation.py --phase freeze --mode "${{ steps.operation.outputs.mode }}" --sqlite "${{ steps.refresh.outputs.sqlite }}" --us-csv "${{ steps.refresh.outputs.us_csv }}"
       - name: Seal preparation checkpoint before waiting
         id: checkpoint
-        if: (steps.operation.outputs.mode == 'daily' || steps.operation.outputs.mode == 'postclose') && steps.freeze.outputs.status == 'prepared'
+        if: (steps.operation.outputs.mode == 'daily' || steps.operation.outputs.frozen_forecast == 'true') && steps.freeze.outputs.status == 'prepared'
         env:
           FORECAST_CACHE_KEY: ${{ secrets.FORECAST_CACHE_KEY }}
         run: python scripts/accuracy_operation.py --phase cache-seal --mode "${{ steps.operation.outputs.mode }}"
@@ -150,11 +152,11 @@ jobs:
         run: python scripts/accuracy_operation.py --phase wait --mode daily
       - name: Resolve immutable forecast inputs
         id: prices
-        if: steps.operation.outputs.forecast_requested == 'true' && (steps.operation.outputs.mode != 'postclose' || steps.checkpoint.outputs.status == 'sealed')
+        if: steps.operation.outputs.forecast_requested == 'true' && (steps.operation.outputs.frozen_forecast != 'true' || steps.checkpoint.outputs.status == 'sealed')
         run: python scripts/accuracy_operation.py --phase inputs --mode "${{ steps.operation.outputs.mode }}" --sqlite "${{ steps.refresh.outputs.sqlite }}" --us-csv "${{ steps.refresh.outputs.us_csv }}"
       - name: Korea research forecast
         id: kr_forecast
-        continue-on-error: ${{ steps.operation.outputs.mode == 'postclose' }}
+        continue-on-error: ${{ steps.operation.outputs.frozen_forecast == 'true' }}
         if: steps.prices.outputs.kr == 'true'
         run: |
           set -euo pipefail
@@ -170,7 +172,7 @@ jobs:
             --result "$RUNNER_TEMP/korea-forecast.json" --data-dir docs/data
       - name: US research forecast
         id: us_forecast
-        continue-on-error: ${{ steps.operation.outputs.mode == 'postclose' }}
+        continue-on-error: ${{ steps.operation.outputs.frozen_forecast == 'true' }}
         if: steps.prices.outputs.us == 'true'
         run: |
           set -euo pipefail
@@ -184,11 +186,11 @@ jobs:
           python scripts/verify_automation_publication.py \
             --result "$RUNNER_TEMP/us-forecast.json" --data-dir docs/data/us
       - name: Persist derived model state from prepared inputs
-        if: (steps.operation.outputs.mode == 'predict' || steps.operation.outputs.mode == 'daily' || steps.operation.outputs.mode == 'postclose') && steps.prices.outputs.status == 'ready' && success()
+        if: (steps.operation.outputs.mode == 'predict' || steps.operation.outputs.mode == 'daily' || steps.operation.outputs.frozen_forecast == 'true') && steps.prices.outputs.status == 'ready' && success()
         run: python scripts/accuracy_operation.py --phase publish-models --mode "${{ steps.operation.outputs.mode }}"
       - name: Seal private cache
         id: seal
-        if: (steps.operation.outputs.collect == 'true' || (steps.operation.outputs.mode == 'daily' && steps.prices.outputs.status == 'ready')) && success() && (steps.operation.outputs.mode != 'postclose' || steps.cache_open.outputs.cache_ready == 'true')
+        if: (steps.operation.outputs.collect == 'true' || (steps.operation.outputs.mode == 'daily' && steps.prices.outputs.status == 'ready')) && success() && (steps.operation.outputs.frozen_forecast != 'true' || steps.cache_open.outputs.cache_ready == 'true')
         env:
           FORECAST_CACHE_KEY: ${{ secrets.FORECAST_CACHE_KEY }}
         run: python scripts/accuracy_operation.py --phase cache-seal --mode "${{ steps.operation.outputs.mode }}"
@@ -274,14 +276,14 @@ jobs:
         run: python scripts/accuracy_operation.py --phase status --mode "${{ steps.operation.outputs.mode }}" --kr-outcome "${{ steps.kr_forecast.outcome }}" --us-outcome "${{ steps.us_forecast.outcome }}" --reason "${{ steps.prices.outputs.reason || 'completed' }}"
       - name: Forecast Model B and conditionally Model C on CPU
         id: bc_cpu
-        if: steps.operation.outputs.mode == 'postclose' && steps.prices.outputs.status == 'ready'
+        if: steps.operation.outputs.frozen_forecast == 'true' && steps.prices.outputs.status == 'ready'
         continue-on-error: true
         timeout-minutes: 1
         env:
           OMP_NUM_THREADS: 1
           OPENBLAS_NUM_THREADS: 1
           MKL_NUM_THREADS: 1
-        run: python scripts/run_bc_cpu_afterclose.py --prepared-manifest "${{ steps.prices.outputs.prepared_manifest }}"
+        run: python scripts/run_bc_cpu_afterclose.py --prepared-manifest "${{ steps.prices.outputs.prepared_manifest }}" --operation-mode "${{ steps.operation.outputs.mode }}"
       - name: Refresh CFD charts for Pages
         if: steps.operation.outputs.collect == 'true'
         timeout-minutes: 2

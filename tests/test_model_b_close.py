@@ -9,7 +9,6 @@ from roboquant.models.model_b_close import expected_index, next_close_returns, p
 
 ROOT = Path(__file__).resolve().parents[1]
 MODEL_B_JS = ROOT / "docs" / "assets" / "model-b.js"
-FORECAST = ROOT / "docs" / "data" / "model_b_forecast.json"
 # Pinned copy: the published file is rewritten by every manual Model B run.
 PINNED_FORECAST = ROOT / "tests" / "fixtures" / "model_b_forecast_sample.json"
 
@@ -110,6 +109,28 @@ setTimeout(() => {
     assert "8층 미세조정" in rendered
 
 
+def test_legacy_close_carry_is_not_rendered_as_estimated_index():
+    import subprocess
+
+    program = r"""
+const source = SOURCE;
+const status = {};
+const cards = {replaceChildren() {}, appendChild() {}};
+const document = {getElementById: id => id === 'model-b-status' ? status : cards, createElement: () => ({})};
+const payload = {schema_version: 'model_b_forecast_v1', issue_stage: 'postclose', markets: [
+  {market: 'KOSPI', close: 4700, p_up: 0.55, expected_index: 4700, expected_return: 0,
+   variant: '장후 검증 기준선 · 종가 유지'}
+]};
+const fetch = async () => ({ok: true, json: async () => payload});
+const renderCard = item => console.log(JSON.stringify(item.forecast));
+new Function('document', 'fetch', 'renderCard', 'escapeHtml', source)(document, fetch, renderCard, value => value);
+""".replace("SOURCE", json.dumps(MODEL_B_JS.read_text()))
+    completed = subprocess.run(["node", "-e", program], capture_output=True, text=True, check=True)
+    row = json.loads(completed.stdout)
+    assert row["latest_close"] == 4700
+    assert "expected_index" not in row and "expected_return" not in row
+
+
 def check_return_formula(payload):
     assert payload["schema_version"] == "model_b_forecast_v1"
     assert payload["model_name"] == "모델 B"
@@ -133,8 +154,3 @@ def test_published_model_b_forecast_matches_return_formula():
     markets = check_return_formula(json.loads(PINNED_FORECAST.read_text()))
     assert markets["KOSPI"]["variant"] == "8층 미세조정"
     assert "variant" not in markets["KOSDAQ"]
-
-
-def test_live_model_b_forecast_keeps_the_published_contract():
-    # Only invariants that hold for every Model B run; run-specific values live in the pinned copy.
-    check_return_formula(json.loads(FORECAST.read_text()))

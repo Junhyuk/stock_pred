@@ -31,13 +31,16 @@ def kr_input_diagnostics(dates, *, now, mode):
     """Expose only session metadata while retaining the existing issuance guard."""
     from roboquant.index_forecast.reliable_inputs import resolve_forecast_context
 
-    contexts = [(market, resolve_forecast_context(day, now=now, issuance_protocol='after_close_daily_v1' if mode == 'postclose' else 'premarket_v1')) for market, day in dates]
+    frozen_forecast = mode in state.FROZEN_FORECAST_MODES
+    protocol = 'after_close_daily_v1' if frozen_forecast else 'premarket_v1'
+    contexts = [(market, resolve_forecast_context(day, now=now, issuance_protocol=protocol,
+                operation_mode='morning' if mode == 'morning' else None)) for market, day in dates]
     eligible = len(contexts) == 2 and all(
         context['status'] == 'ready'
         and (mode not in {'predict', 'daily'} or context['stage'] == 'premarket_final')
         for _, context in contexts
     )
-    if mode == 'postclose':
+    if frozen_forecast:
         eligible = any(context['status'] == 'ready' for _, context in contexts)
     fields = ('asof_date', 'status', 'expected_asof_date', 'target_date', 'stage', 'reasons')
     return {
@@ -97,7 +100,7 @@ def completed_publication_date(status):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--phase', required=True, choices=['gate', 'freeze', 'wait', 'inputs', 'cache-open', 'cache-seal', 'status', 'public-paths', 'publish-models'])
-    parser.add_argument('--mode', default='auto', choices=['auto', 'postclose', 'daily', 'prepare', 'predict', 'latest', 'validate'])
+    parser.add_argument('--mode', default='auto', choices=['auto', 'morning', 'postclose', 'daily', 'prepare', 'predict', 'latest', 'validate'])
     parser.add_argument('--schedule', default='')
     parser.add_argument('--sqlite')
     parser.add_argument('--us-csv')
@@ -106,12 +109,14 @@ def main():
     parser.add_argument('--us-outcome', default='skipped')
     args = parser.parse_args()
     now = datetime.now(UTC)
-    mode = args.mode if args.mode != 'auto' else 'postclose'
-    protocol = 'after_close_daily_v1' if mode == 'postclose' else 'premarket_v1'
+    scheduled_mode = 'morning' if args.schedule == state.MORNING_CRON else 'postclose'
+    mode = args.mode if args.mode != 'auto' else scheduled_mode
+    frozen_forecast = mode in state.FROZEN_FORECAST_MODES
+    protocol = 'after_close_daily_v1' if frozen_forecast else 'premarket_v1'
     decision = state.operation_decision(now, mode)
     private = ROOT / 'data/processed'
-    frozen = private / 'prepared' / (protocol + '-' + decision['kst_date'] if mode == 'postclose' else decision['kst_date'])
-    if mode == 'postclose':
+    frozen = private / 'prepared' / (protocol + '-' + decision['kst_date'] if frozen_forecast else decision['kst_date'])
+    if frozen_forecast:
         # Each retry gets a new actual snapshot; completed market targets are skipped independently.
         if args.phase == 'freeze':
             run_key = os.environ.get('GITHUB_RUN_ID', 'local')
@@ -127,9 +132,9 @@ def main():
         if mode == 'daily' and (previous.get('daily_completed_date') == decision['kst_date']
                                or completed_publication_date(previous) == decision['kst_date']):
             decision.update(allowed=False, reason='daily_already_completed')
-        emit({**decision, 'collect': decision['allowed'] and (mode in {'prepare', 'latest', 'postclose'}
+        emit({**decision, 'frozen_forecast': frozen_forecast, 'collect': decision['allowed'] and (mode in {'prepare', 'latest'} or frozen_forecast
                   or mode == 'daily' and now.astimezone(state.KST).hour < 8),
-              'forecast_requested': decision['allowed'] and mode in {'daily', 'predict', 'latest', 'postclose'}})
+              'forecast_requested': decision['allowed'] and (frozen_forecast or mode in {'daily', 'predict', 'latest'})})
         return
     if args.phase == 'public-paths':
         if decision['allowed'] and mode != 'validate':
@@ -192,15 +197,16 @@ def main():
             from roboquant.index_forecast.economic_calendar import EconomicCalendarStore
             economic_db = private / 'economic-calendar/economic.sqlite'
             EconomicCalendarStore(economic_db)
-            model_dir = 'fit_models_postclose' if mode == 'postclose' else 'fit_models'
+            model_dir = 'fit_models_postclose' if frozen_forecast else 'fit_models'
             files = {'sqlite': args.sqlite, 'us_csv': args.us_csv,
                 'economic_sqlite': economic_db, 'fit_models_kr': ROOT / 'docs/data' / model_dir,
                 'fit_models_us': ROOT / 'docs/data/us' / model_dir}
-            if mode == 'postclose':
+            if frozen_forecast:
                 files['market_closes'] = ROOT / 'docs/data/market_closes.json'
                 files['market_closes_receipt'] = ROOT / 'docs/data/market_closes_publication.json'
-            result = state.freeze_inputs(files, frozen, code_hash=state.source_fingerprint(), issuance_protocol=protocol)
-            if mode == 'postclose':
+            result = state.freeze_inputs(files, frozen, code_hash=state.source_fingerprint(), issuance_protocol=protocol,
+                                         operation_mode='morning' if mode == 'morning' else None)
+            if frozen_forecast:
                 state.atomic_json(private / 'postclose-prepared.json', {'directory': str(frozen)})
             emit({'status': 'prepared', 'prepared_at': result['prepared_at'], 'manifest_hash': result['manifest_hash']})
         except (OSError, ValueError, TypeError) as error:
@@ -209,18 +215,21 @@ def main():
     if args.phase == 'inputs':
         paths = {'sqlite': Path(args.sqlite), 'us_csv': Path(args.us_csv)} if mode == 'latest' and args.sqlite and args.us_csv else {}
         restored = {'status': 'latest_actual_receipts'}
-        if mode in {'predict', 'daily', 'postclose'}:
+        if frozen_forecast or mode in {'predict', 'daily'}:
             restored = state.restore_inputs(frozen, now=now, code_hash=state.source_fingerprint(), issuance_protocol=protocol)
             paths = restored['paths']
             if restored['status'] == 'ready':
-                if set(paths) != (state.POSTCLOSE_PREPARED_NAMES if mode == 'postclose' else state.PREPARED_NAMES):
+                if set(paths) != (state.POSTCLOSE_PREPARED_NAMES if frozen_forecast else state.PREPARED_NAMES):
                     restored = {'status': 'not_ready', 'reason': 'incomplete_prepared_input_bundle'}
+                    paths = {}
+                elif (restored['manifest'].get('operation_mode') == 'morning') != (mode == 'morning'):
+                    restored = {'status': 'not_ready', 'reason': 'prepared_operation_mode_mismatch'}
                     paths = {}
                 else:
                     runtime = private / 'accuracy-runtime' / now.strftime('%Y%m%dT%H%M%S%f')
                     paths = state.stage_prepared_runtime(restored, runtime)
         result = {'issuance_protocol': protocol, 'kr': False, 'us': False, 'status': restored['status'], 'reason': restored.get('reason', '')}
-        if mode in {'predict', 'daily', 'postclose'} and restored.get('status') == 'ready':
+        if (frozen_forecast or mode in {'predict', 'daily'}) and restored.get('status') == 'ready':
             result.update(prepared_manifest=str(frozen / 'manifest.json'),
                           prepared_manifest_hash=restored['manifest']['manifest_hash'],
                           prepared_at=restored['manifest']['prepared_at'])
@@ -237,7 +246,7 @@ def main():
             if paths.get('sqlite') and paths['sqlite'].is_file():
                 with sqlite3.connect(f"file:{paths['sqlite'].resolve()}?mode=ro", uri=True) as db:
                     dates = db.execute("SELECT index_code, MAX(session_date) FROM index_eod WHERE index_code IN ('KOSPI','KOSDAQ') GROUP BY index_code").fetchall()
-                result.update(kr_input_diagnostics(dates, now=restored['manifest']['prepared_at'] if mode == 'postclose' else now, mode=mode))
+                result.update(kr_input_diagnostics(dates, now=restored['manifest']['prepared_at'] if frozen_forecast else now, mode=mode))
             if paths.get('us_csv') and paths['us_csv'].is_file():
                 schedule = us_close_schedule(pd.Timestamp(now) - pd.Timedelta(days=10), pd.Timestamp(now) + pd.Timedelta(days=10))
                 completed = schedule.loc[pd.to_datetime(schedule.session_close_at, utc=True) <= now]
@@ -246,14 +255,14 @@ def main():
                 if mode in {'predict', 'daily'} and not result['kr']:
                     result['us'] = False
                 result['us_reason'] = 'eligible_actual_context' if result['us'] else 'current_us_session_open_or_unavailable'
-        if mode == 'postclose' and paths:
+        if frozen_forecast and paths:
             from roboquant.index_forecast.postclose import pending_markets
             completed_path = ROOT / 'docs/data/postclose_completions.json'
             completed = json.loads(completed_path.read_text()).get('records', []) if completed_path.is_file() else []
             targets = {item['index_code']: item['target_date'] for item in result.get('kr_sessions', []) if item['status'] == 'ready'}
             if result['us']:
                 targets.update({market: following.iloc[0].session_date for market in ('US_SPX', 'US_NASDAQ')})
-            pending = pending_markets(targets, completed)
+            pending = pending_markets(targets, completed, operation_mode='morning' if mode == 'morning' else None)
             result.update(kr=any(m in pending for m in ('KOSPI', 'KOSDAQ')), us=any(m in pending for m in ('US_SPX', 'US_NASDAQ')),
                           markets=','.join(pending), issuance_protocol=protocol)
         state.atomic_json(private / 'accuracy-input-status.json', result)
@@ -274,14 +283,16 @@ def main():
                   'inputs': json.loads(status_path.read_text()) if status_path.is_file() else None,
                   'next_scheduled_cutoff': '08:00 Asia/Seoul; one daily run starts Monday-Friday07:50 KST',
                   'prepared_input_policy': 'Actual receipt before08:00, encrypted cache, same-day immutable manifest. Missing state abstains.'}
-        if mode == 'postclose':
+        if frozen_forecast:
             from roboquant.index_forecast.postclose import verified_completion_records
             completions = ROOT / 'docs/data/postclose_completions.json'
             old = json.loads(completions.read_text()).get('records', []) if completions.is_file() else []
             new = verified_completion_records(ROOT / 'docs/data')
-            records = {(r['issuance_protocol'], r['market'], r['target_date']): r for r in old}
+            def completion_key(row):
+                return (row['issuance_protocol'], row['market'], row['target_date'], row.get('operation_mode'))
+            records = {completion_key(row): row for row in old}
             for record in new:
-                records.setdefault((record['issuance_protocol'], record['market'], record['target_date']), record)
+                records.setdefault(completion_key(record), record)
             state.atomic_json(completions, {'schema_version': 'postclose_completions_v1', 'records': list(records.values())})
             outcomes = {'kr': args.kr_outcome, 'us': args.us_outcome}
             failed = [market for market, outcome in outcomes.items() if outcome == 'failure']
@@ -289,7 +300,7 @@ def main():
             fresh = [row['market'] for row in new if prepared_at and state._utc(row['publication_checked_at']) >= state._utc(prepared_at)]
             result.update(forecast_step_outcomes=outcomes, new_usable_forecast_markets=fresh,
                 reason='partial_forecast_failure:' + ','.join(failed) if failed else 'new_research_forecasts_published' if fresh else 'no_new_usable_forecast; current_closes_independent')
-            result.update(next_scheduled_cutoff='18:00 Asia/Seoul; Monday-Friday',
+            result.update(next_scheduled_cutoff='08:00 Asia/Seoul; Monday-Saturday',
                           prepared_input_policy='Actual completed collection snapshot cutoff; independent market targets; immutable receipts.')
         result['daily_completed_date'] = (completed_publication_date(result)
             or previous.get('daily_completed_date') or completed_publication_date(previous))

@@ -122,11 +122,12 @@ curl 'http://localhost:8000/api/recommendations/top20-price-forecast?horizons=3M
 
 Top20 예상가격 API는 최신 추천 Top20에 대해 `3M/6M/9M/1Y` 예상가와 상단/하단 범위를 반환합니다. 이 값은 모델 기반 정보제공용 전망이며 목표가나 수익 보장이 아닙니다.
 
-### 모델 B·C 장후 실행과 게시
+### 모델 B·C 오전 실행과 게시
 
-GitHub Actions는 18:00 KST 장후 작업에서 모델 B를 거래일마다 CPU로 실행합니다.
-모델 C는 코스피나 코스닥에서 직전 거래일 대비 종가가 3% 이상 상승하거나
-하락한 시장이 하나 이상 확인될 때만 계산합니다. 검증된 최신 예측이 있을 때
+GitHub Actions는 월요일부터 토요일까지 08:00 KST에 모델 B·C를 CPU로 갱신합니다.
+모델 B는 국내 종가와 미국 정규장 수익률을 사용해 예상 종가·범위·상승 확률을 계산합니다.
+모델 C는 최근 KRX 거래일에 코스피나 코스닥의 종가가 직전 거래일 대비 3% 이상
+상승하거나 하락한 경우에만 계산합니다. 검증된 최신 예측이 있을 때
 GitHub Pages에 모델 C 카드가 표시됩니다. 로컬 내역을 사용하는 이전 GPU 연구
 실행은 아래 명령으로 별도 보관할 수 있습니다.
 
@@ -1068,8 +1069,8 @@ Top50 예측 위에 시장중립 랭크 스프레드 시뮬레이션을 생성�
 
 ## Daily Pipeline
 
-한국·미국 지수의 메인 화면은 [장후 예측 페이지](https://junhyuk.github.io/stock_pred/reliable-index-forecast.html)입니다.
-GitHub Actions가 한국시간 평일18:00에 하루 한 번 수집·검증·배포합니다. 최신 종가의
+한국·미국 지수의 메인 화면은 [지수 예측 페이지](https://junhyuk.github.io/stock_pred/reliable-index-forecast.html)입니다.
+GitHub Actions가 한국시간 월~토 08:00에 수집·검증·배포를 시작합니다. 최신 종가의
 거래일·출처·확인 시각과 예측 기준일·대상일을 구분하며, 주 모델 준비 전의 연구용 전망은
 검증 상태와 함께 표시합니다. 운영 모드·복구·무료 runner/저장공간 검수는
 [일일 자동화 운영 문서](docs/DAILY_AUTOMATION.md)를 참고하세요.

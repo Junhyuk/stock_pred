@@ -41,6 +41,15 @@ def _score_key(row):
     return _hash({key: row[key] for key in ('market', 'asof_date', 'target_date')})
 
 
+def _forecast_key(row):
+    identity = {key: row[key] for key in ('market', 'target_date', 'protocol_hash', 'role')}
+    # Preserve all prior keys and reserve a distinct immutable identity for the
+    # first morning observation of the same market/target/protocol/role.
+    if row.get('operation_mode') == 'morning':
+        identity['operation_mode'] = 'morning'
+    return _hash(identity)
+
+
 class ForwardLedger:
     def __init__(self, path):
         self.path = Path(path)
@@ -98,7 +107,7 @@ class ForwardLedger:
                             and issued < _utc(context['target_close_at'])):
                         attempt['reason'] = 'outside_issuance_window'
                         continue
-                    if context.get('stage') not in ('premarket_final', 'us_after_close_preopen_research', 'postclose'):
+                    if context.get('stage') not in ('premarket_final', 'us_after_close_preopen_research', 'postclose', 'morning'):
                         attempt['reason'] = 'nonfinal_stage'
                         continue
                     for role, forecast in (('primary', market.get('forecast')),
@@ -119,8 +128,10 @@ class ForwardLedger:
                             asof_date=context['asof_date'], target_date=context['target_date'],
                             target_close_at=context['target_close_at'], prediction_cutoff=context['prediction_cutoff'],
                             issued_at=issued.isoformat(), run_id=payload['run_id'], production_weight=0.)
-                        identity = _hash({k: row[k] for k in ('market', 'target_date', 'protocol_hash', 'role')})
-                        if context.get('stage') == 'postclose':
+                        if context.get('stage') == 'morning':
+                            row['operation_mode'] = 'morning'
+                        identity = _forecast_key(row)
+                        if context.get('stage') in ('postclose', 'morning'):
                             baseline = forecast.get('latest_close', market.get('forecast', {}).get('latest_close'))
                             if not _finite(baseline) or baseline <= 0:
                                 attempt['reason'] = 'issued_baseline_close_unavailable'
@@ -188,6 +199,7 @@ class ForwardLedger:
             for table in TABLES:
                 for row in data[table]:
                     key = (_score_key(row) if table == 'outcomes' else row['protocol_hash'] if table == 'protocols' else
+                           _forecast_key(row) if table == 'forecasts' else
                            _hash({k: row[k] for k in identities[table]}) if table in identities else _hash(row))
                     self._insert(db, table, key, row)
 
@@ -195,9 +207,10 @@ class ForwardLedger:
         outcomes = {_score_key(r): r for r in self._rows('outcomes')}
         groups = {}
         for row in self._rows('forecasts'):
-            groups.setdefault((row['market'], row['role'], row['protocol_hash']), []).append(row)
+            mode = row.get('operation_mode') or ('postclose' if row.get('outcome_basis') == 'issued_close_v1' else 'legacy')
+            groups.setdefault((row['market'], row['role'], row['protocol_hash'], mode), []).append(row)
         markets, cohorts = {}, []
-        for (market, role, protocol), rows in groups.items():
+        for (market, role, protocol, mode), rows in groups.items():
             pairs = [(r, outcomes[_score_key(r)]) for r in rows if _score_key(r) in outcomes]
             metrics = {}
             if pairs:
@@ -217,15 +230,15 @@ class ForwardLedger:
                 subset = [(r, o) for r, o in pairs if (r.get('volatility_regime') or 'unknown') == regime]
                 diagnostics['regimes'][regime] = {**_interval_metrics(subset), **_probability_metrics(subset),
                                                 **_diagnostics(subset)}
-            report = {**diagnostics, 'market': market, 'role': role, 'protocol_hash': protocol, 'issued_n': len(rows),
+            report = {**diagnostics, 'market': market, 'role': role, 'protocol_hash': protocol, 'operation_mode': mode, 'issued_n': len(rows),
                       'mature_n': len(pairs), 'metrics': metrics, 'production_weight': 0.,
                       'status': 'collecting_forward_evidence' if len(pairs) < 252 else 'independent_review_required',
                       'minimum_promotion_observations': 252}
             cohorts.append(report)
-            markets.setdefault(market, {})[role] = report
+            markets.setdefault(market, {})[f'{role}_morning' if mode == 'morning' else role] = report
         return {'schema_version': 'forward_report_v1', 'markets': markets, 'cohorts': cohorts,
                 'attempt_n': len(self._rows('attempts')), 'production_weight': 0.,
-                'limitations': 'Protocol cohorts never pooled. 252 is a review minimum, not approval. First observed outcomes are immutable.'}
+                'limitations': 'Protocol and issuance-mode cohorts never pooled. 252 is a review minimum, not approval. First observed outcomes are immutable.'}
 
 
 def _loss(p, y):

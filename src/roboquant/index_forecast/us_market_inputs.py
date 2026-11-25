@@ -15,6 +15,7 @@ import numpy as np
 import pandas as pd
 
 US_SYMBOLS = ("^GSPC", "^IXIC", "^SOX", "^VIX")
+MORNING_ETFS = ("EWY", "KORU")
 US_FEATURES = ["us_spx_return_1d", "us_nasdaq_return_1d", "us_sox_return_1d",
                "us_vix_level", "us_vix_return_1d", "sox_nasdaq_spread_1d"]
 SCHEMA_VERSION = "us_market_observation_v2"
@@ -81,7 +82,8 @@ def us_close_schedule(start: str, end: str) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def normalize_us_observations(raw: pd.DataFrame, *, buffer_minutes: int = 15) -> dict:
+def normalize_us_observations(raw: pd.DataFrame, *, buffer_minutes: int = 15,
+                              include_morning_etfs: bool = False) -> dict:
     """Normalize a newly fetched snapshot; never stamp historical first-seen dates."""
     if buffer_minutes < 0:
         raise ValueError("buffer_minutes must be nonnegative")
@@ -105,7 +107,9 @@ def normalize_us_observations(raw: pd.DataFrame, *, buffer_minutes: int = 15) ->
     lookup = {(r.symbol, r.session_date): r for r in schedule.itertuples()}
     rows = []
     for row in data.to_dict("records"):
-        session = lookup.get((row["symbol"], row["session_date"]))
+        ticker = row["symbol"]
+        calendar_symbol = "^GSPC" if include_morning_etfs and ticker in MORNING_ETFS else ticker
+        session = lookup.get((calendar_symbol, row["session_date"]))
         fetched = _utc(row["fetched_at"])
         close = pd.to_numeric(row["close"], errors="coerce")
         if session is None or pd.isna(fetched) or not np.isfinite(close) or close <= 0 or not row["source"] or not row["source_url"]:

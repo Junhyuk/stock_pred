@@ -96,8 +96,9 @@ def test_cpu_bc_uses_existing_daily_snapshot_and_bounded_step():
     cpu = next(step for step in steps if step.get("id") == "bc_cpu")
     assert cpu["timeout-minutes"] == 1
     assert cpu["continue-on-error"] is True
-    assert "steps.operation.outputs.mode == 'postclose'" in cpu["if"]
+    assert "steps.operation.outputs.frozen_forecast == 'true'" in cpu["if"]
     assert "steps.prices.outputs.status == 'ready'" in cpu["if"]
     assert "steps.prices.outputs.prepared_manifest" in cpu["run"]
+    assert '--operation-mode "${{ steps.operation.outputs.mode }}"' in cpu["run"]
     assert steps.index(cpu) < next(i for i, step in enumerate(steps) if step.get("id") == "publish")
-    assert config[True]["schedule"] == [{"cron": "0 9 * * 1-5"}]
+    assert config[True]["schedule"] == [{"cron": "0 23 * * 0-5"}]

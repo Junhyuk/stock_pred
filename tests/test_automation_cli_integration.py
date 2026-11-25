@@ -302,12 +302,12 @@ def test_prepare_to_predict_runs_real_collectors_forecasts_and_publication_check
 
 
 @pytest.mark.parametrize('clock,allowed', [
-    ('2026-11-16T09:00:00+00:00', True), ('2026-11-17T09:00:00+00:00', True),
-    ('2026-11-18T09:00:00+00:00', True), ('2026-11-19T09:00:00+00:00', True),
-    ('2026-11-20T09:00:00+00:00', True), ('2026-11-14T09:00:00+00:00', False),
-    ('2026-11-15T09:00:00+00:00', False)])
-def test_scheduled_gate_uses_single_daily_mode_on_kst_weekdays(checkout, clock, allowed):
-    for schedule, mode in [('0 9 * * 1-5', 'postclose')]:
+    ('2026-11-15T23:00:00+00:00', True), ('2026-11-16T23:00:00+00:00', True),
+    ('2026-11-17T23:00:00+00:00', True), ('2026-11-18T23:00:00+00:00', True),
+    ('2026-11-19T23:00:00+00:00', True), ('2026-11-20T23:00:00+00:00', True),
+    ('2026-11-21T23:00:00+00:00', False)])
+def test_scheduled_gate_uses_morning_mode_monday_through_saturday(checkout, clock, allowed):
+    for schedule, mode in [('0 23 * * 0-5', 'morning')]:
         data = json.loads(checkout.run('accuracy_operation.py', '--phase', 'gate', '--schedule', schedule,
                                       now=clock).stdout.splitlines()[-1])
         assert data['allowed'] is allowed and data['mode'] == mode

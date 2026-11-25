@@ -34,15 +34,23 @@
     if (!cards) return;
     const generated = kstStamp(data.generated_at);
     const stage = data.issue_stage === 'postclose' ? '장후' : data.issue_stage === 'premarket' ? '장전' : '수동';
-    if (status) status.textContent = generated ? `${stage} 예측 · 생성 ${generated} KST · 연구용` : '수동 예측 생성 시각을 확인하지 못했습니다.';
+    const legacyCarry = data.issue_stage === 'postclose'
+      && data.markets.some(row => row?.variant === '장후 검증 기준선 · 종가 유지');
+    if (status) {
+      status.textContent = legacyCarry || !data.markets.length
+        ? '장전 예상 종가 산출 대기'
+        : generated ? `${stage} 예측 · 생성 ${generated} KST · 연구용` : '수동 예측 생성 시각을 확인하지 못했습니다.';
+    }
     const byMarket = new Map(data.markets.filter(row => row && names.includes(row.market)).map(row => [row.market, row]));
     cards.replaceChildren();
     for (const market of names) {
       const row = byMarket.get(market);
       const holder = document.createElement('div');
       if (!row || !Number.isFinite(row.p_up) || !Number.isFinite(row.close)) {
-        holder.textContent = `${market} 예측 결과가 없습니다.`;
+        holder.textContent = `${market} 예상 종가에 필요한 장전 입력을 확인 중입니다.`;
       } else {
+        const carry = legacyCarry && row.variant === '장후 검증 기준선 · 종가 유지';
+        const forecastRow = carry ? { ...row, expected_index: undefined, expected_return: undefined } : row;
         const trained = day(row.trained_through) || '확인 불가';
         const variant = row.variant ? ` · ${escapeHtml(row.variant)}` : '';
         const evaluation = row.evaluation_2026;
@@ -50,7 +58,7 @@
           ? `<p class="model-run-note">2026년 장후 재구성 · ${escapeHtml(evaluation.n)}거래일 · 종가 MAE ${evaluation.close_mae.toFixed(2)}점</p>`
           : '';
         const previous = row.carried_forward === true ? '이전 예측 · ' : '';
-        holder.innerHTML = `<p class="model-run-note">${previous}학습 마지막 ${trained}${variant}</p>${renderCard(modelBItem(row), 'research_only')}${review}`;
+        holder.innerHTML = `<p class="model-run-note">${previous}학습 마지막 ${trained}${variant}</p>${renderCard(modelBItem(forecastRow), 'research_only')}${review}`;
       }
       cards.appendChild(holder);
     }

@@ -74,7 +74,7 @@ def session_schedule(start: Any, end: Any, sessions: Any = None) -> tuple[pd.Dat
 
 def resolve_forecast_context(asof_date: Any, *, now: datetime | None = None,
                              sessions: Any = None, target_date: Any = None,
-                             issuance_protocol: str = "premarket_v1") -> dict:
+                             issuance_protocol: str = "premarket_v1", operation_mode: str | None = None) -> dict:
     issued = utc_timestamp(now if now is not None else datetime.now(KST))
     asof = pd.Timestamp(asof_date).date().isoformat()
     result = {"status": "blocked_calendar_unavailable", "asof_date": asof,
@@ -86,7 +86,12 @@ def resolve_forecast_context(asof_date: Any, *, now: datetime | None = None,
         schedule, source = session_schedule(local_day - timedelta(days=45),
                                              local_day + timedelta(days=45), sessions)
         schedule = schedule.dropna(subset=["close_at"]).sort_values("date")
-        closed = schedule.loc[schedule["close_at"] <= issued]
+        # A delayed invocation belongs to its 08:00 cycle and cannot roll its
+        # anchor forward after the target opens or closes later the same day.
+        anchor_clock = issued
+        if issuance_protocol == 'after_close_daily_v1' and operation_mode == 'morning':
+            anchor_clock = issued.tz_convert(KST).replace(hour=8, minute=0, second=0, microsecond=0).tz_convert('UTC')
+        closed = schedule.loc[schedule["close_at"] <= anchor_clock]
         if closed.empty:
             raise ValueError("no completed session in available exchange calendar")
         expected = closed.iloc[-1]["date"]
@@ -107,7 +112,15 @@ def resolve_forecast_context(asof_date: Any, *, now: datetime | None = None,
                       target_close_at=upcoming.iloc[0]["close_at"].isoformat(),
                       stage="premarket_final" if issued >= target_cutoff else "preliminary")
         result['issuance_protocol'] = issuance_protocol
-        if issuance_protocol == 'after_close_daily_v1':
+        if issuance_protocol == 'after_close_daily_v1' and operation_mode == 'morning':
+            from roboquant.index_forecast.postclose import morning_cutoff, morning_window_allowed
+            close = closed.iloc[-1]['close_at']
+            scheduled = morning_cutoff(close)
+            result.update(stage='morning', operation_mode='morning', asof_close_at=close.isoformat(),
+                          prediction_cutoff=issued.isoformat(), scheduled_cutoff=scheduled.isoformat())
+            if not morning_window_allowed(close, issued):
+                return {**result, 'status': 'blocked_issuance_window', 'reasons': ['before_scheduled_morning_or_sunday']}
+        elif issuance_protocol == 'after_close_daily_v1':
             from roboquant.index_forecast.postclose import historical_cutoff
             scheduled = historical_cutoff(closed.iloc[-1]['close_at'])
             result.update(stage='postclose', prediction_cutoff=issued.isoformat(), scheduled_cutoff=scheduled.isoformat())

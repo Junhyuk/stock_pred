@@ -96,6 +96,20 @@ def test_actual_auto_operation_selects_postclose_and_does_not_wait(tmp_path):
     assert checkout.operation('gate', mode='auto', now='2026-11-14T09:02:00+00:00')['allowed'] is False
 
 
+def test_scheduled_auto_uses_morning_mode_and_refreshes_on_saturday(tmp_path):
+    from test_automation_cli_integration import Checkout
+
+    checkout = Checkout(tmp_path / 'checkout')
+    def gate(clock):
+        return json.loads(checkout.run('accuracy_operation.py', '--phase', 'gate', '--mode', 'auto',
+                                       '--schedule', '0 23 * * 0-5', now=clock).stdout)
+    saturday = gate('2026-11-27T23:00:00+00:00')
+    assert saturday['kst_date'] == '2026-11-28'
+    assert saturday['mode'] == 'morning'
+    assert saturday['collect'] and saturday['forecast_requested'] and saturday['frozen_forecast']
+    assert not gate('2026-11-28T23:00:00+00:00')['allowed']
+
+
 def test_postclose_inputs_keep_us_eligible_when_kr_stale(tmp_path):
     from test_automation_cli_integration import Checkout
     checkout = Checkout(tmp_path / 'checkout')

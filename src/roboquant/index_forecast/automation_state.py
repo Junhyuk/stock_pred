@@ -16,6 +16,8 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 KST = ZoneInfo('Asia/Seoul')
+MORNING_CRON = '0 23 * * 0-5'
+FROZEN_FORECAST_MODES = {'postclose', 'morning'}
 ROOT = Path(__file__).resolve().parents[3]
 PUBLIC_NAMES = frozenset({'automation_status.json', 'reliable_index_forecast.json',
     'market_indicators_status.json', 'margin_credit_chart.json',
@@ -56,6 +58,9 @@ def atomic_json(path, value, *, indent=None):
 
 def operation_decision(now, mode):
     local = _utc(now).astimezone(KST)
+    if mode == 'morning':
+        reason = 'kst_sunday_excluded' if local.weekday() == 6 else 'before_0800_morning_window' if local.hour < 8 else 'allowed'
+        return {'allowed': reason == 'allowed', 'kst_date': local.date().isoformat(), 'mode': mode, 'reason': reason}
     if mode == 'postclose' and local.weekday() < 5 and local.hour < 18:
         return {'allowed': False, 'kst_date': local.date().isoformat(), 'mode': mode, 'reason': 'before_1800_postclose_window'}
     return {'allowed': local.weekday() < 5 or mode == 'validate', 'kst_date': local.date().isoformat(),
@@ -123,18 +128,23 @@ def _state_lock(directory, *, exclusive):
             fcntl.flock(stream.fileno(), fcntl.LOCK_UN)
 
 
-def freeze_inputs(files, directory, *, prepared_at=None, code_hash, issuance_protocol='premarket_v1'):
+def freeze_inputs(files, directory, *, prepared_at=None, code_hash, issuance_protocol='premarket_v1',
+                  operation_mode=None):
     with _state_lock(directory, exclusive=True):
-        return _freeze_inputs(files, directory, prepared_at=prepared_at, code_hash=code_hash, issuance_protocol=issuance_protocol)
+        return _freeze_inputs(files, directory, prepared_at=prepared_at, code_hash=code_hash,
+                              issuance_protocol=issuance_protocol, operation_mode=operation_mode)
 
 
-def _freeze_inputs(files, directory, *, prepared_at, code_hash, issuance_protocol='premarket_v1'):
+def _freeze_inputs(files, directory, *, prepared_at, code_hash, issuance_protocol='premarket_v1',
+                   operation_mode=None):
     clock = _utc(prepared_at or datetime.now(UTC))
     local = clock.astimezone(KST)
     postclose = issuance_protocol == 'after_close_daily_v1'
     if not postclose and local.hour >= 8:
         raise ValueError('prepared inputs must finish before 08:00 KST')
-    if not operation_decision(clock, 'prepare')['allowed']:
+    if operation_mode not in (None, 'morning') or (operation_mode == 'morning' and not postclose):
+        raise ValueError('unsupported prepared operation mode')
+    if not operation_decision(clock, operation_mode or 'prepare')['allowed']:
         raise ValueError('KST weekend excluded')
     if postclose and 'market_closes' in files:
         from roboquant.index_forecast.postclose import verify_market_closes
@@ -144,6 +154,8 @@ def _freeze_inputs(files, directory, *, prepared_at, code_hash, issuance_protoco
     manifest = {'schema_version': 'prepared_inputs_v1', 'prepared_at': clock.isoformat(),
                 'kst_date': local.date().isoformat(), 'code_hash': code_hash, 'files': {},
                 'issuance_protocol': issuance_protocol}
+    if operation_mode:
+        manifest['operation_mode'] = operation_mode
     for name, original in files.items():
         if name not in (POSTCLOSE_PREPARED_NAMES if postclose else PREPARED_NAMES):
             raise ValueError('unknown prepared input')
@@ -234,11 +246,14 @@ def _restore_inputs(directory, *, now, code_hash, issuance_protocol='premarket_v
             raise ValueError('prepared manifest hash mismatch')
         prepared = _utc(manifest['prepared_at']).astimezone(KST)
         postclose = issuance_protocol == 'after_close_daily_v1'
+        operation_mode = manifest.get('operation_mode')
         if (manifest['schema_version'] != 'prepared_inputs_v1' or manifest['code_hash'] != code_hash
             or manifest['kst_date'] != current.date().isoformat() or prepared.date() != current.date()
             or manifest.get('issuance_protocol', 'premarket_v1') != issuance_protocol
             or (not postclose and (prepared.hour >= 8 or current.hour < 8 or completed.hour >= 8)) or prepared > current or completed.date() != prepared.date() or not prepared <= completed <= current
-            or not operation_decision(current, 'predict')['allowed']):
+            or operation_mode not in (None, 'morning') or (operation_mode == 'morning' and not postclose)
+            or not operation_decision(current, operation_mode or 'predict')['allowed']
+            or (operation_mode == 'morning' and not operation_decision(prepared, 'morning')['allowed'])):
             raise ValueError('prepared clock/date/source protocol mismatch')
         paths = {}
         for name, item in manifest['files'].items():

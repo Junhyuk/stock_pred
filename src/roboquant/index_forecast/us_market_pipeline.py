@@ -131,6 +131,7 @@ def run_us_reliable_pipeline(observations: pd.DataFrame | str | Path, output_dir
     raw_settings = dict(config.get("settings", {}))
     raw_settings['issuance_protocol'] = config.get('issuance_protocol', raw_settings.get('issuance_protocol', 'premarket_v1'))
     postclose = raw_settings['issuance_protocol'] == 'after_close_daily_v1'
+    morning = postclose and config.get('operation_mode') == 'morning'
     cutoff = _utc(config.get('prepared_inputs', {}).get('prepared_at', issued)) if postclose else issued
     raw_settings["calendar_name"] = "XNYS"
     if "model_families" in raw_settings:
@@ -139,7 +140,8 @@ def run_us_reliable_pipeline(observations: pd.DataFrame | str | Path, output_dir
     event_source = news_context if news_context is not None else config.get("event_context", {}).get("path")
     events = event_source if isinstance(event_source, dict) else json.loads(Path(event_source).read_text()) if event_source and Path(event_source).is_file() else {}
     news_inputs = _load_news_inputs(config, events)
-    from roboquant.index_forecast.postclose import model_directory, reference_context, historical_cutoff
+    from roboquant.index_forecast.postclose import (model_directory, reference_context, historical_cutoff,
+                                                     morning_window_allowed, morning_fit_capture_allowed)
     config.setdefault('fit_state_dir', model_directory(output_dir, settings.issuance_protocol))
     contexts, prepared, reasons = {}, {}, []
     for market, symbol in (("US_SPX", "^GSPC"), ("US_NASDAQ", "^IXIC")):
@@ -149,7 +151,10 @@ def run_us_reliable_pipeline(observations: pd.DataFrame | str | Path, output_dir
         if frame.empty:
             reasons.append(f"{market}:missing_source")
             continue
-        finished = schedule.loc[pd.to_datetime(schedule.session_close_at, utc=True) <= cutoff]
+        anchor_clock = cutoff
+        if morning:
+            anchor_clock = cutoff.tz_convert('Asia/Seoul').replace(hour=8, minute=0, second=0, microsecond=0).tz_convert('UTC')
+        finished = schedule.loc[pd.to_datetime(schedule.session_close_at, utc=True) <= anchor_clock]
         if finished.empty:
             reasons.append(f"{market}:no_completed_session")
             continue
@@ -157,7 +162,7 @@ def run_us_reliable_pipeline(observations: pd.DataFrame | str | Path, output_dir
         following = schedule.loc[schedule.session_date > asof].iloc[0]
         context = {"status": "ready", "asof_date": asof, "target_date": following.session_date,
                    "asof_close_at": finished.iloc[-1].session_close_at, "expected_asof_date": asof, "prediction_cutoff": cutoff.isoformat(),
-                   "issued_at": None, "run_started_at": issued.isoformat(), "stage": "postclose" if postclose else "us_after_close_preopen_research",
+                   "issued_at": None, "run_started_at": issued.isoformat(), "stage": "morning" if morning else "postclose" if postclose else "us_after_close_preopen_research",
                    "issuance_protocol": settings.issuance_protocol,
                    "issuance_deadline": following.session_open_at, "target_close_at": following.session_close_at,
                    "calendar_source": "exchange_calendars:XNYS", "timezone": "America/New_York", "reasons": []}
@@ -166,7 +171,9 @@ def run_us_reliable_pipeline(observations: pd.DataFrame | str | Path, output_dir
             reasons.append(f"{market}:expected_completed_bar_or_price_history_missing")
         elif issued >= _utc(following.session_open_at):
             reasons.append(f"{market}:target_session_already_open")
-        if postclose and (cutoff < historical_cutoff(finished.iloc[-1].session_close_at, 'XNYS') or cutoff.tz_convert('Asia/Seoul').weekday() >= 5 or cutoff.tz_convert('Asia/Seoul').hour < 18):
+        if morning and not morning_window_allowed(finished.iloc[-1].session_close_at, cutoff):
+            reasons.append(f'{market}:before_scheduled_morning_or_sunday')
+        elif postclose and not morning and (cutoff < historical_cutoff(finished.iloc[-1].session_close_at, 'XNYS') or cutoff.tz_convert('Asia/Seoul').weekday() >= 5 or cutoff.tz_convert('Asia/Seoul').hour < 18):
             reasons.append(f'{market}:before_scheduled_postclose_or_weekend')
         if not any(reason.startswith(market + ':') for reason in reasons):
             contexts[market], prepared[market] = context, frame
@@ -204,7 +211,8 @@ def run_us_reliable_pipeline(observations: pd.DataFrame | str | Path, output_dir
         if now is None:
             fit_state = resolve_live_fit(history, latest, evaluation.get("selected"), settings=settings,
                 state_dir=config['fit_state_dir'], market=market,
-                allow_capture=not postclose or cutoff.tz_convert('Asia/Seoul').date() == historical_cutoff(context['asof_close_at'], 'XNYS').tz_convert('Asia/Seoul').date())
+                allow_capture=(morning_fit_capture_allowed(context['asof_close_at'], cutoff) if morning else
+                               not postclose or cutoff.tz_convert('Asia/Seoul').date() == historical_cutoff(context['asof_close_at'], 'XNYS').tz_convert('Asia/Seoul').date()))
             forecast = forecast_reliable_latest(history, latest, evaluation, settings=settings,
                 fit_artifact=fit_state.get("artifact"), require_live_snapshot=True)
             if fit_state.get("reason"):
@@ -229,7 +237,8 @@ def run_us_reliable_pipeline(observations: pd.DataFrame | str | Path, output_dir
         forecast["forecast_id"] = forecast_id
         macro = numeric_shadow(frame, store=calendar_store, settings=settings, market=market,
             state_dir=config.get("fit_state_dir", output / "fit_models"), live=now is None,
-            allow_capture=not postclose or cutoff.tz_convert("Asia/Seoul").date() == historical_cutoff(context["asof_close_at"], "XNYS").tz_convert("Asia/Seoul").date())
+            allow_capture=(morning_fit_capture_allowed(context["asof_close_at"], cutoff) if morning else
+                           not postclose or cutoff.tz_convert("Asia/Seoul").date() == historical_cutoff(context["asof_close_at"], "XNYS").tz_convert("Asia/Seoul").date()))
         run["markets"].append({"economic_calendar": economic_contexts.get(context["asof_date"], {"event_bucket": None, "calendar_complete": False}),
             "numeric_shadow": macro, "market": market, "forecast_id": forecast_id, "context": context, "forecast": forecast,
             "incumbent_reference": reference_context(incumbent, context, close),

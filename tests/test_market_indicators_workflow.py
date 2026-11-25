@@ -13,9 +13,9 @@ def workflow():
     return yaml.load(path.read_text(encoding="utf-8"), Loader=yaml.BaseLoader)
 
 
-def test_indicators_share_existing_weekday_clock_and_private_cache_window():
+def test_indicators_share_existing_morning_clock_and_private_cache_window():
     config = workflow()
-    assert config["on"]["schedule"] == [{"cron": "0 9 * * 1-5"}]
+    assert config["on"]["schedule"] == [{"cron": "0 23 * * 0-5"}]
     assert len(config["jobs"]) == 2
     assert config["concurrency"]["cancel-in-progress"] == "false"
     steps = config["jobs"]["forecast"]["steps"]

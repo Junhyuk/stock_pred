@@ -19,11 +19,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import re
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
-from urllib.parse import quote
+from urllib.parse import quote, urlencode
+from urllib.request import Request, urlopen
 
 import pandas as pd
 
@@ -32,7 +34,12 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from roboquant.index_forecast.reliable_inputs import KST, session_schedule, utc_timestamp
 from roboquant.index_forecast.sqlite_store import connect_index_forecast
-from roboquant.index_forecast.us_market_inputs import US_SYMBOLS, normalize_us_observations
+from roboquant.index_forecast.us_market_inputs import (
+    MORNING_ETFS,
+    NY,
+    US_SYMBOLS,
+    normalize_us_observations,
+)
 
 KR_SYMBOLS = {"KOSPI": "^KS11", "KOSDAQ": "^KQ11"}
 US_PRICE_SYMBOLS = US_SYMBOLS
@@ -296,14 +303,16 @@ def dated_us_csv(directory: str | Path, fetched_at) -> Path:
     return Path(directory) / f"us_market_observations_v2_{day}.csv"
 
 
-def us_raw_frame(bars_by_symbol: dict[str, pd.DataFrame], *, fetched_at) -> pd.DataFrame:
+def us_raw_frame(bars_by_symbol: dict[str, pd.DataFrame], *, fetched_at,
+                 include_morning_etfs: bool = False) -> pd.DataFrame:
     fetched = utc_timestamp(fetched_at)
     if pd.isna(fetched):
         raise ValueError("fetch time is required")
     rows = []
+    symbols = US_PRICE_SYMBOLS + MORNING_ETFS if include_morning_etfs else US_PRICE_SYMBOLS
     for symbol, bars in bars_by_symbol.items():
-        if symbol not in US_PRICE_SYMBOLS:
-            raise ValueError("US refresh symbols are ^GSPC ^IXIC ^SOX ^VIX")
+        if symbol not in symbols:
+            raise ValueError(f"US refresh does not support symbol {symbol!r}")
         if bars is None or bars.empty:
             continue
         for record in bars.to_dict("records"):
@@ -322,9 +331,10 @@ def us_raw_frame(bars_by_symbol: dict[str, pd.DataFrame], *, fetched_at) -> pd.D
     return pd.DataFrame(rows)
 
 
-def write_us_observations(raw: pd.DataFrame, output: str | Path) -> Path:
+def write_us_observations(raw: pd.DataFrame, output: str | Path, *,
+                          include_morning_etfs: bool = False) -> Path:
     """Write a v2 CSV. A changed existing file is left untouched and rejected."""
-    observations = normalize_us_observations(raw)["observations"]
+    observations = normalize_us_observations(raw, include_morning_etfs=include_morning_etfs)["observations"]
     if observations.empty:
         raise ValueError("no completed US bars to write")
     encoded = observations.to_csv(index=False).encode("utf-8")
@@ -357,11 +367,11 @@ def kr_history_summary(conn) -> dict[str, tuple[str, str, int]]:
     return {str(row[0]): (str(row[1]), str(row[2]), int(row[3])) for row in rows}
 
 
-def us_history_summary(frame: pd.DataFrame) -> dict[str, tuple[str, str, int]]:
+def us_history_summary(frame: pd.DataFrame, symbols=US_PRICE_SYMBOLS) -> dict[str, tuple[str, str, int]]:
     if frame.empty or not {"symbol", "session_date"}.issubset(frame.columns):
         return {}
     summary = {}
-    for symbol in US_PRICE_SYMBOLS:
+    for symbol in symbols:
         subset = frame.loc[frame["symbol"].astype(str) == symbol, "session_date"].astype(str).str.slice(0, 10)
         subset = subset[subset.ne("") & subset.ne("NaT") & subset.ne("nan")]
         if subset.empty:
@@ -427,9 +437,12 @@ def _session_keys(frame: pd.DataFrame) -> set[tuple[str, str]]:
     return set(zip(frame["symbol"].astype(str), frame["session_date"].astype(str).str.slice(0, 10), strict=True))
 
 
-def merge_us_observations(prior: pd.DataFrame, recent_raw: pd.DataFrame) -> pd.DataFrame:
+def merge_us_observations(prior: pd.DataFrame, recent_raw: pd.DataFrame, *,
+                          include_morning_etfs: bool = False) -> pd.DataFrame:
     """Keep stored symbol-dates and append newly completed sessions."""
-    recent = normalize_us_observations(recent_raw)["observations"]
+    recent = normalize_us_observations(
+        recent_raw, include_morning_etfs=include_morning_etfs,
+    )["observations"]
     if prior is None or prior.empty:
         return recent
     if recent.empty:
@@ -445,9 +458,10 @@ def merge_us_observations(prior: pd.DataFrame, recent_raw: pd.DataFrame) -> pd.D
         ["symbol", "session_date"], kind="stable").reset_index(drop=True)
 
 
-def write_merged_us_snapshot(prior: pd.DataFrame, recent_raw: pd.DataFrame, output: str | Path) -> Path:
+def write_merged_us_snapshot(prior: pd.DataFrame, recent_raw: pd.DataFrame, output: str | Path, *,
+                             include_morning_etfs: bool = False) -> Path:
     """Write a new dated snapshot. An existing file is left untouched."""
-    merged = merge_us_observations(prior, recent_raw)
+    merged = merge_us_observations(prior, recent_raw, include_morning_etfs=include_morning_etfs)
     if merged.empty:
         raise ValueError("no completed US bars to write")
     destination = Path(output)
@@ -486,9 +500,97 @@ def _download_daily(symbol: str, start: str, end: str, yf_module) -> pd.DataFram
     return frame if isinstance(frame, pd.DataFrame) else pd.DataFrame()
 
 
+def koru_chart_bars(chart: dict, *, require_split: bool) -> pd.DataFrame:
+    """Use Yahoo's split-adjusted closes and verify continuity at reported events."""
+    zone = chart["meta"]["exchangeTimezoneName"]
+    days = (
+        pd.to_datetime(chart["timestamp"], unit="s", utc=True)
+        .tz_convert(zone)
+        .strftime("%Y-%m-%d")
+    )
+    prices = pd.Series(chart["indicators"]["quote"][0]["close"], index=days, dtype=float)
+    prices = prices.loc[prices.gt(0) & prices.map(math.isfinite)].sort_index()
+    if prices.empty or not prices.index.is_unique:
+        raise ValueError("missing or duplicate KORU daily closes")
+    verified = 0
+    for event in chart.get("events", {}).get("splits", {}).values():
+        day = pd.Timestamp(event["date"], unit="s", tz="UTC").tz_convert(zone).date().isoformat()
+        factor = float(event["numerator"]) / float(event["denominator"])
+        if not math.isfinite(factor) or factor <= 0:
+            raise ValueError("invalid KORU split factor")
+        previous, following = prices.loc[prices.index < day], prices.loc[prices.index >= day]
+        if previous.empty or following.empty:
+            continue
+        ratio = float(following.iloc[0] / previous.iloc[-1])
+        maximum = min(4.0, math.sqrt(max(factor, 1 / factor)))
+        if not 1 / maximum <= ratio <= maximum:
+            raise ValueError(f"KORU price discontinuity at reported split {day}")
+        verified += 1
+    if require_split and not verified:
+        raise ValueError("missing KORU split history")
+    return prices.rename("close").rename_axis("session_date").reset_index()
+
+
+def download_koru(start: str, end: str, *, require_split: bool) -> pd.DataFrame:
+    params = urlencode({
+        "period1": int(pd.Timestamp(start, tz=NY).timestamp()),
+        "period2": int(pd.Timestamp(end, tz=NY).timestamp()),
+        "interval": "1d",
+        "events": "div,splits",
+    })
+    failure = None
+    for host in ("query1", "query2"):
+        url = f"https://{host}.finance.yahoo.com/v8/finance/chart/KORU?{params}"
+        try:
+            with urlopen(Request(url, headers={"User-Agent": "Mozilla/5.0"}), timeout=8) as response:
+                chart = json.load(response)["chart"]["result"][0]
+            return koru_chart_bars(chart, require_split=require_split)
+        except (ArithmeticError, IndexError, KeyError, OSError, TypeError, ValueError) as error:
+            failure = error
+    raise ValueError("KORU split-adjusted history unavailable") from failure
+
+
+def align_koru_bars(prior: pd.DataFrame, bars: pd.DataFrame) -> pd.DataFrame:
+    """Align new bars to the immutable archive price units across a provider split."""
+    if prior.empty:
+        return bars
+    existing = prior.loc[prior.symbol.eq("KORU"), ["session_date", "close"]]
+    if existing.empty:
+        return bars
+    overlapping = existing.merge(bars, on="session_date", suffixes=("_cached", "_fresh"))
+    ratios = pd.to_numeric(overlapping.close_cached, errors="coerce") / overlapping.close_fresh
+    if len(ratios) < 2 or not (ratios.gt(0) & ratios.map(math.isfinite)).all():
+        raise ValueError("KORU needs two valid overlapping closes to preserve existing observations")
+    scale = float(ratios.median())
+    if (ratios / scale - 1).abs().gt(0.005).any():
+        raise ValueError("KORU Yahoo history and immutable archive have incompatible scales")
+    return bars.assign(close=bars.close * scale)
+
+
+def morning_us_bars(prior, *, start, end, yf):
+    bars, unavailable = {}, []
+    for symbol in MORNING_ETFS:
+        summary = us_history_summary(prior, (symbol,))
+        covered = series_history_covered(summary, {symbol}, requested_start=start)
+        lookback = incremental_start(lagging_latest(summary), requested_start=start, covered=covered)
+        try:
+            if symbol == "KORU":
+                require_split = lookback < "2026-07-15" < end and not covered
+                fresh = download_koru(lookback, end, require_split=require_split)
+                bars[symbol] = align_koru_bars(prior, fresh)
+            else:
+                bars[symbol] = bars_from_download(_download_daily(symbol, lookback, end, yf))
+            if bars[symbol].empty:
+                unavailable.append(symbol)
+        except (OSError, RuntimeError, ValueError):
+            unavailable.append(symbol)
+    return bars, unavailable
+
+
 def refresh_premarket_prices(*, sqlite_path: str | Path, output_dir: str | Path,
                              start: str = HISTORY_START, fetched_at: datetime | None = None,
-                             yf_module=None, sessions=None, clock=None) -> dict:
+                             yf_module=None, sessions=None, clock=None,
+                             include_morning_etfs: bool = False) -> dict:
     read_clock = (lambda: fetched_at) if fetched_at is not None else (clock or (lambda: datetime.now(KST)))
     fetched = utc_timestamp(read_clock())
     if pd.isna(fetched):
@@ -530,15 +632,19 @@ def refresh_premarket_prices(*, sqlite_path: str | Path, output_dir: str | Path,
     us_covered = series_history_covered(us_summary, set(US_PRICE_SYMBOLS), requested_start=start)
     us_start = incremental_start(lagging_latest(us_summary), requested_start=start, covered=us_covered)
     us_bars = {symbol: bars_from_download(_download_daily(symbol, us_start, end, yf)) for symbol in US_PRICE_SYMBOLS}
+    unavailable_etfs = []
+    if include_morning_etfs:
+        etf_bars, unavailable_etfs = morning_us_bars(prior, start=start, end=end, yf=yf)
+        us_bars.update(etf_bars)
     received = utc_timestamp(read_clock())
-    raw = us_raw_frame(us_bars, fetched_at=received)
+    raw = us_raw_frame(us_bars, fetched_at=received, include_morning_etfs=include_morning_etfs)
     destination = dated_us_csv(output_dir, received)
     if prior.empty:
-        us_csv = write_us_observations(raw, destination)
+        us_csv = write_us_observations(raw, destination, include_morning_etfs=include_morning_etfs)
     else:
         # The download horizon depends on coverage; first-seen observations do
         # not. Even a short cache must retain its original values and receipts.
-        merged = merge_us_observations(prior, raw)
+        merged = merge_us_observations(prior, raw, include_morning_etfs=include_morning_etfs)
         same_day = prior_path.stem.startswith(destination.stem)
         if same_day and _session_keys(merged) <= _session_keys(prior):
             us_csv = prior_path
@@ -546,8 +652,13 @@ def refresh_premarket_prices(*, sqlite_path: str | Path, output_dir: str | Path,
             if same_day or destination.exists():
                 receipt = received.tz_convert(KST).strftime("%H%M%S%f")
                 destination = destination.with_name(f"{destination.stem}_{receipt}.csv")
-            us_csv = write_merged_us_snapshot(prior, raw, destination)
-    return {"sqlite": str(sqlite_path), "us_csv": str(us_csv), "kr_rows_inserted": inserted}
+            us_csv = write_merged_us_snapshot(
+                prior, raw, destination, include_morning_etfs=include_morning_etfs,
+            )
+    result = {"sqlite": str(sqlite_path), "us_csv": str(us_csv), "kr_rows_inserted": inserted}
+    if include_morning_etfs:
+        result["unavailable_morning_etfs"] = unavailable_etfs
+    return result
 
 
 def main(argv: list[str] | None = None) -> int:

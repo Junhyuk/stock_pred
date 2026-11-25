@@ -108,7 +108,7 @@ def build_reliable_price_frame(prices: pd.DataFrame, *, sessions: Any = None,
             target_snapshot = utc_timestamp(str(row.target_date) + "T08:00:00+09:00")
             candidate = (target_snapshot if forecast_context["stage"] == "premarket_final"
                          else min(utc_timestamp(row.prediction_cutoff) + elapsed, target_snapshot))
-            if forecast_context['stage'] == 'postclose':
+            if forecast_context['stage'] in ('postclose', 'morning'):
                 from roboquant.index_forecast.postclose import historical_cutoff
                 candidate = historical_cutoff(close_times[row.asof_date])
             historical_cutoffs.append(candidate.isoformat())
@@ -371,8 +371,9 @@ def run_reliable_pipeline(sqlite_path: str | Path, output_dir: str | Path, *, co
     raw_settings = dict(config.get('settings', {}))
     raw_settings['issuance_protocol'] = config.get('issuance_protocol', raw_settings.get('issuance_protocol', 'premarket_v1'))
     postclose = raw_settings['issuance_protocol'] == 'after_close_daily_v1'
+    morning = postclose and config.get('operation_mode') == 'morning'
     cutoff = utc_timestamp(config.get('prepared_inputs', {}).get('prepared_at', issued)) if postclose else issued
-    from roboquant.index_forecast.postclose import model_directory, reference_context
+    from roboquant.index_forecast.postclose import model_directory, reference_context, morning_fit_capture_allowed
     config.setdefault('fit_state_dir', model_directory(output_dir, raw_settings['issuance_protocol']))
     if "model_families" in raw_settings:
         raw_settings["model_families"] = tuple(raw_settings["model_families"])
@@ -405,7 +406,8 @@ def run_reliable_pipeline(sqlite_path: str | Path, output_dir: str | Path, *, co
             contexts[market] = {"status": "blocked_missing_index", "reasons": ["missing_index_close"]}
         else:
             contexts[market] = resolve_forecast_context(subset["session_date"].max(), now=cutoff,
-                sessions=sessions, target_date=target_date, issuance_protocol=settings.issuance_protocol)
+                sessions=sessions, target_date=target_date, issuance_protocol=settings.issuance_protocol,
+                operation_mode=config.get("operation_mode"))
             context = contexts[market]
             if context["status"] != "ready":
                 continue
@@ -567,7 +569,8 @@ def run_reliable_pipeline(sqlite_path: str | Path, output_dir: str | Path, *, co
         if now is None:
             fit_state = resolve_live_fit(history, latest, evaluation.get("selected"), settings=settings,
                 state_dir=config.get("fit_state_dir", output / "fit_models"), market=market,
-                allow_capture=context["stage"] == "premarket_final" or (postclose and cutoff.tz_convert(KST).date().isoformat() == context["asof_date"]))
+                allow_capture=(morning_fit_capture_allowed(context["asof_close_at"], cutoff) if morning else
+                               context["stage"] == "premarket_final" or (postclose and cutoff.tz_convert(KST).date().isoformat() == context["asof_date"])))
             forecast = forecast_reliable_latest(history, latest, evaluation, settings=settings,
                 fit_artifact=fit_state.get("artifact"), require_live_snapshot=True)
             if fit_state.get("reason"):
@@ -600,7 +603,8 @@ def run_reliable_pipeline(sqlite_path: str | Path, output_dir: str | Path, *, co
                       "participant_status": "unavailable_for_training" if "participants" in missing else "final_available_observations"}
         macro = numeric_shadow(frame, store=calendar_store, settings=settings, market=market,
             state_dir=config.get("fit_state_dir", output / "fit_models"), live=now is None,
-            allow_capture=context["stage"] == "premarket_final" or (postclose and cutoff.tz_convert(KST).date().isoformat() == context["asof_date"]))
+            allow_capture=(morning_fit_capture_allowed(context["asof_close_at"], cutoff) if morning else
+                               context["stage"] == "premarket_final" or (postclose and cutoff.tz_convert(KST).date().isoformat() == context["asof_date"])))
         record = {"economic_calendar": economic_contexts.get(context["asof_date"], {"event_bucket": None, "calendar_complete": False}),
                   "numeric_shadow": macro, "market": market, "context": context, "forecast": forecast, "evaluation": evaluation,
                   "incumbent_reference": reference_context(incumbent, context, close),

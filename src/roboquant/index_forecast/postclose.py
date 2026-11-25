@@ -21,8 +21,38 @@ def historical_cutoff(close, calendar_name='XKRX') -> pd.Timestamp:
     return pd.Timestamp(candidate).tz_convert('UTC')
 
 
-def pending_markets(targets, completed):
-    keys = {(row.get('issuance_protocol'), row.get('market'), row.get('target_date')) for row in completed}
+def morning_cutoff(close) -> pd.Timestamp:
+    """First scheduled Mon–Sat 08:00 KST after the completed market close."""
+    from datetime import timedelta
+    stamp = pd.Timestamp(close)
+    if pd.isna(stamp) or stamp.tzinfo is None:
+        raise ValueError('completed close must have an explicit timezone')
+    local = stamp.tz_convert('Asia/Seoul')
+    candidate = local.to_pydatetime().replace(hour=8, minute=0, second=0, microsecond=0)
+    if candidate < local:
+        candidate += timedelta(days=1)
+    while candidate.weekday() == 6:
+        candidate += timedelta(days=1)
+    return pd.Timestamp(candidate).tz_convert('UTC')
+
+
+def morning_window_allowed(close, cutoff) -> bool:
+    stamp = pd.Timestamp(cutoff)
+    if pd.isna(stamp) or stamp.tzinfo is None:
+        return False
+    local = stamp.tz_convert('Asia/Seoul')
+    return local.weekday() != 6 and local.hour >= 8 and stamp >= morning_cutoff(close)
+
+
+def morning_fit_capture_allowed(close, cutoff) -> bool:
+    if not morning_window_allowed(close, cutoff):
+        return False
+    return pd.Timestamp(cutoff).tz_convert('Asia/Seoul').date() == morning_cutoff(close).tz_convert('Asia/Seoul').date()
+
+
+def pending_markets(targets, completed, *, operation_mode=None):
+    keys = {(row.get('issuance_protocol'), row.get('market'), row.get('target_date')) for row in completed
+            if operation_mode is None or row.get('operation_mode') == operation_mode}
     return [market for market, target in targets.items() if (PROTOCOL, market, target) not in keys]
 
 
@@ -58,9 +88,12 @@ def verified_completion_records(directory):
                     and 0 <= forecast['p_up'] <= 1)
             if not any(usable(row.get(key, {})) for key in ('forecast', 'incumbent_reference')):
                 continue
-            records.append({'issuance_protocol': PROTOCOL, 'market': row['market'],
+            record = {'issuance_protocol': PROTOCOL, 'market': row['market'],
                 'target_date': row['context']['target_date'], 'run_id': payload['run_id'],
-                'forecast_id': row['forecast_id'], 'publication_checked_at': payload['issued_at']})
+                'forecast_id': row['forecast_id'], 'publication_checked_at': payload['issued_at']}
+            if row['context'].get('stage') == 'morning':
+                record['operation_mode'] = 'morning'
+            records.append(record)
     return records
 
 
@@ -95,6 +128,10 @@ def prepared_config(args, config):
                 raise ValueError('prepared model runtime differs from frozen bundle')
         manifest = restored['manifest']
         config['prepared_inputs'] = {key: manifest[key] for key in ('manifest_hash', 'prepared_at', 'kst_date', 'code_hash')}
+        config.pop('operation_mode', None)
+        if 'operation_mode' in manifest:
+            config['operation_mode'] = manifest['operation_mode']
+            config['prepared_inputs']['operation_mode'] = manifest['operation_mode']
         if protocol == PROTOCOL:
             # Unpinned local files cannot enrich an immutable prepared snapshot.
             for option in ('news_context', 'participant_sqlite', 'participant_bridge', 'position_evidence'):

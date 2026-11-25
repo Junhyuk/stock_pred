@@ -41,6 +41,34 @@ def test_kst_weekend_exclusion_applies_to_operational_modes(utc, allowed):
         assert api().operation_decision(utc, mode)['allowed'] is allowed
 
 
+@pytest.mark.parametrize('clock,allowed', [
+    ('2026-11-27T08:00:00+09:00', True),
+    ('2026-11-28T08:00:00+09:00', True),
+    ('2026-11-29T08:00:00+09:00', False),
+    ('2026-11-30T07:59:59+09:00', False),
+    ('2026-11-30T08:00:00+09:00', True),
+])
+def test_morning_gate_uses_korean_clock_and_allows_saturday(clock, allowed):
+    assert api().operation_decision(clock, 'morning')['allowed'] is allowed
+
+
+def test_morning_snapshot_round_trips_on_saturday(tmp_path):
+    import sqlite3
+
+    source = tmp_path / 'input.sqlite'
+    with sqlite3.connect(source) as db:
+        db.execute('CREATE TABLE sample (date TEXT)')
+    frozen = tmp_path / 'frozen'
+    stamp = '2026-11-28T08:01:00+09:00'
+    protocol = 'after_close_daily_v1'
+    manifest = api().freeze_inputs({'sqlite': source}, frozen, prepared_at=stamp, code_hash='test',
+                                   issuance_protocol=protocol, operation_mode='morning')
+    assert manifest['operation_mode'] == 'morning'
+    assert api().restore_inputs(frozen, now=stamp, code_hash='test', issuance_protocol=protocol)['status'] == 'ready'
+    assert api().restore_inputs(frozen, now='2026-11-29T08:01:00+09:00', code_hash='test',
+                                issuance_protocol=protocol)['status'] == 'not_ready'
+
+
 def test_collection_hard_deadline_preserves_previous_public_snapshot(tmp_path):
     output = tmp_path / 'public'
     output.mkdir()
@@ -97,7 +125,7 @@ def test_workflow_has_one_weekday_schedule_validation_and_encrypted_only_cache()
     root = Path(__file__).resolve().parents[1]
     workflow = yaml.safe_load((root / '.github/workflows/premarket-research-forecast.yml').read_text())
     trigger = workflow.get('on', workflow.get(True))
-    assert {item['cron'] for item in trigger['schedule']} == {'0 9 * * 1-5'}
+    assert {item['cron'] for item in trigger['schedule']} == {'0 23 * * 0-5'}
     assert 'validate' in trigger['workflow_dispatch']['inputs']['mode']['options']
     for job in workflow['jobs'].values():
         assert job['runs-on'] == 'ubuntu-latest'

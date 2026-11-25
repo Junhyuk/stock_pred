@@ -12,6 +12,7 @@ import pandas as pd
 
 from roboquant.index_forecast import automation_state as state
 from roboquant.index_forecast.bc_cpu import forecast_market
+from roboquant.index_forecast.bc_morning import forecast_morning_market
 from roboquant.index_forecast.bc_publication import B_FILE, C_FILE, MARKETS, THRESHOLD, read_payload, valid_pair
 from roboquant.index_forecast.market_closes import effective_index_eod_frame
 from roboquant.index_forecast.postclose import PROTOCOL, verify_market_closes
@@ -20,6 +21,7 @@ from roboquant.index_forecast.reliable_inputs import KST, session_schedule, utc_
 
 HISTORY_START = "2019-01-01"
 B_VARIANT = "장후 검증 기준선 · 종가 유지"
+MORNING_B_VARIANT = "국내 종가와 미국 시장 수익률 · Ridge"
 C_VARIANTS = {"hist_gradient": "히스토그램 그래디언트 부스팅", "regime_prior": "변동성 구간별 과거 빈도"}
 
 
@@ -75,6 +77,7 @@ def daily_inputs(frame, quotes, sessions, cutoff):
         if levels.tail(21).notna().sum() == 21:
             same_session = receipts.dt.tz_convert(KST).dt.strftime("%Y-%m-%d").eq(rows.index)
             sessions_received = receipts.loc[same_session & receipts.le(cutoff)].to_dict()
+            sessions_received[day.date] = receipts.loc[day.date]
             histories[market] = (levels.tolist(), sessions_received)
     return moves, histories
 
@@ -83,24 +86,37 @@ def fresh_rows(payload, day):
     return [row for row in payload["markets"] if row.get("asof_date") == day]
 
 
-def run_prepared(manifest, output_dir, *, now=None, run_id=None):
+def run_prepared(manifest, output_dir, *, now=None, run_id=None, operation_mode="postclose"):
     current = utc_timestamp(now if now is not None else datetime.now(UTC))
-    day = current.tz_convert(KST).date()
+    local = current.tz_convert(KST)
+    day = local.date()
+    morning = operation_mode == "morning"
+    window_status = "outside_morning_window" if morning else "outside_postclose_window"
     schedule, _ = session_schedule(day - timedelta(days=15), day + timedelta(days=30))
     dates = schedule["date"].tolist()
-    if day.isoformat() not in dates:
+    if not morning and day.isoformat() not in dates:
         return {"status": "non_trading_day"}
-    if not state.operation_decision(current, "postclose")["allowed"]:
-        return {"status": "outside_postclose_window"}
-    anchor_index = dates.index(day.isoformat())
+    if not state.operation_decision(current, operation_mode)["allowed"]:
+        return {"status": window_status}
+    if morning:
+        start = local.normalize() + timedelta(hours=8)
+        completed_sessions = schedule.loc[schedule["close_at"] <= start]
+        if completed_sessions.empty:
+            return {"status": "not_ready", "reason": "no_completed_kr_session"}
+        anchor_index = int(completed_sessions.index[-1])
+    else:
+        anchor_index = dates.index(day.isoformat())
     anchor, target = schedule.iloc[anchor_index:anchor_index + 2].itertuples(index=False)
     if not anchor.close_at <= current < target.open_at:
-        return {"status": "outside_postclose_window"}
+        return {"status": window_status}
 
     output_dir = Path(output_dir)
     b_path, c_path = output_dir / B_FILE, output_dir / C_FILE
     old_b, old_c = read_payload(b_path), read_payload(c_path)
-    same_day = valid_pair(old_b, old_c) and (old_c["asof_date"], old_c["target_date"]) == (anchor.date, target.date)
+    issue_stage = "premarket" if morning else "postclose"
+    same_day = (valid_pair(old_b, old_c) and (old_c["asof_date"], old_c["target_date"]) == (anchor.date, target.date)
+                and old_c.get("issue_stage") == issue_stage
+                and (not morning or old_c.get("run_date") == day.isoformat()))
     previous_b = fresh_rows(old_b, anchor.date) if same_day else []
     previous_c = fresh_rows(old_c, anchor.date) if same_day else []
     duplicate = {"status": "already_published", "redeploy": bool(run_id and old_c.get("run_id") == run_id)}
@@ -115,19 +131,28 @@ def run_prepared(manifest, output_dir, *, now=None, run_id=None):
     if restored["status"] != "ready" or not {"sqlite", "market_closes", "market_closes_receipt"} <= files.keys():
         return {"status": "not_ready", "reason": restored.get("reason", "incomplete_frozen_prices")}
     prepared = restored["manifest"]
+    if (prepared.get("operation_mode") == "morning") != morning:
+        return {"status": "not_ready", "reason": "prepared_operation_mode_mismatch"}
     cutoff = utc_timestamp(prepared["prepared_at"])
     if not anchor.close_at <= cutoff <= current:
         return {"status": "not_ready", "reason": "cutoff_outside_completed_session"}
     data = verify_market_closes(files["market_closes"], files["market_closes_receipt"])
     prices = effective_index_eod_frame(files["sqlite"], cutoff=cutoff)
     sessions, _ = session_schedule(HISTORY_START, anchor.date)
+    observations = pd.DataFrame()
+    if morning and "us_csv" in files:
+        try:
+            observations = pd.read_csv(files["us_csv"])
+        except (OSError, ValueError):
+            pass
     moves, histories = daily_inputs(prices, data["markets"], sessions, cutoff)
     confirmed_today = set(moves)
     if same_day and old_c["status"] != "not_ready":
         moves.update(old_c["trigger_returns"])
     triggered = any(abs(value) >= THRESHOLD for value in moves.values())
     shared = {
-        "issue_stage": "postclose",
+        "issue_stage": issue_stage,
+        "run_date": day.isoformat(),
         "trigger": "github_actions_cpu" if run_id else "local_cpu",
         "inference_device": "cpu",
         "fit_device": "cpu",
@@ -140,7 +165,7 @@ def run_prepared(manifest, output_dir, *, now=None, run_id=None):
         "prediction_cutoff": cutoff.isoformat(),
         "historical_input_mode": "reconstructed",
     }
-    b_rows, c_rows = previous_b.copy(), previous_c.copy()
+    b_rows, c_rows, b_unavailable = previous_b.copy(), previous_c.copy(), {}
     for market in MARKETS:
         needs_b = market not in {row["market"] for row in b_rows}
         needs_c = (triggered and market in confirmed_today
@@ -148,22 +173,32 @@ def run_prepared(manifest, output_dir, *, now=None, run_id=None):
         if market not in histories or not (needs_b or needs_c):
             continue
         levels, receipts = histories[market]
-        try:
-            forecast = forecast_market(market, levels, sessions=sessions["date"].tolist(),
-                                       close_received_at=receipts, prediction_cutoff=cutoff, run_c=needs_c)
-        except ValueError:
-            # Bad or too-short history in one market cannot make the other market stale.
-            continue
         identity = {"market": market, "asof_date": anchor.date, "target_date": target.date,
                     "trained_through": anchor.date, "prediction_cutoff": cutoff.isoformat()}
-        if needs_b:
-            b_rows.append({**forecast["b"], **identity, "variant": B_VARIANT})
-        if forecast["c"] is not None:
-            c_rows.append({**forecast["c"], **identity, "variant": C_VARIANTS[forecast["c"]["method"]]})
+        if morning and needs_b:
+            try:
+                b_row = forecast_morning_market(market, levels, sessions=sessions, target=target.date,
+                                                observations=observations, prediction_cutoff=cutoff,
+                                                close_received_at=receipts)
+            except ValueError as error:
+                b_unavailable[market] = str(error)
+            else:
+                b_rows.append({**b_row, **identity, "variant": MORNING_B_VARIANT})
+        if needs_c or not morning:
+            try:
+                forecast = forecast_market(market, levels, sessions=sessions["date"].tolist(),
+                                           close_received_at=receipts, prediction_cutoff=cutoff, run_c=needs_c)
+            except ValueError:
+                # Bad or too-short history in one market cannot make the other market stale.
+                continue
+            if needs_b and not morning:
+                b_rows.append({**forecast["b"], **identity, "variant": B_VARIANT})
+            if forecast["c"] is not None:
+                c_rows.append({**forecast["c"], **identity, "variant": C_VARIANTS[forecast["c"]["method"]]})
     c_status = "ready" if c_rows else "not_triggered" if not triggered and len(moves) == len(MARKETS) else "not_ready"
     if same_day and len(b_rows) == len(previous_b) and len(c_rows) == len(previous_c) and c_status == old_c["status"]:
         return duplicate
-    prior_b = old_b.get("markets", [])
+    prior_b = old_b.get("markets", []) if old_b.get("issue_stage") == issue_stage else []
     if not isinstance(prior_b, list):
         prior_b = []
     for row in prior_b:
@@ -172,19 +207,20 @@ def run_prepared(manifest, output_dir, *, now=None, run_id=None):
                 and row["market"] not in {forecast["market"] for forecast in b_rows}):
             b_rows.append({**row, "carried_forward": True})
     b = {**shared, "schema_version": "model_b_forecast_v1", "model_name": "모델 B",
-         "architecture": "장후 종가 유지 · 방향 과거 빈도", "markets": b_rows}
+         "architecture": MORNING_B_VARIANT if morning else "장후 종가 유지 · 방향 과거 빈도",
+         "markets": b_rows}
     c = {**shared, "schema_version": "model_c_forecast_v1", "model_name": "모델 C",
          "architecture": "전체 거래일 급변 3분류", "probability_mode": "three_way",
          "threshold": THRESHOLD, "status": c_status, "trigger_returns": moves, "markets": c_rows}
     completed = current if now is not None else utc_timestamp(datetime.now(UTC))
     if not completed < target.open_at:
-        return {"status": "outside_postclose_window"}
+        return {"status": window_status}
     b["generated_at"] = c["generated_at"] = completed.isoformat()
     if not valid_pair(b, c):
         raise ValueError("invalid CPU forecast publication pair")
     state.atomic_json(b_path, b, indent=2)
     state.atomic_json(c_path, c, indent=2)
-    return {"status": "published", "model_c_status": c_status,
+    return {"status": "published", "model_c_status": c_status, "model_b_unavailable": b_unavailable,
             "trigger_returns": moves, "asof_date": anchor.date, "target_date": target.date}
 
 
@@ -192,8 +228,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--prepared-manifest", required=True, type=Path)
     parser.add_argument("--output-dir", default=Path("docs/data"), type=Path)
+    parser.add_argument("--operation-mode", choices=("morning", "postclose"), default="postclose")
     args = parser.parse_args()
-    result = run_prepared(args.prepared_manifest, args.output_dir, run_id=os.environ.get("GITHUB_RUN_ID"))
+    result = run_prepared(args.prepared_manifest, args.output_dir, run_id=os.environ.get("GITHUB_RUN_ID"),
+                          operation_mode=args.operation_mode)
     print(json.dumps(result, ensure_ascii=False))
     if output := os.environ.get("GITHUB_OUTPUT"):
         with open(output, "a", encoding="utf-8") as stream:
