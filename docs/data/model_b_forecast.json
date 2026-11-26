@@ -1,70 +1,20 @@
 {
-  "architecture": "장후 종가 유지 · 방향 과거 빈도",
-  "asof_date": "2026-11-25",
+  "architecture": "국내 종가와 미국 시장 수익률 · Ridge",
+  "asof_date": "2026-11-26",
   "fit_device": "cpu",
-  "generated_at": "2026-11-25T14:51:47.579673+00:00",
+  "generated_at": "2026-11-26T23:06:59.284399+00:00",
   "historical_input_mode": "reconstructed",
   "inference_device": "cpu",
-  "issue_stage": "postclose",
-  "markets": [
-    {
-      "asof_date": "2026-11-25",
-      "close": 4697.51,
-      "evaluation_2026": {
-        "close_mae": 179.78217365056784,
-        "direction_brier": 0.2437301751797417,
-        "direction_hit": 0.5954545454545455,
-        "n": 220
-      },
-      "expected_index": 4697.51,
-      "expected_return": 0.0,
-      "interval": {
-        "evaluation_coverage": 0.8181818181818182,
-        "high": 4918.670552378993,
-        "level": 0.8,
-        "low": 4476.349447621008
-      },
-      "market": "KOSPI",
-      "p_down": 0.44999999999999996,
-      "p_up": 0.55,
-      "prediction_cutoff": "2026-11-25T14:51:44.232285+00:00",
-      "target_date": "2026-11-26",
-      "trained_through": "2026-11-25",
-      "variant": "장후 검증 기준선 · 종가 유지"
-    },
-    {
-      "asof_date": "2026-11-25",
-      "close": 650.64,
-      "evaluation_2026": {
-        "close_mae": 23.25386354758518,
-        "direction_brier": 0.25041859702424457,
-        "direction_hit": 0.5181818181818182,
-        "n": 220
-      },
-      "expected_index": 650.64,
-      "expected_return": 0.0,
-      "interval": {
-        "evaluation_coverage": 0.7954545454545454,
-        "high": 682.6754288254757,
-        "level": 0.8,
-        "low": 618.6045711745243
-      },
-      "market": "KOSDAQ",
-      "p_down": 0.45781249999999996,
-      "p_up": 0.5421875,
-      "prediction_cutoff": "2026-11-25T14:51:44.232285+00:00",
-      "target_date": "2026-11-26",
-      "trained_through": "2026-11-25",
-      "variant": "장후 검증 기준선 · 종가 유지"
-    }
-  ],
+  "issue_stage": "premarket",
+  "markets": [],
   "model_name": "모델 B",
-  "prediction_cutoff": "2026-11-25T14:51:44.232285+00:00",
+  "prediction_cutoff": "2026-11-26T23:06:45.006628+00:00",
   "production_weight": 0.0,
-  "publication_id": "741d7e63c7c0750da59c2372018523604b96ae524fb83c1106c76da37df8cbd9",
-  "run_id": null,
+  "publication_id": "a13a28103a6bfdd43a7de18c06b556bd028d3e0ade1e0f1a8ba854ff94d6d910",
+  "run_date": "2026-11-27",
+  "run_id": "45908464261",
   "schema_version": "model_b_forecast_v1",
-  "target_close_at": "2026-11-26T06:30:00+00:00",
-  "target_date": "2026-11-26",
-  "trigger": "local_cpu"
+  "target_close_at": "2026-11-27T06:30:00+00:00",
+  "target_date": "2026-11-27",
+  "trigger": "github_actions_cpu"
 }

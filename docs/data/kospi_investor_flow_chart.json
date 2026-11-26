@@ -4,30 +4,16 @@
   "source": "naver_investor_trend_unofficial",
   "source_url": "https://stock.naver.com/market/stock/kr/trend/trader",
   "source_endpoint": "https://stock.naver.com/api/domestic/market/trend/daily",
-  "snapshot_received_at": "2026-11-25T10:18:16.535370+00:00",
+  "snapshot_received_at": "2026-11-26T23:06:10.595146+00:00",
   "production_weight": 0.0,
-  "window_start": "2024-11-25",
+  "window_start": "2024-11-27",
   "window_label": "2년",
   "average_sessions": 20,
-  "provisional_dates": [
-    "2026-11-25"
-  ],
+  "provisional_dates": [],
   "revisions": [],
   "markets": {
     "KOSPI": {
       "sessions": [
-        {
-          "date": "2024-11-25",
-          "foreign_eok": -767.7,
-          "institution_eok": 4531.5,
-          "personal_eok": -4514.6
-        },
-        {
-          "date": "2024-11-26",
-          "foreign_eok": -676.0,
-          "institution_eok": -2373.6,
-          "personal_eok": 1861.7
-        },
         {
           "date": "2024-11-27",
           "foreign_eok": -3344.0,
@@ -2934,26 +2920,20 @@
         },
         {
           "date": "2026-11-25",
-          "foreign_eok": -18415.9,
-          "institution_eok": -5.6,
-          "personal_eok": 13721.4
+          "foreign_eok": -18192.6,
+          "institution_eok": 39.5,
+          "personal_eok": 13448.7
+        },
+        {
+          "date": "2026-11-26",
+          "foreign_eok": -879.5,
+          "institution_eok": 7529.0,
+          "personal_eok": -10747.9
         }
       ]
     },
     "KOSDAQ": {
       "sessions": [
-        {
-          "date": "2024-11-25",
-          "foreign_eok": 633.6,
-          "institution_eok": 1250.3,
-          "personal_eok": -1964.9
-        },
-        {
-          "date": "2024-11-26",
-          "foreign_eok": -2066.9,
-          "institution_eok": 264.3,
-          "personal_eok": 1930.6
-        },
         {
           "date": "2024-11-27",
           "foreign_eok": 64.0,
@@ -5860,9 +5840,15 @@
         },
         {
           "date": "2026-11-25",
-          "foreign_eok": 93.9,
-          "institution_eok": 277.4,
-          "personal_eok": -439.9
+          "foreign_eok": 165.2,
+          "institution_eok": 281.5,
+          "personal_eok": -516.5
+        },
+        {
+          "date": "2026-11-26",
+          "foreign_eok": -1114.6,
+          "institution_eok": 2378.3,
+          "personal_eok": -1338.8
         }
       ]
     }

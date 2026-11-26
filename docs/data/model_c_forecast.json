@@ -1,99 +1,24 @@
 {
   "architecture": "전체 거래일 급변 3분류",
-  "asof_date": "2026-11-25",
+  "asof_date": "2026-11-26",
   "fit_device": "cpu",
-  "generated_at": "2026-11-25T14:51:47.579673+00:00",
+  "generated_at": "2026-11-26T23:06:59.284399+00:00",
   "historical_input_mode": "reconstructed",
   "inference_device": "cpu",
-  "issue_stage": "postclose",
-  "markets": [
-    {
-      "asof_date": "2026-11-25",
-      "close": 4697.51,
-      "close_estimate_reconstructed": true,
-      "evaluation_2026": {
-        "baseline_brier": 0.6444170125162114,
-        "baseline_extreme_average_precision": 0.414819245082403,
-        "brier": 0.5582601086089494,
-        "brier_difference_ci95": [
-          -0.12347281961196448,
-          -0.04593856007975355
-        ],
-        "extreme_average_precision": 0.49915705320509957,
-        "first_target": "2026-01-02",
-        "last_target": "2026-11-25",
-        "n": 220
-      },
-      "expected_index": 4693.884289332032,
-      "expected_return": -0.0007718367109315737,
-      "interval": {
-        "high": 4913.9946971756535,
-        "level": 0.8,
-        "low": 4450.52108233353
-      },
-      "market": "KOSPI",
-      "method": "hist_gradient",
-      "p_down": 0.2706395603063118,
-      "p_extreme": 0.46740326063643234,
-      "p_normal": 0.5325967393635677,
-      "p_up": 0.19676370033012053,
-      "p_up_given_extreme": 0.4209720318643056,
-      "prediction_cutoff": "2026-11-25T14:51:44.232285+00:00",
-      "target_date": "2026-11-26",
-      "trained_through": "2026-11-25",
-      "variant": "히스토그램 그래디언트 부스팅"
-    },
-    {
-      "asof_date": "2026-11-25",
-      "close": 650.64,
-      "close_estimate_reconstructed": true,
-      "evaluation_2026": {
-        "baseline_brier": 0.5260962506540969,
-        "baseline_extreme_average_precision": 0.37976386575933485,
-        "brier": 0.5260962506540969,
-        "brier_difference_ci95": [
-          0.0,
-          0.0
-        ],
-        "extreme_average_precision": 0.37976386575933485,
-        "first_target": "2026-01-02",
-        "last_target": "2026-11-25",
-        "n": 220
-      },
-      "expected_index": 649.7999124684458,
-      "expected_return": -0.0012911710493578774,
-      "interval": {
-        "high": 666.5407969323107,
-        "level": 0.8,
-        "low": 631.0759091437652
-      },
-      "market": "KOSDAQ",
-      "method": "regime_prior",
-      "p_down": 0.10062686156436156,
-      "p_extreme": 0.17062815656565655,
-      "p_normal": 0.8293718434343434,
-      "p_up": 0.070001295001295,
-      "p_up_given_extreme": 0.41025641025641024,
-      "prediction_cutoff": "2026-11-25T14:51:44.232285+00:00",
-      "target_date": "2026-11-26",
-      "trained_through": "2026-11-25",
-      "variant": "변동성 구간별 과거 빈도"
-    }
-  ],
+  "issue_stage": "premarket",
+  "markets": [],
   "model_name": "모델 C",
-  "prediction_cutoff": "2026-11-25T14:51:44.232285+00:00",
+  "prediction_cutoff": "2026-11-26T23:06:45.006628+00:00",
   "probability_mode": "three_way",
   "production_weight": 0.0,
-  "publication_id": "741d7e63c7c0750da59c2372018523604b96ae524fb83c1106c76da37df8cbd9",
-  "run_id": null,
+  "publication_id": "a13a28103a6bfdd43a7de18c06b556bd028d3e0ade1e0f1a8ba854ff94d6d910",
+  "run_date": "2026-11-27",
+  "run_id": "45908464261",
   "schema_version": "model_c_forecast_v1",
-  "status": "ready",
-  "target_close_at": "2026-11-26T06:30:00+00:00",
-  "target_date": "2026-11-26",
+  "status": "not_ready",
+  "target_close_at": "2026-11-27T06:30:00+00:00",
+  "target_date": "2026-11-27",
   "threshold": 0.03,
-  "trigger": "local_cpu",
-  "trigger_returns": {
-    "KOSDAQ": -0.022887006667868085,
-    "KOSPI": -0.061629674612417425
-  }
+  "trigger": "github_actions_cpu",
+  "trigger_returns": {}
 }

@@ -9,9 +9,9 @@
     "url": "https://m.stock.naver.com/domestic/stock/000660/total"
   },
   "status": "ready",
-  "generated_at": "2026-11-25T09:45:27Z",
-  "window_start": "2024-11-25",
-  "window_end": "2026-11-24",
+  "generated_at": "2026-11-26T23:06:20Z",
+  "window_start": "2024-11-27",
+  "window_end": "2026-11-26",
   "coverage": {
     "expected_sessions": 486,
     "observed_sessions": 486,
@@ -23,18 +23,6 @@
     }
   },
   "series": [
-    {
-      "date": "2024-11-25",
-      "foreign": -132356,
-      "institution": 136041,
-      "individual": -8480
-    },
-    {
-      "date": "2024-11-26",
-      "foreign": 396397,
-      "institution": -242777,
-      "individual": -123956
-    },
     {
       "date": "2024-11-27",
       "foreign": -530609,
@@ -2938,6 +2926,18 @@
       "foreign": -118990,
       "institution": -844,
       "individual": -233523
+    },
+    {
+      "date": "2026-11-25",
+      "foreign": -496448,
+      "institution": -13339,
+      "individual": 152556
+    },
+    {
+      "date": "2026-11-26",
+      "foreign": 296355,
+      "institution": -67805,
+      "individual": -567841
     }
   ]
 }
