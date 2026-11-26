@@ -2,23 +2,26 @@
   "architecture": "전체 거래일 급변 3분류",
   "asof_date": "2026-11-26",
   "fit_device": "cpu",
-  "generated_at": "2026-11-26T23:06:59.284399+00:00",
+  "generated_at": "2026-11-26T23:28:28.111486+00:00",
   "historical_input_mode": "reconstructed",
   "inference_device": "cpu",
   "issue_stage": "premarket",
   "markets": [],
   "model_name": "모델 C",
-  "prediction_cutoff": "2026-11-26T23:06:45.006628+00:00",
+  "prediction_cutoff": "2026-11-26T23:28:15.383004+00:00",
   "probability_mode": "three_way",
   "production_weight": 0.0,
-  "publication_id": "a13a28103a6bfdd43a7de18c06b556bd028d3e0ade1e0f1a8ba854ff94d6d910",
+  "publication_id": "2253626c3c59cb5946ad2976ad712d75f01105b36782272bd67001e0bca21d09",
   "run_date": "2026-11-27",
-  "run_id": "45908464261",
+  "run_id": "45910780966",
   "schema_version": "model_c_forecast_v1",
-  "status": "not_ready",
+  "status": "not_triggered",
   "target_close_at": "2026-11-27T06:30:00+00:00",
   "target_date": "2026-11-27",
   "threshold": 0.03,
   "trigger": "github_actions_cpu",
-  "trigger_returns": {}
+  "trigger_returns": {
+    "KOSDAQ": 0.007792327554407967,
+    "KOSPI": 0.0029164387090181818
+  }
 }
