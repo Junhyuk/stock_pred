@@ -3,7 +3,19 @@ from datetime import date, timedelta
 import numpy as np
 import pytest
 
+from roboquant.index_forecast.bc_close_distribution import c_close_estimate
 from roboquant.index_forecast.bc_cpu import forecast_market
+
+
+def test_model_c_close_is_the_probability_weighted_mean_and_central_range():
+    estimate = c_close_estimate(1000.0, [-0.06, -0.04, -0.02, 0.01, 0.05], (0.2, 0.5, 0.3))
+    assert estimate["expected_return"] == pytest.approx(0.0025)
+    assert estimate["expected_index"] == pytest.approx(1002.5)
+    assert estimate["interval"] == pytest.approx({"low": 940.0, "high": 1050.0, "level": 0.8})
+
+
+def test_model_c_close_requires_realized_returns_for_every_class():
+    assert c_close_estimate(1000.0, [-0.02, 0.01], (0.2, 0.5, 0.3)) == {}
 
 
 def test_model_b_carries_close_and_counts_only_supported_direction_labels():

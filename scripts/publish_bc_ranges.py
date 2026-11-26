@@ -12,8 +12,13 @@ from html import escape
 from itertools import pairwise
 from pathlib import Path
 
-LEVEL = 0.80
-WINDOW = 120
+from roboquant.index_forecast.bc_close_distribution import RANGE_LEVEL as LEVEL
+from roboquant.index_forecast.bc_close_distribution import (
+    WINDOW,
+    c_return_distribution,
+    event_class,
+)
+
 MINIMUM = 60
 MARKETS = {"KOSDAQ": "코스닥", "KOSPI": "코스피"}
 START = "<!-- model-bc-range:start -->"
@@ -36,14 +41,6 @@ class History:
     c_errors: list[float] = field(default_factory=list)
 
 
-def event_class(value):
-    if value <= -0.03 + 1e-12:
-        return 0
-    if value >= 0.03 - 1e-12:
-        return 2
-    return 1
-
-
 def error_quantile(errors):
     sample = sorted(errors[-WINDOW:])
     rank = min(len(sample), math.ceil((len(sample) + 1) * LEVEL))
@@ -57,30 +54,8 @@ def b_band(expected_return, errors):
 
 def c_band(returns, probabilities):
     """Allocate each predicted class's mass over its prior realized returns."""
-    pools = [[], [], []]
-    for value in returns:
-        pools[event_class(value)].append(value)
-    if not all(pools):
-        return None
-    total = sum(probabilities)
-    if not math.isclose(total, 1.0, abs_tol=1e-6) or min(probabilities) < 0:
-        raise ValueError("C class probabilities must be nonnegative and sum to one")
-    weighted = []
-    for pool, probability in zip(pools, probabilities, strict=True):
-        sample = pool[-WINDOW:]
-        weighted.extend((value, probability / (total * len(sample))) for value in sample)
-    weighted.sort()
-    quantiles = []
-    mass = 0.0
-    targets = [(1 - LEVEL) / 2, (1 + LEVEL) / 2]
-    for value, weight in weighted:
-        mass += weight
-        while targets and mass >= targets[0] - 1e-12:
-            targets.pop(0)
-            quantiles.append(value)
-        if not targets:
-            return tuple(quantiles)
-    raise ValueError("incomplete C probability distribution")
+    distribution = c_return_distribution(returns, probabilities)
+    return distribution[1:] if distribution is not None else None
 
 
 def calibrate(rows, asof, minimum=MINIMUM):

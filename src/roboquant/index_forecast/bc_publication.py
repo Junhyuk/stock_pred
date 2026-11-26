@@ -4,12 +4,12 @@ import json
 import math
 from pathlib import Path
 
+from roboquant.index_forecast.bc_close_distribution import RANGE_LEVEL, THRESHOLD
 
 B_FILE = "model_b_forecast.json"
 C_FILE = "model_c_forecast.json"
 MARKETS = ("KOSPI", "KOSDAQ")
 STATUSES = {"ready", "not_triggered", "not_ready"}
-THRESHOLD = 0.03
 
 
 def read_payload(path):
@@ -40,6 +40,18 @@ def valid_rows(rows, keys):
             and len({row["market"] for row in rows}) == len(rows))
 
 
+def valid_c_close_estimate(row):
+    keys = ("expected_index", "expected_return", "interval")
+    if not any(key in row for key in keys):
+        return True  # Older publications and histories without all three return classes.
+    interval = row.get("interval")
+    expected, change = row.get("expected_index"), row.get("expected_return")
+    return (isinstance(interval, dict) and interval.get("level") == RANGE_LEVEL
+            and valid_numbers([interval.get("low"), interval.get("high"), expected, change])
+            and 0 < interval["low"] <= interval["high"] and expected > 0
+            and math.isclose(expected, row["close"] * (1 + change)))
+
+
 def valid_pair(b, c):
     if not all(isinstance(b.get(key), str) and b[key] and b[key] == c.get(key)
                for key in ("publication_id", "asof_date", "target_date", "target_close_at")):
@@ -68,6 +80,7 @@ def valid_pair(b, c):
     if c["status"] == "ready":
         return triggered and bool(c["markets"]) and all(
             row.get("asof_date") == c["asof_date"] and row.get("target_date") == c["target_date"]
+            and valid_c_close_estimate(row)
             for row in c["markets"]
         )
     return not c["markets"] and (c["status"] != "not_triggered" or len(moves) == len(MARKETS) and not triggered)

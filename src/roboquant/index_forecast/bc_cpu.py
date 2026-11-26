@@ -13,10 +13,11 @@ from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
 from threadpoolctl import threadpool_limits
 
+from roboquant.index_forecast.bc_close_distribution import RANGE_LEVEL, THRESHOLD, c_close_estimate
+
 KST = "Asia/Seoul"
 MINIMUM_TRAIN = 252
 FOLD_SIZE = 60
-RANGE_LEVEL = 0.80
 METHODS = {"KOSPI": "hist_gradient", "KOSDAQ": "regime_prior"}
 
 
@@ -159,7 +160,7 @@ def _calibrate(raw, labels, predicted):
 
 def _c_forecast(close, features, returns, live, eligible, folds, method):
     # Float close ratios can land slightly inside the exact ±3% label boundaries.
-    threshold = 0.03 - 4 * np.finfo(float).eps
+    threshold = THRESHOLD - 4 * np.finfo(float).eps
     upside = returns >= threshold
     extreme = upside | (returns <= -threshold)
     with threadpool_limits(limits=1):
@@ -181,14 +182,16 @@ def _c_forecast(close, features, returns, live, eligible, folds, method):
             events = extreme[validation]
             q = _calibrate(np.concatenate(q_oof), events, q_live)
             p = _calibrate(np.concatenate(p_oof)[events], upside[validation][events], p_live)
+    p_down, p_normal, p_up = q * (1.0 - p), 1.0 - q, q * p
     return {
         "close": close,
         "method": method,
-        "p_down": q * (1.0 - p),
-        "p_normal": 1.0 - q,
-        "p_up": q * p,
+        "p_down": p_down,
+        "p_normal": p_normal,
+        "p_up": p_up,
         "p_extreme": q,
         "p_up_given_extreme": p,
+        **c_close_estimate(close, returns[eligible], (p_down, p_normal, p_up)),
     }
 
 

@@ -109,26 +109,37 @@ setTimeout(() => {
     assert "8층 미세조정" in rendered
 
 
-def test_legacy_close_carry_is_not_rendered_as_estimated_index():
+def test_postclose_b_displays_the_labeled_close_baseline():
     import subprocess
 
     program = r"""
 const source = SOURCE;
 const status = {};
-const cards = {replaceChildren() {}, appendChild() {}};
+const cards = {items: [], replaceChildren() {}, appendChild(node) { this.items.push(node); }};
 const document = {getElementById: id => id === 'model-b-status' ? status : cards, createElement: () => ({})};
-const payload = {schema_version: 'model_b_forecast_v1', issue_stage: 'postclose', markets: [
-  {market: 'KOSPI', close: 4700, p_up: 0.55, expected_index: 4700, expected_return: 0,
-   variant: '장후 검증 기준선 · 종가 유지'}
+const payload = {schema_version: 'model_b_forecast_v1', issue_stage: 'postclose',
+  target_date: '2026-11-26', target_close_at: '2026-11-26T06:30:00Z',
+  generated_at: '2026-11-25T09:14:00Z', markets: [
+  {market: 'KOSPI', target_date: '2026-11-26', close: 4700, p_up: 0.55, expected_index: 4700, expected_return: 0,
+   interval: {level: .8, low: 4450, high: 4950}, variant: '장후 검증 기준선 · 종가 유지'}
 ]};
 const fetch = async () => ({ok: true, json: async () => payload});
-const renderCard = item => console.log(JSON.stringify(item.forecast));
+const renderCard = item => {
+  console.log(JSON.stringify(item));
+  return '<article></article>';
+};
 new Function('document', 'fetch', 'renderCard', 'escapeHtml', source)(document, fetch, renderCard, value => value);
+setImmediate(() => console.log(JSON.stringify({status: status.textContent, card: cards.items[0].innerHTML})));
 """.replace("SOURCE", json.dumps(MODEL_B_JS.read_text()))
     completed = subprocess.run(["node", "-e", program], capture_output=True, text=True, check=True)
-    row = json.loads(completed.stdout)
-    assert row["latest_close"] == 4700
-    assert "expected_index" not in row and "expected_return" not in row
+    item, page = map(json.loads, completed.stdout.splitlines())
+    assert item["forecast"]["expected_index"] == 4700
+    assert item["forecast"]["expected_return"] == 0
+    assert item["forecast"]["index_range_low"] == 4450
+    assert item["forecast"]["index_range_high"] == 4950
+    assert item["context"]["target_close_at"] == "2026-11-26T06:30:00Z"
+    assert "검증 기준선" in page["status"]
+    assert "종가 유지" in page["card"]
 
 
 def check_return_formula(payload):

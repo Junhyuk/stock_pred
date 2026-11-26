@@ -13,11 +13,17 @@ import pandas as pd
 from roboquant.index_forecast import automation_state as state
 from roboquant.index_forecast.bc_cpu import forecast_market
 from roboquant.index_forecast.bc_morning import forecast_morning_market
-from roboquant.index_forecast.bc_publication import B_FILE, C_FILE, MARKETS, THRESHOLD, read_payload, valid_pair
+from roboquant.index_forecast.bc_publication import (
+    B_FILE,
+    C_FILE,
+    MARKETS,
+    THRESHOLD,
+    read_payload,
+    valid_pair,
+)
 from roboquant.index_forecast.market_closes import effective_index_eod_frame
 from roboquant.index_forecast.postclose import PROTOCOL, verify_market_closes
 from roboquant.index_forecast.reliable_inputs import KST, session_schedule, utc_timestamp
-
 
 HISTORY_START = "2019-01-01"
 B_VARIANT = "장후 검증 기준선 · 종가 유지"
@@ -83,7 +89,8 @@ def daily_inputs(frame, quotes, sessions, cutoff):
 
 
 def fresh_rows(payload, day):
-    return [row for row in payload["markets"] if row.get("asof_date") == day]
+    return [row for row in payload["markets"]
+            if row.get("asof_date") == day and not row.get("carried_forward")]
 
 
 def run_prepared(manifest, output_dir, *, now=None, run_id=None, operation_mode="postclose"):
@@ -114,8 +121,9 @@ def run_prepared(manifest, output_dir, *, now=None, run_id=None, operation_mode=
     b_path, c_path = output_dir / B_FILE, output_dir / C_FILE
     old_b, old_c = read_payload(b_path), read_payload(c_path)
     issue_stage = "premarket" if morning else "postclose"
-    same_day = (valid_pair(old_b, old_c) and (old_c["asof_date"], old_c["target_date"]) == (anchor.date, target.date)
-                and old_c.get("issue_stage") == issue_stage
+    same_target_pair = (valid_pair(old_b, old_c)
+                        and (old_c["asof_date"], old_c["target_date"]) == (anchor.date, target.date))
+    same_day = (same_target_pair and old_c.get("issue_stage") == issue_stage
                 and (not morning or old_c.get("run_date") == day.isoformat()))
     previous_b = fresh_rows(old_b, anchor.date) if same_day else []
     previous_c = fresh_rows(old_c, anchor.date) if same_day else []
@@ -198,13 +206,18 @@ def run_prepared(manifest, output_dir, *, now=None, run_id=None, operation_mode=
     c_status = "ready" if c_rows else "not_triggered" if not triggered and len(moves) == len(MARKETS) else "not_ready"
     if same_day and len(b_rows) == len(previous_b) and len(c_rows) == len(previous_c) and c_status == old_c["status"]:
         return duplicate
-    prior_b = old_b.get("markets", []) if old_b.get("issue_stage") == issue_stage else []
+    same_stage = old_b.get("issue_stage") == issue_stage
+    same_target_baseline = morning and same_target_pair and old_b.get("issue_stage") == "postclose"
+    prior_b = old_b.get("markets", []) if same_stage or same_target_baseline else []
     if not isinstance(prior_b, list):
         prior_b = []
     for row in prior_b:
-        if (isinstance(row, dict) and row.get("market") in MARKETS and row.get("interval")
-                and row.get("asof_date", "") < anchor.date
-                and row["market"] not in {forecast["market"] for forecast in b_rows}):
+        if (not isinstance(row, dict) or row.get("market") not in MARKETS or not row.get("interval")
+                or row["market"] in {forecast["market"] for forecast in b_rows}):
+            continue
+        same_target = (row.get("asof_date"), row.get("target_date")) == (anchor.date, target.date)
+        if ((same_target and (same_target_baseline or row.get("carried_forward") is True))
+                or (same_stage and row.get("asof_date", "") < anchor.date)):
             b_rows.append({**row, "carried_forward": True})
     b = {**shared, "schema_version": "model_b_forecast_v1", "model_name": "모델 B",
          "architecture": MORNING_B_VARIANT if morning else "장후 종가 유지 · 방향 과거 빈도",

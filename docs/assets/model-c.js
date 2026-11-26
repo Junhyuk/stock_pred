@@ -79,23 +79,37 @@
       && Math.abs(values.reduce((sum, value) => sum + value, 0) - 1) <= 0.001;
   };
 
-  const renderThreeWay = (row, threshold) => {
+  const renderThreeWay = (row, threshold, targetClose) => {
     const evaluation = row.evaluation_2026;
     const review = evaluation?.n > 0 && Number.isFinite(evaluation.brier)
       ? `<div class="detail-line">2026년 장후 재구성 · ${escapeHtml(evaluation.n)}거래일 · Brier ${evaluation.brier.toFixed(4)}${Number.isFinite(evaluation.baseline_brier) ? ` · 기준 ${evaluation.baseline_brier.toFixed(4)}` : ''}</div>`
       : '';
+    const interval = row.interval;
+    const hasEstimate = Number.isFinite(row.expected_index) && row.expected_index > 0
+      && Number.isFinite(row.expected_return) && interval?.level === 0.8
+      && Number.isFinite(interval.low) && Number.isFinite(interval.high)
+      && 0 < interval.low && interval.low <= interval.high;
+    const ended = targetEnded({ target_date: row.target_date, target_close_at: targetClose });
     return `<article class="forecast-card research-card">
       <h3>${escapeHtml(names[row.market])}</h3>
       <div class="card-dates session-dates">
         <div><strong>기준 종가일</strong> ${escapeHtml(day(row.asof_date) || '확인 불가')}</div>
-        <div><strong>대상 거래일</strong> ${escapeHtml(day(row.target_date) || '확인 불가')}</div>
+        <div><strong>대상 거래일</strong> ${escapeHtml(day(row.target_date) || '확인 불가')} <span class="session-ended" data-target-date="${escapeHtml(row.target_date)}" data-target-close="${escapeHtml(targetClose)}" data-kr-session${ended ? '' : ' hidden'}>이미 종료</span></div>
       </div>
-      <div class="hero-metric"><span>기준 종가</span><strong>${escapeHtml(level(row.close))}</strong></div>
+      <div class="hero-metrics">
+        <div class="hero-metric"><span>기준 종가</span><strong>${escapeHtml(level(row.close))}</strong></div>
+        ${hasEstimate ? `<div class="hero-metric"><span>예상 종가</span><strong>${escapeHtml(level(row.expected_index))}</strong></div>` : ''}
+      </div>
       <div class="prob-row three-way">
         <div class="prob-box up"><span>${escapeHtml(threshold)} 이상 상승</span><strong>${escapeHtml(probability(row.p_up))}</strong></div>
         <div class="prob-box neutral"><span>중립</span><strong>${escapeHtml(probability(row.p_normal))}</strong></div>
         <div class="prob-box down"><span>${escapeHtml(threshold)} 이상 하락</span><strong>${escapeHtml(probability(row.p_down))}</strong></div>
       </div>
+      ${hasEstimate ? `
+        <div class="detail-line"><span>예상 수익률 </span><strong>${escapeHtml(signedReturn(row.expected_return))}</strong></div>
+        <div class="detail-line"><span>80% 지수 구간 </span><strong>${escapeHtml(level(interval.low))} ~ ${escapeHtml(level(interval.high))}</strong></div>
+        ${row.close_estimate_reconstructed === true ? '<div class="card-dates">예상 종가·구간은 기준일 자료로 사후 재구성</div>' : ''}
+      ` : '<div class="detail-line">종가 추정 자료 없음</div>'}
       ${row.variant ? `<div class="detail-line">${escapeHtml(row.variant)}</div>` : ''}
       ${review}
     </article>`;
@@ -125,7 +139,7 @@
         ? validThreeWay(row)
         : Number.isFinite(row.p_up) && Number.isFinite(row.expected_index));
       holder.innerHTML = canDisplay
-        ? (threeWay ? renderThreeWay(row, threshold) : renderCard(row, threshold))
+        ? (threeWay ? renderThreeWay(row, threshold, data.target_close_at) : renderCard(row, threshold))
         : '<p>모델 C 결과가 없습니다.</p>';
       cards.appendChild(holder);
     }
@@ -145,8 +159,7 @@
       || !data.trigger_returns || typeof data.trigger_returns !== 'object' || Array.isArray(data.trigger_returns)
       || !Array.isArray(data.markets)) return false;
     const close = new Date(data.target_close_at);
-    if (!Number.isFinite(close.valueOf()) || close.valueOf() <= Date.now()
-      || kstStamp(data.target_close_at).slice(0, 10) !== data.target_date) return false;
+    if (!Number.isFinite(close.valueOf()) || kstStamp(data.target_close_at).slice(0, 10) !== data.target_date) return false;
     const returns = Object.keys(names).filter(market => Object.hasOwn(data.trigger_returns, market))
       .map(market => data.trigger_returns[market]);
     if (!returns.length || !returns.every(Number.isFinite) || !returns.some(value => Math.abs(value) >= 0.03)) return false;
@@ -154,25 +167,14 @@
     return rows.length > 0 && rows.every(row => row.asof_date === data.asof_date && row.target_date === data.target_date
       && Number.isFinite(row.close) && row.close > 0 && validThreeWay(row));
   };
-  let deadline = 0;
-  const checkExpiry = () => {
-    const remaining = deadline - Date.now();
-    if (remaining <= 0) { hide(); return; }
-    setTimeout(checkExpiry, Math.min(remaining, 2147483647));
-  };
-  document.addEventListener('visibilitychange', () => {
-    if (deadline && Date.now() >= deadline) hide();
-  });
   hide();
   fetch('data/model_c_forecast.json', { cache: 'no-store' })
     .then(response => { if (!response.ok) throw new Error(); return response.json(); })
     .then(data => {
       if (!valid(data)) return;
-      deadline = new Date(data.target_close_at).valueOf();
       render(data);
       if (section) section.hidden = false;
       if (nav) nav.hidden = false;
-      checkExpiry();
     })
     .catch(hide);
 })();

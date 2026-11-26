@@ -10,6 +10,7 @@
     {
       "asof_date": "2026-11-25",
       "close": 4697.51,
+      "close_estimate_reconstructed": true,
       "evaluation_2026": {
         "baseline_brier": 0.6444170125162114,
         "baseline_extreme_average_precision": 0.414819245082403,
@@ -22,6 +23,13 @@
         "first_target": "2026-01-02",
         "last_target": "2026-11-25",
         "n": 220
+      },
+      "expected_index": 4693.884289332032,
+      "expected_return": -0.0007718367109315737,
+      "interval": {
+        "high": 4913.9946971756535,
+        "level": 0.8,
+        "low": 4450.52108233353
       },
       "market": "KOSPI",
       "method": "hist_gradient",
@@ -38,6 +46,7 @@
     {
       "asof_date": "2026-11-25",
       "close": 650.64,
+      "close_estimate_reconstructed": true,
       "evaluation_2026": {
         "baseline_brier": 0.5260962506540969,
         "baseline_extreme_average_precision": 0.37976386575933485,
@@ -50,6 +59,13 @@
         "first_target": "2026-01-02",
         "last_target": "2026-11-25",
         "n": 220
+      },
+      "expected_index": 649.7999124684458,
+      "expected_return": -0.0012911710493578774,
+      "interval": {
+        "high": 666.5407969323107,
+        "level": 0.8,
+        "low": 631.0759091437652
       },
       "market": "KOSDAQ",
       "method": "regime_prior",

@@ -81,7 +81,7 @@ def test_manual_model_c_is_separate_from_main_model_c():
     assert 'id="model-a"' in page and 'id="model-b"' in page
 
 
-def test_model_c_display_requires_verified_extreme_and_expires_at_close():
+def test_model_c_displays_triggered_close_estimates_during_and_after_target_session():
     script = ROOT / "docs/assets/model-c.js"
     program = r"""
 const fs = require('node:fs');
@@ -89,13 +89,14 @@ const vm = require('node:vm');
 const assert = require('node:assert/strict');
 const code = fs.readFileSync(process.argv[1], 'utf8');
 const row = {market: 'KOSPI', asof_date: '2026-11-25', target_date: '2026-11-26',
-  close: 4697.51, p_up: .2, p_normal: .53, p_down: .27};
+  close: 4697.51, p_up: .2, p_normal: .53, p_down: .27,
+  expected_index: 4650.53, expected_return: -.01, interval: {level: .8, low: 4380, high: 4995}};
 const good = {schema_version: 'model_c_forecast_v1', status: 'ready', probability_mode: 'three_way',
   issue_stage: 'postclose', production_weight: 0, threshold: .03, asof_date: '2026-11-25',
   target_date: '2026-11-26', target_close_at: '2026-11-26T15:30:00+09:00',
   trigger_returns: {KOSPI: .03}, markets: [row]};
 async function run(payload, now = '2026-11-26T06:29:59Z', fail = false) {
-  let ms = Date.parse(now), timer;
+  const ms = Date.parse(now);
   class Clock extends Date { static now() { return ms; } }
   const nodes = {
     'model-c': {hidden: true}, 'model-c-nav': {hidden: true},
@@ -103,12 +104,12 @@ async function run(payload, now = '2026-11-26T06:29:59Z', fail = false) {
     'model-c-cards': {items: [], replaceChildren() { this.items = []; }, appendChild(item) { this.items.push(item); }}
   };
   vm.runInNewContext(code, {
-    Date: Clock, Intl, setTimeout: fn => { timer = fn; },
+    Date: Clock, Intl, setTimeout() {}, targetEnded: context => Date.parse(context.target_close_at) <= ms,
     document: {getElementById: id => nodes[id], createElement: () => ({}), addEventListener() {}},
     fetch: async () => { if (fail) throw Error(); return {ok: true, json: async () => payload}; }
   });
   await new Promise(resolve => setImmediate(resolve));
-  return {nodes, expire() { ms = Date.parse('2026-11-26T06:30:00Z'); timer(); }};
+  return {nodes};
 }
 (async () => {
   for (const move of [.03, -.03]) {
@@ -119,10 +120,14 @@ async function run(payload, now = '2026-11-26T06:29:59Z', fail = false) {
     assert.match(result.nodes['model-c-status'].textContent, /2026-11-25/);
     assert.match(result.nodes['model-c-status'].textContent, move > 0 ? /\+3.00%/ : /-3.00%/);
     assert.match(result.nodes['model-c-cards'].items[0].innerHTML, /중립<\/span><strong>53.00%/);
-    result.expire();
-    assert.equal(result.nodes['model-c'].hidden, true);
-    assert.equal(result.nodes['model-c-nav'].hidden, true);
-    assert.equal(result.nodes['model-c-cards'].items.length, 0);
+    const card = result.nodes['model-c-cards'].items[0].innerHTML;
+    assert.match(card, /예상 종가<\/span><strong>4,650.53/);
+    assert.match(card, /80% 지수 구간 .*<strong>4,380.00 ~ 4,995.00/);
+    assert.match(card, /data-target-close="2026-11-26T15:30:00\+09:00"[^>]* hidden>/);
+    const closed = await run(good, '2026-11-26T06:30:00Z');
+    assert.equal(closed.nodes['model-c'].hidden, false);
+    assert.equal(closed.nodes['model-c-nav'].hidden, false);
+    assert.doesNotMatch(closed.nodes['model-c-cards'].items[0].innerHTML, /hidden>이미 종료/);
   }
   const invalid = [
     {...good, status: 'not_triggered'}, {...good, status: 'not_ready'},
@@ -140,10 +145,12 @@ async function run(payload, now = '2026-11-26T06:29:59Z', fail = false) {
     assert.equal(result.nodes['model-c'].hidden, true);
     assert.equal(result.nodes['model-c-nav'].hidden, true);
   }
-  for (const result of [await run(good, '2026-11-26T06:30:00Z'), await run(good, undefined, true)]) {
-    assert.equal(result.nodes['model-c'].hidden, true);
-    assert.equal(result.nodes['model-c-nav'].hidden, true);
-  }
+  const legacy = await run({...good, markets: [{...row, interval: undefined, expected_index: undefined}]});
+  assert.equal(legacy.nodes['model-c'].hidden, false);
+  assert.match(legacy.nodes['model-c-cards'].items[0].innerHTML, /종가 추정 자료 없음/);
+  const failed = await run(good, undefined, true);
+  assert.equal(failed.nodes['model-c'].hidden, true);
+  assert.equal(failed.nodes['model-c-nav'].hidden, true);
 })().catch(error => { console.error(error); process.exitCode = 1; });
 """
     subprocess.run(["node", "-e", program, str(script)], check=True)

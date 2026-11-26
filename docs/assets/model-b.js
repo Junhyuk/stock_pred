@@ -14,10 +14,15 @@
     }).format(date);
   };
   const day = value => /^\d{4}-\d{2}-\d{2}$/.test(value || '') ? value : '';
+  const baseline = '장후 검증 기준선 · 종가 유지';
 
-  const modelBItem = row => ({
+  const modelBItem = (row, data) => ({
     market: row.market,
-    context: { asof_date: day(row.asof_date), target_date: day(row.target_date) },
+    context: {
+      asof_date: day(row.asof_date),
+      target_date: day(row.target_date),
+      target_close_at: row.target_date === data.target_date ? data.target_close_at : undefined,
+    },
     forecast: {
       status: 'ready',
       latest_close: row.close,
@@ -34,12 +39,12 @@
     if (!cards) return;
     const generated = kstStamp(data.generated_at);
     const stage = data.issue_stage === 'postclose' ? '장후' : data.issue_stage === 'premarket' ? '장전' : '수동';
-    const legacyCarry = data.issue_stage === 'postclose'
-      && data.markets.some(row => row?.variant === '장후 검증 기준선 · 종가 유지');
     if (status) {
-      status.textContent = legacyCarry || !data.markets.length
-        ? '장전 예상 종가 산출 대기'
-        : generated ? `${stage} 예측 · 생성 ${generated} KST · 연구용` : '수동 예측 생성 시각을 확인하지 못했습니다.';
+      const baselineOnly = data.markets.length > 0 && data.markets.every(row => row?.variant === baseline);
+      const when = generated ? ` · 생성 ${generated} KST` : ' · 생성 시각 확인 불가';
+      status.textContent = !data.markets.length ? '장전 예상 종가 산출 대기'
+        : baselineOnly ? `${baseline}${stage === '장후' ? when : ''} · 연구용`
+        : `${stage} 예측${when} · 연구용`;
     }
     const byMarket = new Map(data.markets.filter(row => row && names.includes(row.market)).map(row => [row.market, row]));
     cards.replaceChildren();
@@ -49,16 +54,14 @@
       if (!row || !Number.isFinite(row.p_up) || !Number.isFinite(row.close)) {
         holder.textContent = `${market} 예상 종가에 필요한 장전 입력을 확인 중입니다.`;
       } else {
-        const carry = legacyCarry && row.variant === '장후 검증 기준선 · 종가 유지';
-        const forecastRow = carry ? { ...row, expected_index: undefined, expected_return: undefined } : row;
         const trained = day(row.trained_through) || '확인 불가';
         const variant = row.variant ? ` · ${escapeHtml(row.variant)}` : '';
         const evaluation = row.evaluation_2026;
         const review = evaluation?.n > 0 && Number.isFinite(evaluation.close_mae)
           ? `<p class="model-run-note">2026년 장후 재구성 · ${escapeHtml(evaluation.n)}거래일 · 종가 MAE ${evaluation.close_mae.toFixed(2)}점</p>`
           : '';
-        const previous = row.carried_forward === true ? '이전 예측 · ' : '';
-        holder.innerHTML = `<p class="model-run-note">${previous}학습 마지막 ${trained}${variant}</p>${renderCard(modelBItem(forecastRow), 'research_only')}${review}`;
+        const previous = row.carried_forward === true && row.target_date !== data.target_date ? '이전 예측 · ' : '';
+        holder.innerHTML = `<p class="model-run-note">${previous}학습 마지막 ${trained}${variant}</p>${renderCard(modelBItem(row, data), 'research_only')}${review}`;
       }
       cards.appendChild(holder);
     }

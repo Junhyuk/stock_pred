@@ -11,7 +11,6 @@ from roboquant.index_forecast.reliable_inputs import session_schedule
 from roboquant.index_forecast.sqlite_store import connect_index_forecast
 from scripts import run_bc_cpu_afterclose as daily
 
-
 ASOF = "2026-11-25"
 PRIOR = "2026-11-24"
 TARGET = "2026-11-26"
@@ -184,16 +183,28 @@ def test_same_session_retry_recovers_only_missing_results(tmp_path, monkeypatch)
 def test_full_cpu_run(tmp_path):
     manifest = prepared_inputs(tmp_path, {"KOSPI": 1030.0, "KOSDAQ": 991.0})
     output = tmp_path / "publish"
-    result = daily.run_prepared(manifest, output, now=NOW)
+    result = daily.run_prepared(manifest, output, now=NOW, run_id="smoke")
     assert result["status"] == "published"
     b, c = payloads(output)
     assert b["inference_device"] == c["inference_device"] == "cpu"
     assert c["status"] == "ready"
     assert c["trigger_returns"] == {"KOSPI": 0.03, "KOSDAQ": -0.009}
     assert {row["method"] for row in c["markets"]} == {"hist_gradient", "regime_prior"}
+    for row in b["markets"] + c["markets"]:
+        interval = row["interval"]
+        assert interval["level"] == 0.8
+        assert 0 < interval["low"] <= interval["high"]
+        assert row["expected_index"] == pytest.approx(row["close"] * (1 + row["expected_return"]))
     for row in c["markets"]:
         assert row["asof_date"] == ASOF and row["target_date"] == TARGET
         assert math.isclose(sum(row[key] for key in ("p_up", "p_down", "p_normal")), 1.0)
+
+    assert {path.name for path in automation_state.public_payload_paths(output)} == {
+        "model_b_forecast.json", "model_c_forecast.json",
+    }
+    c["markets"][0]["interval"]["low"] = c["markets"][0]["interval"]["high"] + 1
+    (output / "model_c_forecast.json").write_text(json.dumps(c))
+    assert not automation_state.public_payload_paths(output)
 
 
 def test_prepared_bytes_are_verified_before_any_output(tmp_path, monkeypatch):
@@ -246,9 +257,41 @@ def test_morning_saturday_and_monday_use_same_completed_anchor_but_update_daily(
                               operation_mode="morning")["status"] == "outside_morning_window"
 
 
+def test_missing_morning_input_preserves_same_target_baseline_until_retry(tmp_path, monkeypatch):
+    stub_forecast(monkeypatch)
+    output = tmp_path / "publish"
+    levels = {"KOSPI": 1030.0, "KOSDAQ": 991.0}
+    daily.run_prepared(prepared_inputs(tmp_path / "evening", levels), output, now=NOW)
+    evening = payloads(output)[0]
+    stamp = "2026-11-26T08:04:00+09:00"
+    morning = prepared_inputs(tmp_path / "morning", levels, received=stamp, cutoff=stamp,
+                              operation_mode="morning")
+
+    def missing(*args, **kwargs):
+        raise ValueError("missing US observation")
+
+    monkeypatch.setattr(daily, "forecast_morning_market", missing)
+    daily.run_prepared(morning, output, now=stamp, operation_mode="morning")
+    fallback = payloads(output)[0]
+    assert [row["market"] for row in fallback["markets"]] == ["KOSPI", "KOSDAQ"]
+    for row, old in zip(fallback["markets"], evening["markets"], strict=True):
+        assert row == {**old, "carried_forward": True}
+
+    def available(market, closes, **kwargs):
+        close = closes[-1]
+        return {"close": close, "expected_index": close * 1.01, "expected_return": .01,
+                "p_up": .55, "p_down": .45, "interval": {"level": .8, "low": close * .95, "high": close * 1.05}}
+
+    monkeypatch.setattr(daily, "forecast_morning_market", available)
+    assert daily.run_prepared(morning, output, now=stamp, operation_mode="morning")["status"] == "published"
+    refreshed = payloads(output)[0]
+    assert all(row["expected_return"] == .01 and "carried_forward" not in row for row in refreshed["markets"])
+
+
 def test_full_cpu_morning_run(tmp_path):
-    from roboquant.index_forecast.us_market_inputs import us_close_schedule
     from test_bc_morning import BASE_SYMBOLS, observations_for
+
+    from roboquant.index_forecast.us_market_inputs import us_close_schedule
 
     dates = us_close_schedule("2018-12-26", "2026-11-25")
     us_dates = dates.loc[dates["symbol"].eq("^GSPC"), "session_date"].tolist()
