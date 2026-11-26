@@ -154,6 +154,16 @@ jobs:
         id: prices
         if: steps.operation.outputs.forecast_requested == 'true' && (steps.operation.outputs.frozen_forecast != 'true' || steps.checkpoint.outputs.status == 'sealed')
         run: python scripts/accuracy_operation.py --phase inputs --mode "${{ steps.operation.outputs.mode }}" --sqlite "${{ steps.refresh.outputs.sqlite }}" --us-csv "${{ steps.refresh.outputs.us_csv }}"
+      - name: Forecast Model B and conditionally Model C on CPU
+        id: bc_cpu
+        if: steps.operation.outputs.frozen_forecast == 'true' && steps.prices.outputs.status == 'ready'
+        continue-on-error: true
+        timeout-minutes: 1
+        env:
+          OMP_NUM_THREADS: 1
+          OPENBLAS_NUM_THREADS: 1
+          MKL_NUM_THREADS: 1
+        run: python scripts/run_bc_cpu_afterclose.py --prepared-manifest "${{ steps.prices.outputs.prepared_manifest }}" --operation-mode "${{ steps.operation.outputs.mode }}"
       - name: Korea research forecast
         id: kr_forecast
         continue-on-error: ${{ steps.operation.outputs.frozen_forecast == 'true' }}
@@ -274,16 +284,6 @@ jobs:
       - name: Record operational state
         if: steps.operation.outputs.allowed == 'true' && steps.operation.outputs.mode != 'validate' && success()
         run: python scripts/accuracy_operation.py --phase status --mode "${{ steps.operation.outputs.mode }}" --kr-outcome "${{ steps.kr_forecast.outcome }}" --us-outcome "${{ steps.us_forecast.outcome }}" --reason "${{ steps.prices.outputs.reason || 'completed' }}"
-      - name: Forecast Model B and conditionally Model C on CPU
-        id: bc_cpu
-        if: steps.operation.outputs.frozen_forecast == 'true' && steps.prices.outputs.status == 'ready'
-        continue-on-error: true
-        timeout-minutes: 1
-        env:
-          OMP_NUM_THREADS: 1
-          OPENBLAS_NUM_THREADS: 1
-          MKL_NUM_THREADS: 1
-        run: python scripts/run_bc_cpu_afterclose.py --prepared-manifest "${{ steps.prices.outputs.prepared_manifest }}" --operation-mode "${{ steps.operation.outputs.mode }}"
       - name: Refresh CFD charts for Pages
         if: steps.operation.outputs.collect == 'true'
         timeout-minutes: 2
@@ -302,7 +302,9 @@ jobs:
         if: steps.operation.outputs.allowed == 'true' && steps.operation.outputs.mode != 'validate' && success()
         run: |
           set -euo pipefail
-          mapfile -t files < <(python scripts/accuracy_operation.py --phase public-paths --mode "${{ steps.operation.outputs.mode }}")
+          reviewed_paths=$(python scripts/accuracy_operation.py --phase public-paths --mode "${{ steps.operation.outputs.mode }}")
+          if [[ -z "$reviewed_paths" ]]; then exit 0; fi
+          mapfile -t files <<< "$reviewed_paths"
           if [ "${#files[@]}" -eq 0 ]; then exit 0; fi
           git add -- "${files[@]}"
           python - <<'PY'
@@ -318,8 +320,10 @@ jobs:
             if [[ "${{ steps.bc_cpu.outputs.redeploy }}" == "true" ]]; then echo 'published=true' >> "$GITHUB_OUTPUT"; fi
             exit 0
           fi
-          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Publish verified forecast context and economic calendar observations.'
-          git push origin HEAD:master
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Publish verified forecast context and economic calendar observations.'
+          bash scripts/push_forecast_commit.sh
           echo 'published=true' >> "$GITHUB_OUTPUT"
 
   deploy:

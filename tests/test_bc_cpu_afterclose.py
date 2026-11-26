@@ -293,16 +293,18 @@ def test_full_cpu_morning_run(tmp_path):
 
     from roboquant.index_forecast.us_market_inputs import us_close_schedule
 
-    dates = us_close_schedule("2018-12-26", "2026-11-25")
+    dates = us_close_schedule("2018-12-26", "2026-11-26")
     us_dates = dates.loc[dates["symbol"].eq("^GSPC"), "session_date"].tolist()
-    stamp = "2026-11-26T08:04:00+09:00"
+    assert us_dates[-1] == "2026-11-25"
+    stamp = "2026-11-27T08:04:00+09:00"
     observations = observations_for(us_dates, (*BASE_SYMBOLS, "KORU"))
-    manifest = prepared_inputs(tmp_path, {"KOSPI": 1030, "KOSDAQ": 991}, received=stamp,
+    manifest = prepared_inputs(tmp_path, {"KOSPI": 1030, "KOSDAQ": 991}, asof="2026-11-26", received=stamp,
                                cutoff=stamp, operation_mode="morning", observations=observations)
     output = tmp_path / "publish"
     outcome = daily.run_prepared(manifest, output, now=stamp, operation_mode="morning")
     assert outcome["status"] == "published" and outcome["model_b_unavailable"] == {}
     b, c = payloads(output)
+    assert b["target_date"] == c["target_date"] == "2026-11-27"
     assert c["status"] == "ready" and len(c["markets"]) == 2
     assert len(b["markets"]) == 2
     for row in b["markets"]:
