@@ -19,13 +19,14 @@ CUTOFF = "2026-11-25T09:13:00+00:00"
 NOW = "2026-11-25T09:14:00+00:00"
 
 
-def prepared_inputs(tmp_path, moves, *, conflicts=(), asof=ASOF, received=RECEIVED,
+def prepared_inputs(tmp_path, moves, *, conflicts=(), single_source=(), asof=ASOF, received=RECEIVED,
                     cutoff=CUTOFF, operation_mode=None, observations=None):
     tmp_path.mkdir(parents=True, exist_ok=True)
     sqlite = tmp_path / "input.sqlite"
     sessions, _ = session_schedule("2019-01-01", asof)
     prior = sessions["date"].iloc[-2]
     markets = {}
+    statuses = {**dict.fromkeys(single_source, "single_source"), **dict.fromkeys(conflicts, "conflict")}
     with closing(connect_index_forecast(sqlite)) as db:
         for market, endpoint in moves.items():
             levels = [
@@ -40,17 +41,13 @@ def prepared_inputs(tmp_path, moves, *, conflicts=(), asof=ASOF, received=RECEIV
             )
             db.commit()
             for day, close in zip((prior, asof), levels[-2:], strict=True):
-                if (market, day) not in conflicts:
-                    status = "verified"
-                else:
-                    status = "conflict"
                 record_observation(db, {
                     "index_code": market, "session_date": day, "close": close, "source": "smoke_pair",
-                    "received_at": received, "status": status,
+                    "received_at": received, "status": statuses.get((market, day), "verified"),
                 })
             markets[market] = {
                 "session_date": asof, "close": endpoint, "received_at": received, "source": "smoke_pair",
-                "status": "conflict" if (market, asof) in conflicts else "verified",
+                "status": statuses.get((market, asof), "verified"),
             }
     public = tmp_path / "market_closes.json"
     write_market_closes(
@@ -131,9 +128,25 @@ def test_conflicting_prior_cannot_trigger_model_c(tmp_path, monkeypatch):
     assert calls and not any(run_c for _, run_c in calls)
 
 
+def test_single_source_closes_support_b_without_triggering_c_on_small_moves(tmp_path, monkeypatch):
+    calls = stub_forecast(monkeypatch)
+    levels = {"KOSPI": 1010.0, "KOSDAQ": 990.0}
+    manifest = prepared_inputs(tmp_path, levels,
+                               single_source=(("KOSPI", ASOF), ("KOSDAQ", PRIOR)))
+    output = tmp_path / "publish"
+    daily.run_prepared(manifest, output, now=NOW)
+    b, c = payloads(output)
+    assert {row["market"]: row["expected_index"] for row in b["markets"]} == levels
+    assert c["trigger_returns"] == {"KOSPI": .01, "KOSDAQ": -.01}
+    assert c["status"] == "not_triggered" and not c["markets"]
+    assert calls == [("KOSPI", False), ("KOSDAQ", False)]
+
+
 def test_trigger_in_one_market_does_not_score_other_markets_conflicting_history(tmp_path, monkeypatch):
     calls = stub_forecast(monkeypatch)
-    manifest = prepared_inputs(tmp_path, {"KOSPI": 1030, "KOSDAQ": 970}, conflicts=(("KOSDAQ", PRIOR),))
+    manifest = prepared_inputs(tmp_path, {"KOSPI": 1030, "KOSDAQ": 970},
+                               conflicts=(("KOSDAQ", PRIOR),),
+                               single_source=(("KOSPI", ASOF), ("KOSDAQ", ASOF)))
     output = tmp_path / "publish"
     daily.run_prepared(manifest, output, now=NOW)
     _, c = payloads(output)
@@ -299,13 +312,15 @@ def test_full_cpu_morning_run(tmp_path):
     stamp = "2026-11-27T08:04:00+09:00"
     observations = observations_for(us_dates, (*BASE_SYMBOLS, "KORU"))
     manifest = prepared_inputs(tmp_path, {"KOSPI": 1030, "KOSDAQ": 991}, asof="2026-11-26", received=stamp,
-                               cutoff=stamp, operation_mode="morning", observations=observations)
+                               cutoff=stamp, operation_mode="morning", observations=observations,
+                               single_source=(("KOSPI", "2026-11-26"), ("KOSDAQ", "2026-11-26")))
     output = tmp_path / "publish"
     outcome = daily.run_prepared(manifest, output, now=stamp, operation_mode="morning")
     assert outcome["status"] == "published" and outcome["model_b_unavailable"] == {}
     b, c = payloads(output)
     assert b["target_date"] == c["target_date"] == "2026-11-27"
     assert c["status"] == "ready" and len(c["markets"]) == 2
+    assert c["trigger_returns"] == {"KOSPI": .03, "KOSDAQ": -.009}
     assert len(b["markets"]) == 2
     for row in b["markets"]:
         assert round(row["expected_index"], 2) != round(row["close"], 2)

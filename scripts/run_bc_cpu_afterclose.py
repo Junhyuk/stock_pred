@@ -43,7 +43,7 @@ def cents(value):
 
 def usable_observation(item, *, close_at, cutoff):
     received = utc_timestamp(item.get("received_at"))
-    return (item.get("status") == "verified" and bool(cents(item.get("close")))
+    return (item.get("status") in {"verified", "single_source"} and bool(cents(item.get("close")))
             and pd.notna(received) and close_at <= received <= cutoff)
 
 
