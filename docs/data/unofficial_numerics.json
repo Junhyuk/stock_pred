@@ -1,6 +1,6 @@
 {
   "schema_version": "unofficial_numerics_v1",
-  "received_at": "2026-11-26T23:27:33.261830+00:00",
+  "received_at": "2026-11-26T23:33:41.067612+00:00",
   "production_weight": 0.0,
   "series": [
     {
@@ -96,9 +96,9 @@
     {
       "id": "usdkrw",
       "label": "원/달러",
-      "value": 1343.54,
-      "display": "1,343.54원",
-      "change_pct": 0.0223,
+      "value": 1343.42,
+      "display": "1,343.42원",
+      "change_pct": 0.0134,
       "date": "2026-11-26",
       "source": "yahoo_chart_unofficial",
       "unit": "원"
@@ -116,9 +116,9 @@
     {
       "id": "btc",
       "label": "비트코인",
-      "value": 60387.36,
-      "display": "60,387.36달러",
-      "change_pct": 0.006,
+      "value": 60385.2,
+      "display": "60,385.20달러",
+      "change_pct": 0.003,
       "date": "2026-11-26",
       "source": "yahoo_chart_unofficial",
       "unit": "USD"
@@ -126,9 +126,9 @@
     {
       "id": "eth",
       "label": "이더리움",
-      "value": 1685.5,
-      "display": "1,685.50달러",
-      "change_pct": -0.2875,
+      "value": 1683.74,
+      "display": "1,683.74달러",
+      "change_pct": -0.3916,
       "date": "2026-11-26",
       "source": "yahoo_chart_unofficial",
       "unit": "USD"
@@ -136,9 +136,9 @@
     {
       "id": "wti",
       "label": "WTI (서부 텍사스 원유)",
-      "value": 84.8,
-      "display": "84.80달러",
-      "change_pct": 1.338,
+      "value": 84.81,
+      "display": "84.81달러",
+      "change_pct": 1.35,
       "date": "2026-11-26",
       "source": "yahoo_chart_unofficial",
       "unit": "USD"
@@ -146,9 +146,9 @@
     {
       "id": "brent",
       "label": "브렌트유",
-      "value": 91.58,
-      "display": "91.58달러",
-      "change_pct": 1.037,
+      "value": 91.59,
+      "display": "91.59달러",
+      "change_pct": 1.048,
       "date": "2026-11-26",
       "source": "yahoo_chart_unofficial",
       "unit": "USD"
@@ -176,9 +176,9 @@
     {
       "id": "gold",
       "label": "금 선물",
-      "value": 3592.8,
-      "display": "3,592.80달러",
-      "change_pct": 0.791,
+      "value": 3593.6,
+      "display": "3,593.60달러",
+      "change_pct": 0.814,
       "date": "2026-11-26",
       "source": "yahoo_chart_unofficial",
       "unit": "USD"
@@ -186,9 +186,9 @@
     {
       "id": "copper",
       "label": "구리 선물",
-      "value": 5.452,
+      "value": 5.4515,
       "display": "5.45달러",
-      "change_pct": 0.5626,
+      "change_pct": 0.5533,
       "date": "2026-11-26",
       "source": "yahoo_chart_unofficial",
       "unit": "USD"
@@ -196,9 +196,9 @@
     {
       "id": "nq_futures",
       "label": "나스닥 선물",
-      "value": 26241.5,
-      "display": "26,241.50",
-      "change_pct": 0.541,
+      "value": 26239.5,
+      "display": "26,239.50",
+      "change_pct": 0.534,
       "date": "2026-11-26",
       "source": "yahoo_chart_unofficial",
       "unit": "index"
@@ -206,9 +206,9 @@
     {
       "id": "es_futures",
       "label": "S&P 선물",
-      "value": 7239.0,
-      "display": "7,239.00",
-      "change_pct": 0.601,
+      "value": 7240.0,
+      "display": "7,240.00",
+      "change_pct": 0.615,
       "date": "2026-11-26",
       "source": "yahoo_chart_unofficial",
       "unit": "index"
