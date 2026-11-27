@@ -4,9 +4,9 @@
   "source": "naver_investor_trend_unofficial",
   "source_url": "https://stock.naver.com/market/stock/kr/trend/trader",
   "source_endpoint": "https://stock.naver.com/api/domestic/market/trend/daily",
-  "snapshot_received_at": "2026-11-26T23:06:10.595146+00:00",
+  "snapshot_received_at": "2026-11-27T23:04:30.281167+00:00",
   "production_weight": 0.0,
-  "window_start": "2024-11-27",
+  "window_start": "2024-11-28",
   "window_label": "2년",
   "average_sessions": 20,
   "provisional_dates": [],
@@ -14,12 +14,6 @@
   "markets": {
     "KOSPI": {
       "sessions": [
-        {
-          "date": "2024-11-27",
-          "foreign_eok": -3344.0,
-          "institution_eok": 3004.3,
-          "personal_eok": -330.4
-        },
         {
           "date": "2024-11-28",
           "foreign_eok": -4913.9,
@@ -2929,17 +2923,17 @@
           "foreign_eok": -879.5,
           "institution_eok": 7529.0,
           "personal_eok": -10747.9
+        },
+        {
+          "date": "2026-11-27",
+          "foreign_eok": 11624.6,
+          "institution_eok": 2190.0,
+          "personal_eok": -17915.7
         }
       ]
     },
     "KOSDAQ": {
       "sessions": [
-        {
-          "date": "2024-11-27",
-          "foreign_eok": 64.0,
-          "institution_eok": 486.9,
-          "personal_eok": -298.0
-        },
         {
           "date": "2024-11-28",
           "foreign_eok": -823.4,
@@ -5849,6 +5843,12 @@
           "foreign_eok": -1114.6,
           "institution_eok": 2378.3,
           "personal_eok": -1338.8
+        },
+        {
+          "date": "2026-11-27",
+          "foreign_eok": 2970.2,
+          "institution_eok": 5878.5,
+          "personal_eok": -8828.3
         }
       ]
     }

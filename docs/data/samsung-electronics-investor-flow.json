@@ -9,9 +9,9 @@
     "url": "https://m.stock.naver.com/domestic/stock/005930/total"
   },
   "status": "ready",
-  "generated_at": "2026-11-26T23:34:09Z",
-  "window_start": "2024-11-27",
-  "window_end": "2026-11-26",
+  "generated_at": "2026-11-27T23:04:39Z",
+  "window_start": "2024-11-28",
+  "window_end": "2026-11-27",
   "coverage": {
     "expected_sessions": 486,
     "observed_sessions": 486,
@@ -23,12 +23,6 @@
     }
   },
   "series": [
-    {
-      "date": "2024-11-27",
-      "foreign": -4981632,
-      "institution": -376261,
-      "individual": 4082730
-    },
     {
       "date": "2024-11-28",
       "foreign": -3358322,
@@ -2938,6 +2932,12 @@
       "foreign": -537801,
       "institution": 1862261,
       "individual": -1312723
+    },
+    {
+      "date": "2026-11-27",
+      "foreign": 2554942,
+      "institution": 495416,
+      "individual": -3031577
     }
   ]
 }
