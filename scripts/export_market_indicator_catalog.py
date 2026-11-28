@@ -313,6 +313,7 @@ def build_catalog(directory, now=None):
         if s.get("id", "").startswith("snapshot_")
     }
     snapshot = read(directory, "unofficial_numerics.json")
+    seen_snapshot_definitions = {}
     for s in snapshot.get("series", []):
         key = s.get("id")
         if (
@@ -331,6 +332,9 @@ def build_catalog(directory, now=None):
         ):
             continue
         sid = "snapshot_" + key
+        seen_snapshot_definitions[sid] = (s.get("source"), s.get("unit"))
+        if not valid_date(s.get("date")) or not number(s.get("value")):
+            continue
         old = prior.get(sid, {})
         old_points = (
             old.get("points", [])
@@ -351,6 +355,32 @@ def build_catalog(directory, now=None):
             chart_kind="points",
         )
 
+    for sid, old in prior.items():
+        key = sid.removeprefix("snapshot_")
+        definition = (old.get("source"), old.get("unit"))
+        current = seen_snapshot_definitions.get(sid)
+        if (
+            sid in by_id
+            or not approved_market(key, old)
+            or not all(definition)
+            or (current is not None and current != definition)
+        ):
+            continue
+        add(
+            sid,
+            old.get("label", key),
+            old.get("category", category(key, old)),
+            old.get("unit"),
+            old.get("source"),
+            old.get("source_url"),
+            "observation_date",
+            old.get("points", []),
+            note="이번 수집에서 관측되지 않아 이전 스냅샷을 보존합니다.",
+            status="stale",
+            updated_at=old.get("updated_at"),
+            chart_kind="points",
+        )
+
     official = read(directory, "market_indicators_status.json")
     approved_sources = {
         "kofia_freesis_margin_credit",
@@ -359,6 +389,12 @@ def build_catalog(directory, now=None):
         "kofia_freesis_bond_yield",
         "us_treasury_daily_par_yield_curve",
     }
+    prior_official = {
+        s.get("id"): s
+        for s in read(directory, "market-indicator-catalog.json").get("series", [])
+        if s.get("id", "").startswith("official_")
+    }
+    seen_official_definitions = {}
     for row in official.get("observations", []):
         source = row.get("source")
         key = row.get("series", "")
@@ -368,6 +404,9 @@ def build_catalog(directory, now=None):
         ):
             continue
         sid = f"official_{key.lower()}_{market.lower()}"
+        seen_official_definitions[sid] = (source, row.get("unit"))
+        if not valid_date(row.get("observation_date")) or not number(row.get("value")):
+            continue
         old = next(
             (
                 s
@@ -397,6 +436,34 @@ def build_catalog(directory, now=None):
             note="공식 출처의 보존된 관측치입니다. 출처를 확인할 수 없는 날짜는 표시하지 않습니다.",
             status=state,
             updated_at=row.get("received_at"),
+            chart_kind="points",
+        )
+
+    for sid, old in prior_official.items():
+        definition = (old.get("source"), old.get("unit"))
+        current = seen_official_definitions.get(sid)
+        if (
+            sid in by_id
+            or old.get("source") not in approved_sources
+            or not all(definition)
+            or not sid.startswith(
+                ("official_margin_credit_balance_", "official_kr_yield_", "official_us_yield_")
+            )
+            or (current is not None and current != definition)
+        ):
+            continue
+        add(
+            sid,
+            old.get("label", sid),
+            old.get("category"),
+            old.get("unit"),
+            old.get("source"),
+            old.get("source_url"),
+            "observation_date",
+            old.get("points", []),
+            note="이번 수집에서 관측되지 않아 이전 공식 관측치를 보존합니다.",
+            status="stale",
+            updated_at=old.get("updated_at"),
             chart_kind="points",
         )
 

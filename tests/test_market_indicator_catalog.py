@@ -494,3 +494,99 @@ def test_cli_custom_output_uses_public_seed_without_modifying_it(tmp_path):
     assert (tmp_path / "market-indicator-catalog.json").read_bytes() == old
     replay = json.loads(output.read_text())
     assert len(next(s for s in replay["series"] if s["id"] == "snapshot_btc")["points"]) >= 2
+
+
+def test_partial_snapshot_retains_stale_series_and_merges_on_recovery(tmp_path):
+    snapshot = {
+        "received_at": "2026-01-01T01:00:00+00:00",
+        "series": [
+            {
+                "id": "btc",
+                "label": "비트코인",
+                "date": "2026-01-01",
+                "value": 100,
+                "unit": "USD",
+                "source": "yahoo_chart_unofficial",
+            },
+            {
+                "id": "eth",
+                "label": "이더리움",
+                "date": "2026-01-01",
+                "value": 20,
+                "unit": "USD",
+                "source": "yahoo_chart_unofficial",
+            },
+        ],
+    }
+    official = {
+        "sources": {"us_yields": {"status": "ready"}},
+        "observations": [
+            {
+                "market": "GLOBAL",
+                "series": "US_YIELD_1Y",
+                "observation_date": "2026-01-01",
+                "value": 4.1,
+                "unit": "percent",
+                "source": "us_treasury_daily_par_yield_curve",
+                "received_at": "2026-01-01T02:00:00+00:00",
+            },
+            {
+                "market": "GLOBAL",
+                "series": "US_YIELD_3Y",
+                "observation_date": "2026-01-01",
+                "value": 4.2,
+                "unit": "percent",
+                "source": "us_treasury_daily_par_yield_curve",
+            },
+        ],
+    }
+    write(tmp_path, "unofficial_numerics.json", snapshot)
+    write(tmp_path, "market_indicators_status.json", official)
+    seed = build_catalog(tmp_path, now="2026-01-01T03:00:00+00:00")
+    write(tmp_path, "market-indicator-catalog.json", seed)
+    snapshot["series"] = snapshot["series"][1:]
+    official["observations"] = official["observations"][1:]
+    write(tmp_path, "unofficial_numerics.json", snapshot)
+    write(tmp_path, "market_indicators_status.json", official)
+    partial = build_catalog(tmp_path, now="2026-01-02T03:00:00+00:00")
+    series = {s["id"]: s for s in partial["series"]}
+    assert series["snapshot_btc"]["points"] == [["2026-01-01", 100]]
+    assert series["snapshot_btc"]["status"] == "stale"
+    assert series["snapshot_btc"]["updated_at"] == "2026-01-01T01:00:00+00:00"
+    assert series["official_us_yield_1y_global"]["points"] == [["2026-01-01", 4.1]]
+    assert series["official_us_yield_1y_global"]["status"] == "stale"
+    write(tmp_path, "market-indicator-catalog.json", partial)
+    snapshot["series"].append(
+        {
+            "id": "btc",
+            "label": "비트코인",
+            "date": "2026-01-03",
+            "value": 105,
+            "unit": "USD",
+            "source": "yahoo_chart_unofficial",
+        }
+    )
+    snapshot["received_at"] = "2026-01-03T01:00:00+00:00"
+    official["observations"].append(
+        {
+            "market": "GLOBAL",
+            "series": "US_YIELD_1Y",
+            "observation_date": "2026-01-03",
+            "value": 4.3,
+            "unit": "percent",
+            "source": "us_treasury_daily_par_yield_curve",
+            "received_at": "2026-01-03T02:00:00+00:00",
+        }
+    )
+    write(tmp_path, "unofficial_numerics.json", snapshot)
+    write(tmp_path, "market_indicators_status.json", official)
+    recovered = {
+        s["id"]: s for s in build_catalog(tmp_path, now="2026-01-03T03:00:00+00:00")["series"]
+    }
+    assert recovered["snapshot_btc"]["points"] == [["2026-01-01", 100], ["2026-01-03", 105]]
+    assert recovered["snapshot_btc"]["status"] != "stale"
+    assert recovered["official_us_yield_1y_global"]["points"] == [
+        ["2026-01-01", 4.1],
+        ["2026-01-03", 4.3],
+    ]
+    assert recovered["official_us_yield_1y_global"]["status"] == "ready"
