@@ -42,6 +42,8 @@ OFFICIAL_INDEXES: dict[str, OfficialIndex] = {
         "KOSDAQ",
         substitute_codes=("2203", "2002"),
     ),
+    "KOSPI200": OfficialIndex("KOSPI200", "KOSPI 200", "코스피 200", "1028", "KOSPI"),
+    "KOSDAQ150": OfficialIndex("KOSDAQ150", "KOSDAQ 150", "코스닥 150", "2203", "KOSDAQ"),
 }
 
 RESEARCH_INDEXES = ("KOSPI", "KOSDAQ", "KOSPI100", "KOSDAQ100")

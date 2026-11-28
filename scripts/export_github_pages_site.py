@@ -38,6 +38,7 @@ INDEX_FORECAST_PAGE_FILES = (
     "reliable-index-forecast.html",
     "assets/index-forecast.js",
     "assets/forecast-market-tabs.js",
+    "assets/benchmark-forecasts.js",
     "assets/benchmarks/kospi200-1y.png",
     "assets/benchmarks/kosdaq150-1y.png",
     "assets/economic-calendar.js",

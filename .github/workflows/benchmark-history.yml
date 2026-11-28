@@ -1,0 +1,80 @@
+name: Backfill Korean benchmark history
+
+on:
+  workflow_dispatch:
+    inputs:
+      start:
+        description: First date to collect (YYYY-MM-DD)
+        default: '2010-01-04'
+        required: true
+      end:
+        description: Last date to collect (defaults to last completed session)
+        required: false
+
+permissions:
+  contents: read
+concurrency:
+  group: premarket-research-forecast
+  cancel-in-progress: false
+
+jobs:
+  backfill:
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      PYTHONPATH: src
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install -e '.[forecast]' 'scikit-learn==1.9.1'
+      - name: Restore encrypted history
+        uses: actions/cache/restore@v4
+        with:
+          path: .forecast-cache/state.enc
+          key: accuracy-private-v1-benchmark-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: accuracy-private-v1-
+      - name: Extend historical coverage in the private store
+        env:
+          FORECAST_CACHE_KEY: ${{ secrets.FORECAST_CACHE_KEY }}
+          KRX_OPENAPI_KEY: ${{ secrets.KRX_OPENAPI_KEY }}
+          DATA_GO_KR_SERVICE_KEY: ${{ secrets.DATA_GO_KR_SERVICE_KEY }}
+          START_DATE: ${{ inputs.start }}
+          END_DATE: ${{ inputs.end }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          from roboquant.index_forecast.automation_state import open_private_cache
+          cache = Path('.forecast-cache/state.enc')
+          if not os.environ.get('FORECAST_CACHE_KEY'):
+              raise SystemExit('FORECAST_CACHE_KEY required to preserve private observations')
+          if cache.exists():
+              open_private_cache(cache, Path('data/processed'), key=os.environ['FORECAST_CACHE_KEY'])
+          PY
+          args=(backfill --start "$START_DATE")
+          if [[ -n "$END_DATE" ]]; then args+=(--end "$END_DATE"); fi
+          python scripts/run_benchmark_forecasts.py "${args[@]}"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          from roboquant.index_forecast.automation_state import seal_private_cache
+          private = Path('data/processed')
+          status = json.loads((private/'benchmarks/collection.json').read_text())
+          for market, result in status.items():
+              print(market, result['status'], result['rows_inserted'], result['reason_codes'])
+          if all(not r['rows_received'] for r in status.values()):
+              raise SystemExit('No exact index observations received; no cache saved')
+          seal_private_cache(private, Path('.forecast-cache/state.enc'), key=os.environ['FORECAST_CACHE_KEY'])
+          PY
+      - name: Save extended authenticated cache for the morning runner
+        uses: actions/cache/save@v4
+        with:
+          path: .forecast-cache/state.enc
+          key: accuracy-private-v1-benchmark-${{ github.run_id }}-${{ github.run_attempt }}

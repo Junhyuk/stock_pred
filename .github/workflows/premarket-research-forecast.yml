@@ -107,6 +107,14 @@ jobs:
         timeout-minutes: 1
         continue-on-error: true
         run: python scripts/export_sk_hynix_investor_flow.py --symbol 005930 --output docs/data/samsung-electronics-investor-flow.json
+      - name: Refresh exact Korean benchmark observations
+        if: steps.operation.outputs.mode == 'morning' && steps.operation.outputs.collect == 'true'
+        continue-on-error: true
+        timeout-minutes: 1
+        env:
+          KRX_OPENAPI_KEY: ${{ secrets.KRX_OPENAPI_KEY }}
+          DATA_GO_KR_SERVICE_KEY: ${{ secrets.DATA_GO_KR_SERVICE_KEY }}
+        run: python scripts/run_benchmark_forecasts.py collect
       - name: Refresh prices
         id: refresh
         if: steps.operation.outputs.collect == 'true'
@@ -164,6 +172,16 @@ jobs:
           OPENBLAS_NUM_THREADS: 1
           MKL_NUM_THREADS: 1
         run: python scripts/run_bc_cpu_afterclose.py --prepared-manifest "${{ steps.prices.outputs.prepared_manifest }}" --operation-mode "${{ steps.operation.outputs.mode }}"
+      - name: Forecast KOSPI 200 and KOSDAQ 150 before the Korean open
+        if: steps.operation.outputs.mode == 'morning' && steps.operation.outputs.allowed == 'true'
+        continue-on-error: true
+        timeout-minutes: 1
+        env:
+          OMP_NUM_THREADS: "1"
+          OPENBLAS_NUM_THREADS: "1"
+          MKL_NUM_THREADS: "1"
+          BENCHMARK_US_CSV: ${{ steps.refresh.outputs.us_csv }}
+        run: python scripts/run_benchmark_forecasts.py predict --confirm-public --us-csv "$BENCHMARK_US_CSV"
       - name: Korea research forecast
         id: kr_forecast
         continue-on-error: ${{ steps.operation.outputs.frozen_forecast == 'true' }}

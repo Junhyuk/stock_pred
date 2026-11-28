@@ -28,7 +28,7 @@ jobs:
       - name: Install smoke dependencies
         run: |
           set -eu
-          python -m pip install "exchange-calendars>=4.5" "pandas>=2.2" "numpy>=1.26" "pytest>=8.0" "scikit-learn==1.9.1" "pyyaml>=6.0" "feedparser>=6.0.11"
+          python -m pip install "exchange-calendars>=4.5" "pandas>=2.2" "numpy>=1.26" "pytest>=8.0" "scikit-learn==1.9.1" "lightgbm>=4.3" "pyyaml>=6.0" "feedparser>=6.0.11"
 
       - name: Trading-day gate
         id: gate
@@ -47,6 +47,7 @@ jobs:
           set -eu
           npm install --prefix "$RUNNER_TEMP/forecast-ui" --no-save playwright-core@1.63.0
           NODE_PATH="$RUNNER_TEMP/forecast-ui/node_modules" node tests/forecast_market_ui.test.cjs
+          NODE_PATH="$RUNNER_TEMP/forecast-ui/node_modules" node tests/benchmark_forecasts_ui.test.cjs
 
       - name: CFD chart and refresh contract tests
         run: |
@@ -69,6 +70,25 @@ jobs:
             tests/test_model_b_close.py \
             tests/test_model_c_extreme.py \
             -k 'not full_cpu_run and not full_cpu_morning_run'
+
+      - name: Validate exact benchmark data, issue clocks and independent models
+        env:
+          OMP_NUM_THREADS: "1"
+          OPENBLAS_NUM_THREADS: "1"
+          MKL_NUM_THREADS: "1"
+        run: |
+          python -m pytest -q tests/test_benchmark_sources.py tests/test_benchmark_issue.py tests/test_benchmark_models.py -k "not four_markets_extreme_cpu_path"
+
+      - name: Measure four-market triggered inference on a standard CPU runner
+        timeout-minutes: 2
+        env:
+          OMP_NUM_THREADS: "1"
+          OPENBLAS_NUM_THREADS: "1"
+          MKL_NUM_THREADS: "1"
+        run: |
+          set -euo pipefail
+          python -m pytest -q -s tests/test_benchmark_issue.py -k four_markets_extreme_cpu_path | tee "$RUNNER_TEMP/four-markets.txt"
+          grep '^CPU_TIMING' "$RUNNER_TEMP/four-markets.txt" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Measure full CPU forecast path
         env:

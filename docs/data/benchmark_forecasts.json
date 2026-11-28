@@ -1,0 +1,149 @@
+{
+  "asof_date": "2026-11-27",
+  "c_trigger": {
+    "moves": {
+      "KOSDAQ": 0.08125543304204602,
+      "KOSPI": 0.04340073993729848
+    },
+    "status": "triggered"
+  },
+  "cutoff": "2026-11-28T11:52:14.407052+00:00",
+  "issue_kind": "preliminary",
+  "issued_at": "2026-11-28T11:52:14.429855+00:00",
+  "markets": {
+    "KOSDAQ150": {
+      "asof_date": "2026-11-27",
+      "chart": {},
+      "close": null,
+      "cutoff": "2026-11-28T11:52:14.407052+00:00",
+      "eligible_history": {
+        "count": 0,
+        "end": null,
+        "start": null
+      },
+      "forward_validation": {
+        "A": {
+          "class_hit_rate": null,
+          "class_n": 0,
+          "close_mae": null,
+          "hit_rate": null,
+          "issued_all_versions": 0,
+          "missing_final": 0,
+          "model_version": null,
+          "n": 0
+        },
+        "B": {
+          "class_hit_rate": null,
+          "class_n": 0,
+          "close_mae": null,
+          "hit_rate": null,
+          "issued_all_versions": 0,
+          "missing_final": 0,
+          "model_version": null,
+          "n": 0
+        },
+        "C": {
+          "class_hit_rate": null,
+          "class_n": 0,
+          "close_mae": null,
+          "hit_rate": null,
+          "issued_all_versions": 0,
+          "missing_final": 0,
+          "model_version": null,
+          "n": 0
+        }
+      },
+      "history": {
+        "count": 0,
+        "end": null,
+        "start": null
+      },
+      "models": {
+        "A": {
+          "reason": "credential_missing",
+          "status": "not_ready"
+        },
+        "B": {
+          "reason": "credential_missing",
+          "status": "not_ready"
+        },
+        "C": {
+          "reason": "credential_missing",
+          "status": "not_ready"
+        }
+      },
+      "reason": "credential_missing",
+      "source": null,
+      "status": "not_ready",
+      "target_date": "2026-11-30"
+    },
+    "KOSPI200": {
+      "asof_date": "2026-11-27",
+      "chart": {},
+      "close": null,
+      "cutoff": "2026-11-28T11:52:14.407052+00:00",
+      "eligible_history": {
+        "count": 0,
+        "end": null,
+        "start": null
+      },
+      "forward_validation": {
+        "A": {
+          "class_hit_rate": null,
+          "class_n": 0,
+          "close_mae": null,
+          "hit_rate": null,
+          "issued_all_versions": 0,
+          "missing_final": 0,
+          "model_version": null,
+          "n": 0
+        },
+        "B": {
+          "class_hit_rate": null,
+          "class_n": 0,
+          "close_mae": null,
+          "hit_rate": null,
+          "issued_all_versions": 0,
+          "missing_final": 0,
+          "model_version": null,
+          "n": 0
+        },
+        "C": {
+          "class_hit_rate": null,
+          "class_n": 0,
+          "close_mae": null,
+          "hit_rate": null,
+          "issued_all_versions": 0,
+          "missing_final": 0,
+          "model_version": null,
+          "n": 0
+        }
+      },
+      "history": {
+        "count": 0,
+        "end": null,
+        "start": null
+      },
+      "models": {
+        "A": {
+          "reason": "credential_missing",
+          "status": "not_ready"
+        },
+        "B": {
+          "reason": "credential_missing",
+          "status": "not_ready"
+        },
+        "C": {
+          "reason": "credential_missing",
+          "status": "not_ready"
+        }
+      },
+      "reason": "credential_missing",
+      "source": null,
+      "status": "not_ready",
+      "target_date": "2026-11-30"
+    }
+  },
+  "schema_version": 1,
+  "target_date": "2026-11-30"
+}

@@ -428,6 +428,11 @@ def public_payload_paths(directory):
                 or payload.get('artifact_hash') != _hash({k: v for k, v in payload.items() if k != 'artifact_hash'})):
                 raise ValueError(f'invalid public model artifact: {path}')
             result.append(path)
+    benchmark = directory / 'benchmark_forecasts.json'
+    if benchmark.is_file():
+        from roboquant.index_forecast.benchmark_publication import valid_benchmark_payload
+        if valid_benchmark_payload(json.loads(benchmark.read_text())):
+            result.append(benchmark)
     from roboquant.index_forecast.bc_publication import B_FILE, C_FILE, read_payload, valid_pair
     b, c = (read_payload(directory / name) for name in (B_FILE, C_FILE))
     if b.get("trigger") == "github_actions_cpu" and valid_pair(b, c) and not (_contains_rows(b) or _contains_rows(c)):

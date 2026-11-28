@@ -1126,3 +1126,19 @@ streamlit run app_streamlit.py
 ## Important Disclaimer
 
 본 PoC의 출력은 투자 참고용 정보이며 특정 금융투자상품의 매수 또는 매도 권유가 아닙니다. 목표가와 애널리스트 의견은 보정된 참고 정보이며 수익을 보장하지 않습니다. 과거 성과는 미래 수익을 보장하지 않으며 투자 판단과 책임은 이용자 본인에게 있습니다.
+
+## 코스피 200·코스닥 150 장전 연구 예측
+
+월~토 오전 8시(KST) 예약 작업은 두 지수의 실제 종가를 비공개 SQLite에 누적합니다. 개장 전 실제 수집 완료 시각을 기준으로 A·B가 다음 거래일을 예측합니다. C는 직전 거래일에 종합 코스피나 종합 코스닥이 ±3% 이상 움직였을 때 발행합니다. 토요일 예비본과 해당 거래일 최종본은 따로 보존합니다. GitHub Pages에 게시된 최종본을 확인한 뒤 실제 성적에 한 번 반영합니다. [예측과 데이터 상태](https://junhyuk.github.io/stock_pred/reliable-index-forecast.html#benchmark-indices)
+
+데이터 연결에는 KRX의 **KOSPI·KOSDAQ 시리즈 일별시세** 이용 승인을 받은 무료 키를 저장소 Actions Secret `KRX_OPENAPI_KEY`에 등록합니다. `FORECAST_CACHE_KEY`는 기존 비공개 저장소를 암호화하는 키입니다. **Backfill Korean benchmark history**를 수동 실행하면 한도 내에서 과거 수집을 앞당길 수 있습니다. 다음 실행은 SQLite에 기록한 진척에서 이어집니다. 금융위원회 `DATA_GO_KR_SERVICE_KEY`도 비공개 과거 학습에 쓸 수 있으며, 전 거래일 시세의 제공 시점은 다음 영업일 오후 1시 이후입니다. [KRX 이용방법](https://openapi.krx.co.kr/contents/OPP/INFO/OPPINFO003.jsp) · [금융위원회 지수시세](https://www.data.go.kr/data/15094807/openapi.do)
+
+로컬에서는 같은 저장소와 예측 경로를 실행할 수 있습니다.
+
+```bash
+python scripts/run_benchmark_forecasts.py backfill
+python scripts/run_benchmark_forecasts.py research
+python scripts/run_benchmark_forecasts.py predict
+```
+
+연구 결과와 이력은 `data/processed/benchmarks/`에 저장합니다. 출처가 원시 시계열 표시를 허용할 때만 최근 1년 차트를 갱신합니다. 기존 스냅샷에는 원래의 기준일을 표시합니다. 자체 보유 자료는 `import-csv --help`에서 요구하는 지수 코드와 이용 범위를 지정해 가져올 수 있습니다. 일별 수집·예측의 상태는 [공개 JSON](https://junhyuk.github.io/stock_pred/data/benchmark_forecasts.json)에서 확인할 수 있습니다.
