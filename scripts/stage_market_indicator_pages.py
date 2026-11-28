@@ -34,6 +34,13 @@ def download(base_url, filename, destination, limit):
     (destination / filename).write_bytes(data)
 
 
+def source_dates(directory):
+    with read_only(directory / DATABASE) as db:
+        meta = dict(db.execute("SELECT key,value FROM meta"))
+    generated = datetime.fromisoformat(meta.get("catalog_generated_at", meta["generated_at"]))
+    return meta["as_of_date"], generated
+
+
 def prepare_publication(data_dir, stage, previous, base_url):
     try:
         candidate = export(data_dir, stage)
@@ -47,7 +54,6 @@ def prepare_publication(data_dir, stage, previous, base_url):
     # A code-only rebuild (or a different SQLite runtime) can change bytes without
     # changing the source catalog's timestamp. The native client requires a new
     # timestamp for a different digest, and rejects replay of an older release.
-    source_time = datetime.fromisoformat(candidate["generated_at"])
     try:
         download(base_url, MANIFEST, previous, 4096)
     except HTTPError as error:
@@ -56,14 +62,13 @@ def prepare_publication(data_dir, stage, previous, base_url):
         raise
     download(base_url, DATABASE, previous, MAX_SIZE)
     manifest = verify_pair(previous)
+    as_of, source_time = source_dates(stage)
+    previous_as_of, previous_source = source_dates(previous)
+    if as_of < previous_as_of or source_time < previous_source:
+        return previous
     last_time = datetime.fromisoformat(manifest["generated_at"])
     if manifest == candidate or last_time < source_time:
         return stage
-    with read_only(previous / DATABASE) as db:
-        meta = dict(db.execute("SELECT key,value FROM meta"))
-    previous_source = datetime.fromisoformat(meta.get("catalog_generated_at", meta["generated_at"]))
-    if previous_source > source_time:
-        return previous
     if last_time > source_time:
         replay = export(data_dir, stage, generated_at=manifest["generated_at"])
         if replay == manifest:

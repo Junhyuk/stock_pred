@@ -3,7 +3,7 @@ import json
 import sqlite3
 import subprocess
 import sys
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -202,3 +202,18 @@ def test_pages_keeps_live_site_if_previous_release_cannot_be_verified(tmp_path, 
     with pytest.raises((ValueError, OSError)):
         stage_database(DATA, target, prior.as_uri())
     assert not target.exists()
+
+
+def test_pages_newer_generation_with_older_chart_as_of_keeps_verified_pair(tmp_path):
+    previous, data, staged = (tmp_path / name for name in ("previous", "data", "staged"))
+    assert export(previous).returncode == 0
+    data.mkdir()
+    catalog_name = "market-indicator-catalog.json"
+    catalog = json.loads((DATA / catalog_name).read_text())
+    day = timedelta(days=1)
+    catalog["as_of_date"] = (date.fromisoformat(catalog["as_of_date"]) - day).isoformat()
+    catalog["generated_at"] = (datetime.fromisoformat(catalog["generated_at"]) + day).isoformat()
+    (data / catalog_name).write_text(json.dumps(catalog))
+    stage_database(data, staged, previous.as_uri())
+    assert (staged / MANIFEST).read_bytes() == (previous / MANIFEST).read_bytes()
+    assert (staged / DB).read_bytes() == (previous / DB).read_bytes()
