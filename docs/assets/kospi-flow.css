@@ -1,5 +1,12 @@
 #kospi-flow-status { margin: 8px 0 14px; color: var(--muted); font-size: 13px; }
 #kospi-flow .credit-intro { margin: 0 0 12px; }
+.flow-controls { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 10px 0 16px; }
+.flow-controls label { display: flex; align-items: center; gap: 8px; font-size: .88rem; }
+.flow-controls select { padding: 6px 8px; color: inherit; border: 1px solid #99a6b1; border-radius: 4px; background: white; }
+.flow-sums { width: 100%; font-size: .82rem; text-align: right; font-variant-numeric: tabular-nums; border-collapse: collapse; }
+.flow-sums-region { max-width: 100%; min-width: 0; overflow-x: auto; }
+.flow-sums caption, .flow-sums th:first-child { text-align: left; }
+.flow-sums td, .flow-sums th { padding: 3px 6px; }
 .flow-market h3 { margin: 0 0 4px; font-size: 16px; }
 .flow-chart { margin-top: 14px; }
 .flow-chart h4 { margin: 0; font-size: 15px; text-align: center; }

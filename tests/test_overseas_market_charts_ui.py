@@ -13,11 +13,11 @@ def test_context_charts_remain_available():
         assert f'id="{section}"' in html
 
 
-def render(prices, flow, selected_range=None, holdings=None, samsung=None):
+def render(prices, flow, selected_range=None, holdings=None, samsung=None, flow_mode="cumulative", flow_period="auto"):
     program = r"""
 const fs = require('node:fs');
 const vm = require('node:vm');
-const [prices, flow, range, holdings, samsung] = JSON.parse(process.argv[2]);
+const [prices, flow, range, holdings, samsung, flowMode, flowPeriod] = JSON.parse(process.argv[2]);
 const ids = ['overseas-market-charts', 'overseas-chart-range', 'overseas-price-status',
   'overseas-price-SKHY', 'overseas-price-KORU', 'sk-hynix-flow-content',
   'samsung-electronics-flow-content', 'overseas-holdings-content'];
@@ -27,6 +27,8 @@ const nodes = Object.fromEntries(ids.map(id => [id, {
   setAttribute(name, value) { this[name] = value; },
   addEventListener(event, handler) { this[event] = handler; },
 }]));
+nodes['stock-flow-mode'] = {value: flowMode, addEventListener() {}};
+nodes['stock-flow-period'] = {value: flowPeriod, addEventListener() {}};
 vm.runInNewContext(fs.readFileSync(process.argv[1], 'utf8'), {
   document: {getElementById: id => nodes[id]},
   window: {addEventListener() {}},
@@ -50,7 +52,8 @@ setImmediate(() => {
 });
 """
     result = subprocess.run(
-        ["node", "-e", program, str(SCRIPT), json.dumps([prices, flow, selected_range, holdings, samsung])],
+        ["node", "-e", program, str(SCRIPT), json.dumps([prices, flow, selected_range, holdings, samsung,
+                                                        flow_mode, flow_period])],
         capture_output=True,
         text=True,
         check=True,
@@ -175,6 +178,22 @@ def test_price_chart_shows_history_without_claiming_unverified_previous_session_
     assert "전 거래일 대비 자료 없음" in price
     assert "−15.00%" not in price
     assert "$10.00" in price and "$8.50" in price
+
+
+def test_daily_stock_flow_preserves_missing_observations_in_period_totals():
+    data = flow_payload()
+    start = date(2026, 1, 1)
+    data["series"] = [{"date": (start + timedelta(days=i)).isoformat(),
+                       "foreign": 1, "institution": -2, "individual": 1} for i in range(6)]
+    data["coverage"] = {"expected_sessions": 7, "missing_sessions": ["2026-01-07"]}
+    data["window_end"] = "2026-01-07"
+    html = render(None, data, flow_mode="daily")["sk-hynix-flow-content"]["innerHTML"]
+    assert "일별 순매수 (주)" in html
+    assert '<th scope="row">5거래일</th><td>자료 부족</td>' in html
+    data["series"].append({"date": "2026-01-07", "foreign": 1, "institution": -2, "individual": 1})
+    data["coverage"]["missing_sessions"] = []
+    html = render(None, data, flow_mode="daily")["sk-hynix-flow-content"]["innerHTML"]
+    assert '<th scope="row">5거래일</th><td>+5</td><td>−10</td><td>+5</td>' in html
 
 
 def test_holdings_links_to_selected_quarter_end_positions_with_sec_filing_dates():

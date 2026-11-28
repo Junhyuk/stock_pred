@@ -15,6 +15,10 @@ on:
         description: Run only the market indicator checks in validate mode
         type: boolean
         default: false
+      replay_chart_inputs:
+        description: Check published model inputs against the issuing run's encrypted cache in validate mode
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -26,9 +30,10 @@ jobs:
   forecast:
     if: github.ref == 'refs/heads/master' || inputs.mode == 'validate'
     runs-on: ubuntu-latest
-    timeout-minutes: ${{ inputs.mode == 'prepare' && 6 || (inputs.mode == 'validate' && inputs.indicators_only) && 4 || inputs.mode == 'validate' && 10 || 25 }}
+    timeout-minutes: ${{ inputs.mode == 'prepare' && 6 || (inputs.mode == 'validate' && inputs.replay_chart_inputs) && 10 || (inputs.mode == 'validate' && inputs.indicators_only) && 4 || inputs.mode == 'validate' && 10 || 25 }}
     permissions:
       contents: write
+      actions: read
     outputs:
       published: ${{ steps.publish.outputs.published }}
     env:
@@ -221,6 +226,14 @@ jobs:
       - name: Persist derived model state from prepared inputs
         if: (steps.operation.outputs.mode == 'predict' || steps.operation.outputs.mode == 'daily' || steps.operation.outputs.frozen_forecast == 'true') && steps.prices.outputs.status == 'ready' && success()
         run: python scripts/accuracy_operation.py --phase publish-models --mode "${{ steps.operation.outputs.mode }}"
+      - name: Refresh public market chart history
+        if: steps.operation.outputs.collect == 'true' && steps.refresh.outcome == 'success'
+        timeout-minutes: 2
+        continue-on-error: true
+        env:
+          CHART_SQLITE: ${{ steps.refresh.outputs.sqlite }}
+          BOK_ECOS_API_KEY: ${{ secrets.BOK_ECOS_API_KEY }}
+        run: python scripts/collect_market_chart_history.py --sqlite "$CHART_SQLITE" --output docs/data/market-chart-history.json
       - name: Seal private cache
         id: seal
         if: (steps.operation.outputs.collect == 'true' || (steps.operation.outputs.mode == 'daily' && steps.prices.outputs.status == 'ready')) && success() && (steps.operation.outputs.frozen_forecast != 'true' || steps.cache_open.outputs.cache_ready == 'true')
@@ -236,6 +249,73 @@ jobs:
       - name: Validate market indicator contracts
         if: steps.operation.outputs.mode == 'validate'
         run: python -m pytest -q tests/test_market_indicators.py tests/test_official_yields.py tests/test_official_credit.py tests/test_market_indicators_workflow.py
+      - name: Smoke test market charts and model input export
+        if: steps.operation.outputs.mode == 'validate' && !cancelled()
+        timeout-minutes: 2
+        run: |
+          set -euo pipefail
+          python -m pytest -q tests/test_market_chart_history.py tests/test_market_chart_model_inputs.py tests/test_market_chart_workflow.py
+          npm install --prefix "$RUNNER_TEMP/chart-browser" --no-audit --no-fund --ignore-scripts playwright-core@1.65.1
+          NODE_PATH="$RUNNER_TEMP/chart-browser/node_modules" node tests/market_data_explorer_ui.test.cjs
+          mkdir -p "$RUNNER_TEMP/chart-smoke" "$RUNNER_TEMP/chart-smoke-private"
+          python scripts/collect_market_chart_history.py --sqlite "$RUNNER_TEMP/chart-smoke-private/history.sqlite" --seed docs/data/market-chart-history.json --public-dir docs/data --output "$RUNNER_TEMP/chart-smoke/market-chart-history.json"
+          python scripts/export_market_chart_model_inputs.py --output "$RUNNER_TEMP/chart-smoke/market-chart-model-inputs.json"
+      - name: Resolve issuing workflow for chart replay
+        id: chart_issue
+        if: steps.operation.outputs.mode == 'validate' && inputs.replay_chart_inputs && github.ref == 'refs/heads/master'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          run_id=$(jq -er '.run_id | tostring | select(test("^[0-9]+$"))' docs/data/model_b_forecast.json)
+          day=$(jq -er '.run_date | select(test("^[0-9]{4}-[0-9]{2}-[0-9]{2}$"))' docs/data/model_b_forecast.json)
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id" > "$RUNNER_TEMP/chart-issue.json"
+          jq -e '.head_branch == "master" and .path == ".github/workflows/premarket-research-forecast.yml"' "$RUNNER_TEMP/chart-issue.json"
+          sha=$(jq -er '.head_sha | select(test("^[a-f0-9]{40}$"))' "$RUNNER_TEMP/chart-issue.json")
+          attempt=$(jq -er '.run_attempt | numbers' "$RUNNER_TEMP/chart-issue.json")
+          echo "cache_key=accuracy-private-v1-$day-$run_id-$attempt-prepared" >> "$GITHUB_OUTPUT"
+          git fetch --no-tags --depth=1 origin "$sha"
+          git worktree add --detach "$RUNNER_TEMP/chart-issuer" "$sha"
+      - name: Restore issuing snapshot for read-only chart replay
+        if: steps.chart_issue.outcome == 'success'
+        uses: actions/cache/restore@v4
+        with:
+          path: .forecast-cache/state.enc
+          key: ${{ steps.chart_issue.outputs.cache_key }}
+          fail-on-cache-miss: true
+      - name: Verify input values against the original model code
+        if: steps.chart_issue.outcome == 'success'
+        env:
+          FORECAST_CACHE_KEY: ${{ secrets.FORECAST_CACHE_KEY }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          from roboquant.index_forecast.automation_state import open_private_cache
+          tmp = Path(os.environ['RUNNER_TEMP'])
+          private = tmp / 'chart-private'
+          open_private_cache('.forecast-cache/state.enc', private, key=os.environ['FORECAST_CACHE_KEY'])
+          publication = json.loads(Path('docs/data/model_b_forecast.json').read_text())['publication_id']
+          manifests = [p for p in (private / 'prepared').rglob('manifest.json')
+                       if json.loads(p.read_text()).get('manifest_hash') == publication]
+          if len(manifests) != 1:
+              raise ValueError('Issuing manifest missing or ambiguous')
+          (tmp / 'chart-manifest-path').write_text(str(manifests[0]))
+          PY
+          unset FORECAST_CACHE_KEY
+          mkdir -p "$RUNNER_TEMP/chart-issuer/tools" "$RUNNER_TEMP/chart-replay"
+          cp scripts/export_market_chart_model_inputs.py "$RUNNER_TEMP/chart-issuer/tools/"
+          python "$RUNNER_TEMP/chart-issuer/tools/export_market_chart_model_inputs.py" --replay-completed --prepared-manifest "$(cat "$RUNNER_TEMP/chart-manifest-path")" --data-dir "$PWD/docs/data" --output "$RUNNER_TEMP/chart-replay/market-chart-model-inputs.json"
+          jq -e '[.models[] | select(.key == "B" and .issue_stage == "premarket") | [.rows[] | select(.availability == "reconstructed" and .value != null)] | length > 0] | length > 0 and all' "$RUNNER_TEMP/chart-replay/market-chart-model-inputs.json"
+      - name: Upload verified public chart inputs
+        if: steps.chart_issue.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: issued-market-chart-inputs
+          path: ${{ runner.temp }}/chart-replay/market-chart-model-inputs.json
+          if-no-files-found: error
+          retention-days: 3
       - name: Validate market indicators without publication
         if: steps.operation.outputs.mode == 'validate'
         timeout-minutes: 1
@@ -307,6 +387,13 @@ jobs:
       - name: Record operational state
         if: steps.operation.outputs.allowed == 'true' && steps.operation.outputs.mode != 'validate' && success()
         run: python scripts/accuracy_operation.py --phase status --mode "${{ steps.operation.outputs.mode }}" --kr-outcome "${{ steps.kr_forecast.outcome }}" --us-outcome "${{ steps.us_forecast.outcome }}" --reason "${{ steps.prices.outputs.reason || 'completed' }}"
+      - name: Export market chart model inputs from the issued run
+        if: steps.prices.outputs.status == 'ready'
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          PREPARED_MANIFEST: ${{ steps.prices.outputs.prepared_manifest }}
+        run: python scripts/export_market_chart_model_inputs.py --prepared-manifest "$PREPARED_MANIFEST" --output docs/data/market-chart-model-inputs.json
       - name: Refresh CFD charts for Pages
         if: steps.operation.outputs.collect == 'true'
         timeout-minutes: 2

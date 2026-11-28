@@ -4,6 +4,8 @@
   if (!section) return;
 
   const range = document.getElementById('overseas-chart-range');
+  const flowMode = document.getElementById('stock-flow-mode');
+  const flowPeriod = document.getElementById('stock-flow-period');
   const priceStatus = document.getElementById('overseas-price-status');
   const stocks = {
     '000660': { label: 'SK하이닉스', file: 'sk-hynix-investor-flow', content: document.getElementById('sk-hynix-flow-content') },
@@ -28,7 +30,7 @@
   });
   let prices;
   let pricePlots = [];
-  const flowPlots = [];
+  const flowPlots = new Map();
 
   function esc(text) {
     return String(text).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
@@ -150,16 +152,21 @@
       return;
     }
 
-    const rows = data.series;
+    const daily = flowMode?.value === 'daily';
+    const selection = flowPeriod?.value;
+    const limit = Number(selection) || (daily && selection !== 'all' ? 20 : Infinity);
+    const allRows = data.series;
     const totals = Object.fromEntries(groups.map(([key]) => [key, { sum: 0, count: 0 }]));
-    const first = sessionDate(data.window_start) ? data.window_start : rows[0].date;
-    const latest = rows.at(-1);
+    const windowStart = sessionDate(data.window_start) ? data.window_start : allRows[0].date;
+    const latest = allRows.at(-1);
     const target = sessionDate(data.window_end) ? data.window_end : latest.date;
     const missing = Array.isArray(data.coverage?.missing_sessions)
-      ? data.coverage.missing_sessions.filter(day => sessionDate(day) && day >= first && day <= target)
+      ? data.coverage.missing_sessions.filter(day => sessionDate(day) && day >= windowStart && day <= target)
       : [];
-    const byDate = new Map(rows.map(row => [row.date, row]));
-    const dates = [...new Set([...byDate.keys(), ...missing])].sort();
+    const byDate = new Map(allRows.map(row => [row.date, row]));
+    const dates = [...new Set([...byDate.keys(), ...missing])].sort().slice(-limit);
+    const first = Number.isFinite(limit) ? dates[0] : windowStart;
+    const rows = dates.map(date => byDate.get(date)).filter(Boolean);
     const points = dates.map(date => {
       const row = byDate.get(date);
       const point = { date };
@@ -168,7 +175,7 @@
         if (Number.isFinite(value)) {
           totals[key].sum += value;
           totals[key].count += 1;
-          point[key] = totals[key].sum;
+          point[key] = daily ? value : totals[key].sum;
         } else {
           point[key] = null;
         }
@@ -182,7 +189,7 @@
     }
 
     const unit = units[data.unit];
-    const expected = Math.max(rows.length, data.coverage?.expected_sessions || rows.length);
+    const expected = Number.isFinite(limit) ? dates.length : Math.max(dates.length, data.coverage?.expected_sessions || 0);
     const incomplete = groups.some(([key]) => totals[key].count < expected);
     const credit = sourceMarkup(data.source);
     const generated = snapshotTime(data.generated_at);
@@ -192,6 +199,15 @@
       const value = count ? `<strong class="overseas-${direction(sum)}">${format(sum)}${unit}</strong>` : '자료 없음';
       return `<span class="flow-${key}">${label} ${value}${count < expected ? ` <small>${count}/${expected}거래일</small>` : ''}</span>`;
     }).join('');
+    const periods = [5, 20].map(span => {
+      const recent = dates.slice(-span);
+      const cells = groups.map(([key]) => {
+        const observations = recent.map(date => byDate.get(date)?.[key]);
+        return recent.length === span && observations.every(Number.isFinite)
+          ? format(observations.reduce((sum, value) => sum + value, 0)) : '자료 부족';
+      });
+      return `<tr><th scope="row">${span}거래일</th>${cells.map(cell => `<td>${cell}</td>`).join('')}</tr>`;
+    }).join('');
     const table = rows.slice().reverse().map(row => {
       const cells = groups.map(([key]) => `<td>${row[key] === null ? '자료 없음' : format(row[key])}</td>`).join('');
       return `<tr><th scope="row">${row.date}</th>${cells}</tr>`;
@@ -199,15 +215,16 @@
 
     content.innerHTML = `
       <p class="overseas-market-meta">집계 기간 ${first}–${target} · 관측 끝 ${latest.date} · ${rows.length}거래일 · 순매수 (${unit})${statusMarkup(data.status)}</p>
-      <p class="overseas-market-legend">${legend}</p>
+      <p class="overseas-market-legend">기간 누적 ${legend}</p>
       ${incomplete ? '<p class="overseas-market-meta">확인된 순매수만 합산했습니다.</p>' : ''}
-      ${chartMarkup(`${stock.label} 투자자별 누적 순매수 (${unit}), ${first}–${target}`)}
+      <div class="flow-sums-region" role="region" aria-label="최근 순매수 합계" tabindex="0"><table class="flow-sums"><caption>최근 순매수 합계 (${unit})</caption><thead><tr><th scope="col">기간</th>${groups.map(([, name]) => `<th scope="col">${name}</th>`).join('')}</tr></thead><tbody>${periods}</tbody></table></div>
+      ${chartMarkup(`${stock.label} 투자자별 ${daily ? '일별' : '누적'} 순매수 (${unit}), ${first}–${target}`)}
       ${credit || generated ? `<p class="overseas-market-meta">${[credit, generated].filter(Boolean).join(' · ')}</p>` : ''}
       ${tableMarkup('날짜별 순매수 보기', ['한국 거래일', ...groups.map(([, label]) => label)], table)}`;
     const canvas = content.querySelector('canvas');
     if (canvas) {
       const bound = niceStep(Math.max(1, ...values.map(Math.abs)));
-      flowPlots.push(() => drawCumulativeFlow(canvas, points, bound));
+      flowPlots.set(symbol, () => drawFlow(canvas, points, bound, daily));
     }
   }
 
@@ -318,15 +335,23 @@
     ctx.fill();
   }
 
-  function drawCumulativeFlow(canvas, rows, bound) {
+  function drawFlow(canvas, rows, bound, daily) {
     const plot = chartAxes(canvas, rows, [-bound, -bound / 2, 0, bound / 2, bound],
-      value => signed(value, number => compact.format(number)), rows.length === 1, true);
+      value => signed(value, number => compact.format(number)), daily || rows.length === 1, true);
     if (!plot) return;
 
     const { ctx, x, y } = plot;
-    for (const [key] of groups) {
+    for (const [groupIndex, [key]] of groups.entries()) {
       ctx.strokeStyle = investorColors[key];
       ctx.fillStyle = investorColors[key];
+      if (daily) {
+        const width = plot.space / rows.length / 4;
+        rows.forEach((row, index) => {
+          if (Number.isFinite(row[key])) ctx.fillRect(x(index) + (groupIndex - 1.5) * width,
+            Math.min(y(0), y(row[key])), width, Math.abs(y(row[key]) - y(0)));
+        });
+        continue;
+      }
       ctx.lineWidth = 1.6;
       ctx.beginPath();
       let previous = null;
@@ -350,7 +375,7 @@
   }
 
   function drawPlots() {
-    [...pricePlots, ...flowPlots].forEach(draw => draw());
+    [...pricePlots, ...flowPlots.values()].forEach(draw => draw());
   }
 
   function renderPrices() {
@@ -385,10 +410,22 @@
     range.disabled = !Object.keys(priceCards).some(symbol => usablePrice(symbol, prices?.instruments?.[symbol]));
     renderPrices();
   });
+  function updateStockFlow(symbol, stock) {
+    flowPlots.delete(symbol);
+    renderFlow(symbol, stock, stock.data);
+    flowPlots.get(symbol)?.();
+  }
+  function updateStockFlows() {
+    for (const [symbol, stock] of Object.entries(stocks)) {
+      if (stock.data) updateStockFlow(symbol, stock);
+    }
+  }
+  flowMode?.addEventListener('change', updateStockFlows);
+  flowPeriod?.addEventListener('change', updateStockFlows);
   for (const [symbol, stock] of Object.entries(stocks)) {
     if (stock.content) load(stock.file).then(data => {
-      renderFlow(symbol, stock, data);
-      flowPlots.forEach(draw => draw());
+      stock.data = data;
+      updateStockFlow(symbol, stock);
     });
   }
   if (holdingsContent) load('overseas-institutional-holdings').then(renderHoldings);

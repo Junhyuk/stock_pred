@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="assets/cfd-balance.css" />
   <link rel="stylesheet" href="assets/kospi-flow.css" />
   <link rel="stylesheet" href="assets/overseas-market-charts.css?v=20261125-flow" />
+  <link rel="stylesheet" href="assets/market-data-explorer.css" />
   <style>
     .notice {
       padding: 16px;
@@ -338,7 +339,7 @@
         <a href="#cfd-balance">CFD 잔고</a>
         <a href="#margin-credit">신용융자</a>
         <a href="#overseas-market-charts">SK하이닉스 ADR·KORU</a>
-        <a href="#cross-assets">환율·금리·원유</a>
+        <a href="#cross-assets">시장 데이터 탐색</a>
         <a href="#extra-numerics">추가 수치</a>
         <a href="#market-indicators">국채 금리·신용융자</a>
         <a href="#economic-calendar">경제 캘린더</a>
@@ -384,16 +385,24 @@
   <section id="kospi-flow" class="notice" aria-labelledby="kospi-flow-title">
     <h2 id="kospi-flow-title">코스피·코스닥 투자자 누적 순매수 · 2년</h2>
     <p id="kospi-flow-status" role="status">누적 순매수 그래프를 불러오는 중입니다.</p>
+    <div class="flow-controls">
+      <label>차트 <select id="market-flow-mode"><option value="cumulative">누적 순매수</option><option value="daily">일별 순매수</option></select></label>
+      <label>기간 <select id="market-flow-period"><option value="auto">자동</option><option value="20">20거래일</option><option value="60">60거래일</option><option value="all">전체 2년</option></select></label>
+    </div>
     <div id="kospi-flow-content"></div>
     <p class="credit-source">출처 <a href="https://stock.naver.com/market/stock/kr/trend/trader">네이버 증권 투자자별 매매동향</a> · 거래소 공식 통계가 아닌 비공식 자료라 확정 통계와 다를 수 있습니다.</p>
     <details class="forecast-support">
       <summary>집계 기준</summary>
-      <p>가는 선은 누적 순매수의 20거래일 이동평균입니다. 금액 단위는 조 원입니다.</p>
-      <p>20:30 KST 이전에 수집한 당일 값은 잠정치입니다. 외국인은 기타외국인을 포함합니다. 기관은 금융투자·보험·투신·사모·은행·기타금융·연기금의 합입니다.</p>
+      <p>누적선은 선택 기간의 첫 거래일부터 합산하며 가는 선은 20거래일 이동평균입니다. 세로축과 기간 합계는 억 원, 누적 요약은 조 원입니다.</p>
+      <p>20:30 KST 이전에 수집한 당일 값은 잠정치입니다. 외국인은 기타외국인을 포함합니다. 기관은 금융투자·보험·투신·사모·은행·기타금융·연기금의 합이며, 기타법인은 제외합니다.</p>
     </details>
   </section>
   <section id="stock-investor-flow" class="notice overseas-market" aria-labelledby="stock-investor-flow-title">
     <h2 id="stock-investor-flow-title">종목별 투자자 누적 순매수 · 2년</h2>
+    <div class="flow-controls">
+      <label>차트 <select id="stock-flow-mode"><option value="cumulative">누적 순매수</option><option value="daily">일별 순매수</option></select></label>
+      <label>기간 <select id="stock-flow-period"><option value="auto">자동</option><option value="20">20거래일</option><option value="60">60거래일</option><option value="all">전체 2년</option></select></label>
+    </div>
     <div class="overseas-price-grid">
       <article class="overseas-market-card" aria-labelledby="sk-hynix-flow-title">
         <h3 id="sk-hynix-flow-title">SK하이닉스 (000660)</h3>
@@ -534,36 +543,80 @@
   </section>
   </div>
   <div id="automation-status" hidden></div>
-  <section id="cross-assets" class="notice" aria-labelledby="cross-assets-title">
-    <h2 id="cross-assets-title">환율·금리·원유</h2>
-    <p id="cross-assets-status" role="status">환율·금리·원유를 불러오는 중입니다.</p>
-    <div class="economic-table"><table>
-      <thead><tr><th scope="col">수치</th><th scope="col">값</th><th scope="col">전일 대비</th><th scope="col">기준일</th></tr></thead>
-      <tbody id="cross-assets-rows"></tbody>
-    </table></div>
+  <section id="cross-assets" class="notice market-explorer" aria-labelledby="cross-assets-title">
+    <h2 id="cross-assets-title">시장 데이터 탐색</h2>
+    <p id="market-explorer-status" class="market-explorer-meta" role="status">시장 이력을 불러오는 중입니다.</p>
+    <div id="market-explorer-controls" class="market-explorer-controls" hidden>
+      <label for="market-explorer-model">예측 입력<select id="market-explorer-model"></select></label>
+      <label for="market-explorer-category">지표 분류<select id="market-explorer-category"></select></label>
+      <label for="market-explorer-chart">세부 지표<select id="market-explorer-chart"></select></label>
+      <label for="market-explorer-range">기간
+        <select id="market-explorer-range">
+          <option value="1m">1개월</option><option value="3m">3개월</option><option value="6m">6개월</option>
+          <option value="1y" selected>1년</option><option value="all">전체</option><option value="custom">직접 지정</option>
+        </select>
+      </label>
+      <div id="market-explorer-custom" class="market-explorer-custom" hidden>
+        <label for="market-explorer-start">시작일<input id="market-explorer-start" type="date" /></label>
+        <label for="market-explorer-end">종료일<input id="market-explorer-end" type="date" /></label>
+      </div>
+    </div>
+    <div id="market-explorer-panel" class="market-explorer-panel" hidden>
+      <h3 id="market-explorer-chart-title"></h3>
+      <p id="market-explorer-description" class="market-explorer-meta"></p>
+      <div id="market-explorer-plot" class="market-explorer-plot"></div>
+      <div id="market-explorer-observation" class="market-explorer-observation" hidden>
+        <label for="market-explorer-date">관측일</label>
+        <div class="market-explorer-date-controls">
+          <button type="button" id="market-explorer-prev" aria-label="이전 관측일">‹</button>
+          <select id="market-explorer-date"></select>
+          <button type="button" id="market-explorer-next" aria-label="다음 관측일">›</button>
+        </div>
+      </div>
+      <ul id="market-explorer-readings" class="market-explorer-readings" aria-label="선택한 날짜의 실제 수치" aria-live="polite"></ul>
+    </div>
+    <div id="market-explorer-model-inputs" hidden></div>
+    <nav class="market-explorer-links" aria-label="관련 시장 차트">
+      <a href="#kospi-flow">시장 수급</a>
+      <a href="#stock-investor-flow">종목 수급</a>
+      <a href="#margin-credit">신용융자</a>
+      <a href="#cfd-balance">CFD 잔고</a>
+      <a href="#overseas-market-charts">SK하이닉스 ADR·KORU</a>
+      <a href="#benchmark-indices">코스피 200·코스닥 150</a>
+      <a href="#economic-calendar">경제 캘린더</a>
+    </nav>
+    <details class="market-explorer-snapshot">
+      <summary>환율·금리·원유 최근 스냅샷</summary>
+      <p id="cross-assets-status" role="status">환율·금리·원유를 불러오는 중입니다.</p>
+      <div class="economic-table" tabindex="0" role="region" aria-label="환율·금리·원유 최근 스냅샷"><table>
+        <thead><tr><th scope="col">수치</th><th scope="col">값</th><th scope="col">전일 대비</th><th scope="col">기준일</th></tr></thead>
+        <tbody id="cross-assets-rows"></tbody>
+      </table></div>
+    </details>
+    <noscript><p class="market-explorer-meta">시장 차트와 현재 수치를 보려면 자바스크립트를 켜 주세요.</p></noscript>
   </section>
-  <section id="extra-numerics" class="notice" aria-labelledby="extra-numerics-title">
-    <h2 id="extra-numerics-title">이번 예측과 함께 받은 수치</h2>
+  <details id="extra-numerics" class="notice market-explorer-snapshot">
+    <summary id="extra-numerics-title">이번 예측과 함께 받은 수치</summary>
     <p id="extra-numerics-status" role="status">추가 수치를 불러오는 중입니다.</p>
     <div class="economic-table"><table>
       <thead><tr><th scope="col">수치</th><th scope="col">값</th><th scope="col">전일 대비</th><th scope="col">기준일</th></tr></thead>
       <tbody id="extra-numerics-rows"></tbody>
     </table></div>
-  </section>
-  <section id="market-indicators" class="notice" aria-labelledby="market-indicators-title">
-    <h2 id="market-indicators-title">국채 금리와 전체 신용융자</h2>
+  </details>
+  <details id="market-indicators" class="notice market-explorer-snapshot">
+    <summary id="market-indicators-title">국채 금리와 전체 신용융자 스냅샷</summary>
     <p id="market-indicators-status" role="status">수집 상태를 확인하는 중입니다.</p>
     <div class="economic-table"><table>
       <thead><tr><th scope="col">지표</th><th scope="col">최근 값</th><th scope="col">기준일</th><th scope="col">수집 상태</th></tr></thead>
       <tbody id="market-indicators-rows"></tbody>
     </table></div>
     <p class="credit-source">출처 <a href="https://ecos.bok.or.kr/#/SearchStat">한국은행 ECOS</a> · <a href="https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml">미 재무부</a> · <a href="https://freesis.kofia.or.kr/stat/main.do">FreeSIS</a></p>
-  </section>
-  <section id="economic-calendar" class="notice" aria-labelledby="economic-calendar-title">
-    <h2 id="economic-calendar-title">경제 발표 캘린더와 실제 수치</h2>
+  </details>
+  <details id="economic-calendar" class="notice market-explorer-snapshot">
+    <summary id="economic-calendar-title">경제 발표 캘린더와 실제 수치</summary>
     <p id="economic-collection-status" role="status">공식 소스 수집 상태 확인 중</p>
     <div id="economic-calendar-content">경제일정을 불러오는 중입니다.</div>
-  </section>
+  </details>
 </main>
 <script src="assets/forecast-market-tabs.js"></script>
 <script>
@@ -860,6 +913,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) refr
 <script src="assets/market-indicators.js"></script>
 <script src="assets/overseas-market-charts.js?v=20261125-top"></script>
 <script src="assets/cross-assets.js?v=20261123"></script>
+<script src="assets/market-data-explorer.js"></script>
 <script src="assets/unofficial-numerics.js?v=20261123"></script>
 <script src="assets/forecast-ranges.js?v=bc-cpu-v1"></script>
 <script src="assets/model-b.js?v=market-tabs"></script>

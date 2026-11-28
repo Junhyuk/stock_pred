@@ -81,6 +81,12 @@ def test_cache_open_phase_emits_dates_from_decrypted_snapshot(tmp_path, monkeypa
     key = base64.urlsafe_b64encode(b'k' * 32).decode().rstrip('=')
     MODULE.state.seal_private_cache(source, root / '.forecast-cache/state.enc', key=key)
     emitted = []
+    class WeekdayClock(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return datetime(2026, 11, 13, 18, tzinfo=ZoneInfo('Asia/Seoul')).astimezone(tz)
+
+    monkeypatch.setattr(MODULE, 'datetime', WeekdayClock)
     monkeypatch.setattr(MODULE, 'ROOT', root)
     monkeypatch.setattr(MODULE, 'emit', emitted.append)
     monkeypatch.setattr(sys, 'argv', ['accuracy_operation.py', '--phase', 'cache-open', '--mode', 'latest'])

@@ -14,6 +14,18 @@ from roboquant.index_forecast.economic_sources import collect_economic_sources
 NOW = datetime(2026, 11, 13, 15, 0, tzinfo=UTC)
 
 
+def test_bok_uses_decided_destination_rate_before_dissent():
+    source = {"country": "KR", "source_id": "bok", "source_url": "https://www.bok.or.kr/"}
+    for decision, expected in [
+        ("raise the Base Rate by 25 basis points from 3.00% to 3.25%", 3.25),
+        ("lower the Base Rate by 25 basis points, from 3.25% to 3.00%", 3.0),
+        ("keep the Base Rate unchanged at 3.00%", 3.0),
+    ]:
+        text = f"2026.11.26 The Board decided today to {decision}. Other members proposed to keep the Base Rate at 3.50%."
+        _, releases, _, _ = economic_sources._parse_bok_rate(source, NOW, "hash", text)
+        assert [row["value"] for row in releases] == [expected]
+
+
 def _collect(*args, **kwargs):
     kwargs.setdefault("clock", lambda: NOW)
     return collect_economic_sources(*args, **kwargs)

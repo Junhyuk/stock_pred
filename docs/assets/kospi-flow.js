@@ -2,6 +2,8 @@
   'use strict';
   const status = document.getElementById('kospi-flow-status');
   const content = document.getElementById('kospi-flow-content');
+  const modeControl = document.getElementById('market-flow-mode');
+  const periodControl = document.getElementById('market-flow-period');
   const MIN_ROWS = 20;
   const MAX_ROWS = 640;
   const AVERAGE_SESSIONS = 20;
@@ -194,17 +196,40 @@
   }
 
   function chart(market, rows, averageSessions) {
-    const points = cumulative(rows);
+    const daily = modeControl?.value === 'daily';
+    const selection = periodControl?.value;
+    const count = Number(selection) || (daily && selection !== 'all' ? 20 : rows.length);
+    rows = rows.slice(-count);
+    const points = daily ? rows : cumulative(rows);
     const latest = points[points.length - 1];
     const table = points.slice().reverse().map(row =>
       `<tr><td>${row.date}</td>${series.map(([key]) => `<td>${amount(row[key])}</td>`).join('')}</tr>`).join('');
     const heads = series.map(([, label]) => `<th scope="col">${label}</th>`).join('');
-    const charts = series.map(investor => investorChart(market, rows, points, investor, averageSessions)).join('');
+    const charts = series.map(investor => daily ? dailyChart(market, rows, investor) :
+      investorChart(market, rows, points, investor, averageSessions)).join('');
+    const sums = [5, 20].map(span => {
+      const recent = rows.slice(-span);
+      return `<tr><th scope="row">${span}거래일</th>${series.map(([key]) =>
+        `<td>${recent.length === span ? amount(recent.reduce((sum, row) => sum + row[key], 0)) : '자료 부족'}</td>`).join('')}</tr>`;
+    }).join('');
     return `<section class="flow-market" data-market="${market}"><h3>${market}</h3>
       <p class="credit-date">기준일 ${latest.date} · ${rows[0].date}부터 ${rows.length}거래일</p>
+      <div class="flow-sums-region" role="region" aria-label="최근 순매수 합계" tabindex="0"><table class="flow-sums"><caption>최근 순매수 합계 (억원)</caption><thead><tr><th scope="col">기간</th>${heads}</tr></thead><tbody>${sums}</tbody></table></div>
       ${charts}
-      <details><summary>날짜별 누적 순매수 보기</summary><div class="credit-values"><table><thead><tr><th scope="col">날짜</th>${heads}</tr></thead><tbody>${table}</tbody></table></div></details>
+      <details><summary>날짜별 ${daily ? '일별' : '누적'} 순매수 보기</summary><div class="credit-values"><table><thead><tr><th scope="col">날짜</th>${heads}</tr></thead><tbody>${table}</tbody></table></div></details>
     </section>`;
+  }
+
+  function dailyChart(market, rows, [key, label, klass]) {
+    const values = rows.map(row => row[key]);
+    const min = Math.min(0, ...values);
+    const max = Math.max(0, ...values);
+    const pad = (max - min || 1) * 0.06;
+    const y = value => TOP + (max + pad - value) * (BOTTOM - TOP) / (max - min + 2 * pad);
+    const step = (RIGHT - LEFT) / rows.length;
+    const bars = rows.map((row, i) => `<rect class="${klass}" style="stroke:none" x="${LEFT + (i + .1) * step}" y="${Math.min(y(row[key]), y(0))}" width="${step * .8}" height="${Math.abs(y(row[key]) - y(0))}"><title>${row.date} · ${amount(row[key])}원</title></rect>`).join('');
+    const grid = axisTicks(min - pad, max + pad).map(tick => `<line class="credit-gridline" x1="${LEFT}" x2="${RIGHT}" y1="${y(tick)}" y2="${y(tick)}"/><text class="flow-ylabel" x="${LEFT - 8}" y="${y(tick) + 4}" text-anchor="end">${tick.toLocaleString('ko-KR')}</text>`).join('');
+    return `<article class="flow-chart"><h4>${label} 일별 순매수 (억원)</h4><svg class="credit-chart" viewBox="0 0 484 164" role="img" aria-label="${market} ${label} 일별 순매수 막대, 억원">${grid}${bars}<line class="flow-zero" x1="${LEFT}" x2="${RIGHT}" y1="${y(0)}" y2="${y(0)}"/><text x="${LEFT}" y="${LABEL_Y}">${rows[0].date}</text><text x="${RIGHT}" y="${LABEL_Y}" text-anchor="end">${rows.at(-1).date}</text></svg></article>`;
   }
 
   function receivedAt(text) {
@@ -223,7 +248,12 @@
       if (data?.schema_version !== 'kospi_investor_flow_chart_v1' || data.unit !== '억원' ||
           data.production_weight !== 0 || data.average_sessions !== AVERAGE_SESSIONS || !receipt ||
           markets.some(market => !validRows(sessions[market]))) throw new Error();
-      content.innerHTML = `<div class="credit-grid">${markets.map(market => chart(market, sessions[market], data.average_sessions)).join('')}</div>`;
+      function paint() {
+        content.innerHTML = `<div class="credit-grid">${markets.map(market => chart(market, sessions[market], data.average_sessions)).join('')}</div>`;
+      }
+      paint();
+      modeControl?.addEventListener?.('change', paint);
+      periodControl?.addEventListener?.('change', paint);
       const provisional = Array.isArray(data.provisional_dates) ? data.provisional_dates.filter(validDate) : [];
       status.textContent = `자료 수신 ${receipt} KST` +
         (provisional.length ? ` · ${provisional.join(', ')} 잠정치(다음 수집에서 확정값으로 교체)` : '');

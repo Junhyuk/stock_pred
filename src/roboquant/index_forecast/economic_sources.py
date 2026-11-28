@@ -610,14 +610,22 @@ def _parse_fed_policy(source: dict[str, Any], now: datetime, body_hash: str,
 
 def _parse_bok_rate(source: dict[str, Any], now: datetime, body_hash: str,
                     text: str) -> tuple[list[dict], list[dict], list[str], str | None]:
-    match = re.search(r"Base Rate[^.]{0,120}?\b(?:unchanged at|at|to)\s+([\d.]+)\s*%", text, re.I)
+    # The Board's decision can quote both rates, followed by dissenters' proposed rate.
+    # Match numbers explicitly so a decimal in "from 3.00% to 3.25%" isn't a sentence break.
+    number = r"\d+(?:\.\d+)?"
+    change = rf"Base Rate\s+(?:by\s+{number}\s+basis points?,?\s+)?(?:from\s+{number}\s*%\s+)?to\s+({number})\s*%"
+    hold = rf"Base Rate\s+(?:unchanged\s+)?at\s+(?:the current level of\s+)?({number})\s*%"
+    decision = re.search(r"(?:decided|voted)\s+(?:today\s+)?to\s+[^.!?]{0,80}?Base Rate", text, re.I)
+    statement = text[decision.start():] if decision else text
+    match = re.search(rf"(?:{change})|(?:{hold})", statement, re.I)
     date_match = re.search(r"\b(20\d{2})\.(\d{1,2})\.(\d{1,2})\b", text)
     period = None
     if date_match:
         period = date(int(date_match.group(1)), int(date_match.group(2)), int(date_match.group(3))).strftime("%Y-%m")
     releases = []
     if match:
-        releases.append(_release(source, now, body_hash, "policy_rate", _numeric(match), "percent",
+        rate = float(next(value for value in match.groups() if value is not None))
+        releases.append(_release(source, now, body_hash, "policy_rate", rate, "percent",
                                  period, vintage="first_release", seasonal_adjustment="not_applicable"))
     return [], releases, [] if releases else ["base_rate_not_found"], None
 

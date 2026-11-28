@@ -22,6 +22,8 @@ const vm = require('vm');
 const fs = require('fs');
 const payload = JSON.parse(process.argv[2]);
 const nodes = {'kospi-flow-status': {textContent: ''}, 'kospi-flow-content': {innerHTML: ''}};
+nodes['market-flow-mode'] = {value: process.argv[3]};
+nodes['market-flow-period'] = {value: process.argv[4]};
 const context = {document: {getElementById: id => nodes[id]}, fetch: async () => ({ok: true, json: async () => payload}),
   Intl, Date, Number, Math, Array, Object, String, Promise, console};
 vm.runInNewContext(fs.readFileSync(process.argv[1], 'utf8'), context);
@@ -29,8 +31,8 @@ setTimeout(() => console.log(JSON.stringify(nodes)), 20);
 '''
 
 
-def render(payload):
-    result = subprocess.run(["node", "-e", NODE_PROGRAM, str(SCRIPT), json.dumps(payload)],
+def render(payload, mode="cumulative", period="auto"):
+    result = subprocess.run(["node", "-e", NODE_PROGRAM, str(SCRIPT), json.dumps(payload), mode, period],
                             capture_output=True, text=True, check=True)
     return json.loads(result.stdout)
 
@@ -173,7 +175,7 @@ def test_flow_chart_draws_cumulative_lines_for_both_markets():
     assert "2026-11-23" in nodes["kospi-flow-status"]["textContent"]
     page = (ROOT / "docs/reliable-index-forecast.html").read_text()
     assert '<h2 id="kospi-flow-title">코스피·코스닥 투자자 누적 순매수 · 2년</h2>' in page
-    assert '<a href="#kospi-flow">누적 순매수</a>' in page
+    assert '<a href="#kospi-flow">시장 수급</a>' in page
     assert 'id="kospi-flow"' in page and "assets/kospi-flow.js" in page
     assert "https://stock.naver.com/market/stock/kr/trend/trader" in page
     workflow = (ROOT / ".github/workflows/premarket-research-forecast.yml").read_text()
@@ -189,6 +191,16 @@ def test_flow_chart_accepts_two_year_rows_and_rejects_short_or_oversized():
         nodes = render(chart_payload(dated_rows(count)))
         assert nodes["kospi-flow-content"]["innerHTML"] == ""
         assert "불러오지 못했습니다" in nodes["kospi-flow-status"]["textContent"]
+
+
+def test_market_flow_daily_bars_and_selected_cumulative_period():
+    payload = chart_payload(dated_rows(60))
+    bars = render(payload, "daily")["kospi-flow-content"]["innerHTML"]
+    assert bars.count("<title>") == 2 * 3 * 20
+    assert "누적 순매수 (억원)" not in bars
+    assert "<td>-5억</td><td>+2.5억</td><td>+5억</td>" in bars
+    short = render(payload, period="20")["kospi-flow-content"]["innerHTML"]
+    assert "<tr><td>2024-02-29</td><td>-20억</td><td>+10억</td><td>+20억</td>" in short
 
 
 def test_four_week_average_is_20_stored_sessions_of_the_cumulative_line():

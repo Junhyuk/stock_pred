@@ -37,14 +37,23 @@ def test_indicator_credentials_are_scoped_to_collection_steps():
     credentials = {"BOK_ECOS_API_KEY", "DATA_GO_KR_SERVICE_KEY"}
     job = config["jobs"]["forecast"]
     assert not credentials.intersection(job["env"])
-    collectors = []
+    allowed = {
+        "Collect bounded market indicators": ("scripts/collect_market_indicators.py", credentials),
+        "Validate market indicators without publication": ("scripts/collect_market_indicators.py", credentials),
+        "Refresh exact Korean benchmark observations": ("scripts/run_benchmark_forecasts.py collect", {"DATA_GO_KR_SERVICE_KEY"}),
+        "Refresh public market chart history": ("scripts/collect_market_chart_history.py", {"BOK_ECOS_API_KEY"}),
+    }
+    collectors = set()
     for step in job["steps"]:
         env = step.get("env", {})
         if credentials.intersection(env):
-            collectors.append(step)
-            assert "scripts/collect_market_indicators.py" in step.get("run", "")
-            assert env == {key: "${{ secrets." + key + " }}" for key in credentials}
-    assert len(collectors) == 2
+            script, keys = allowed[step["name"]]
+            collectors.add(step["name"])
+            assert script in step["run"]
+            assert credentials.intersection(env) == keys
+            for key in keys:
+                assert env[key] == "${{ secrets." + key + " }}"
+    assert collectors == allowed.keys()
 
 
 def test_validation_collects_in_temp_paths_and_exposes_code_errors():
