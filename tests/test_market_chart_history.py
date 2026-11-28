@@ -31,6 +31,18 @@ def test_basis_pairs_only_same_day_closes():
     assert charts.basis_points(spot, futures) == {'2026-11-20': 0.5, '2026-11-23': -0.6}
 
 
+def test_oil_contract_can_settle_below_zero():
+    stamp = int(datetime(2020, 4, 20, 20, tzinfo=UTC).timestamp())
+    chart = {'chart': {'error': None, 'result': [{
+        'meta': {'symbol': 'CL=F', 'currency': 'USD', 'instrumentType': 'FUTURE',
+                 'dataGranularity': '1d', 'exchangeTimezoneName': 'America/New_York'},
+        'timestamp': [stamp], 'indicators': {'quote': [{'close': [-37.63]}]},
+    }]}}
+    assert charts.yahoo_points('wti', chart, datetime(2020, 4, 21, 15, tzinfo=UTC)) == {
+        '2020-04-20': -37.63,
+    }
+
+
 def test_realized_volatility_breaks_at_a_missing_trading_session():
     sessions = [f'2026-11-{day:02}' for day in range(1, 26)]
     close = {day: 100 + 0.5 * i for i, day in enumerate(sessions) if i != 2}

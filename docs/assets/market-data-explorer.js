@@ -154,26 +154,38 @@
     if (entries.some(([value]) => value === selected)) select.value = selected;
   }
 
-  function transformPoints(points, transform) {
+  function publishedPercent(key) {
+    const series = history[key];
+    return ['percent', '%'].includes(series?.unit) ? new Map(series.points) : null;
+  }
+
+  function transformPoints(key, points, transform) {
     if (!Object.hasOwn(transforms, transform)) return points.map(([date, value]) => ({ date, value, actual: value }));
-    const days = Number(transform.match(/\d+/)[0]);
-    if (transform.startsWith('return')) {
-      return points.slice(days).flatMap(([date, actual], index) => {
-        const prior = points[index][1];
-        return actual > 0 && prior > 0 ? [{ date, actual, value: (actual / prior - 1) * 100 }] : [];
-      });
+    const daily = domestic.includes(key) ? publishedPercent(key + '_return') : null;
+    const published = transform === 'return1' ? daily :
+      transform === 'volatility20' && domestic.includes(key) ? publishedPercent(key + '_volatility') : null;
+    if (published) {
+      return points.flatMap(([date, actual], session) => published.has(date) ?
+        [{ date, actual, value: published.get(date), session }] : []);
     }
-    const returns = points.map(([, close], index) => {
+
+    const days = Number(transform.match(/\d+/)[0]);
+    const returns = points.map(([date, close], index) => {
       const previous = points[index - 1]?.[1];
-      return previous > 0 && close > 0 ? close / previous - 1 : null;
+      // A missing published return marks an unverified pair of adjacent exchange sessions.
+      return previous > 0 && close > 0 && (!daily || daily.has(date)) ? close / previous - 1 : null;
     });
     return points.slice(days).flatMap(([date, actual], index) => {
-      const window = returns.slice(index + 1, index + days + 1);
+      const session = index + days;
+      const window = returns.slice(index + 1, session + 1);
       if (window.includes(null)) return [];
+      if (transform.startsWith('return')) {
+        return [{ date, actual, value: (actual / points[index][1] - 1) * 100, session }];
+      }
       const mean = window.reduce((sum, value) => sum + value, 0) / days;
       const variance = window.reduce((sum, value) => sum + (value - mean) ** 2, 0) / (days - 1);
       const scale = transform === 'volatility20' ? 252 : 1;
-      return [{ date, actual, value: 100 * Math.sqrt(scale * variance) }];
+      return [{ date, actual, value: 100 * Math.sqrt(scale * variance), session }];
     });
   }
 
@@ -192,7 +204,7 @@
       const source = history[key] || { points: [] };
       return {
         key, source, label: source.label || labels[key] || key, style: colors[index % colors.length],
-        points: transformPoints(source.points, config.transform),
+        points: transformPoints(key, source.points, config.transform),
       };
     });
     const allDates = Array.from(new Set(series.flatMap(entry => entry.points.map(point => point.date)))).sort();
@@ -300,17 +312,25 @@
     }, series[0]?.source.date_basis === 'reference_month' ? date.slice(0, 7) : date)));
     svg.append(svgElement('line', { x1: x(selectedDate), y1: y0, x2: x(selectedDate), y2: y1, class: 'market-explorer-cursor' }));
     for (const entry of series) {
-      const path = Array.from(entry.visible.values()).map(({ date, value }, index) =>
-        (index === 0 ? 'M' : entry.source.date_basis === 'effective_date' ? 'H' : 'L') +
-          (entry.source.date_basis === 'effective_date' && index > 0 ? x(date) + 'V' + y(value) : x(date) + ' ' + y(value))).join(' ');
+      const points = Array.from(entry.visible.values());
+      const connected = index => index > 0 && index < points.length &&
+        (points[index].session == null || points[index].session === points[index - 1].session + 1);
+      const path = points.map(({ date, value }, index) => {
+        if (!connected(index)) return 'M' + x(date) + ' ' + y(value);
+        if (entry.source.date_basis === 'effective_date') return 'H' + x(date) + 'V' + y(value);
+        return 'L' + x(date) + ' ' + y(value);
+      }).join(' ');
       if (path) svg.append(svgElement('path', {
         d: path, fill: 'none', stroke: entry.style.ink, 'stroke-dasharray': entry.style.dash, 'stroke-width': 2,
       }));
-      const point = entry.visible.get(selectedDate) || (entry.visible.size === 1 ? entry.visible.values().next().value : null);
-      if (point) svg.append(svgElement('circle', {
-        cx: x(point.date), cy: y(point.value), r: point.date === selectedDate ? 4 : 3,
-        fill: entry.style.ink, stroke: 'white', 'stroke-width': 1,
-      }));
+      points.forEach((point, index) => {
+        if (point.date === selectedDate || (!connected(index) && !connected(index + 1))) {
+          svg.append(svgElement('circle', {
+            cx: x(point.date), cy: y(point.value), r: point.date === selectedDate ? 4 : 3,
+            fill: entry.style.ink, stroke: 'white', 'stroke-width': 1,
+          }));
+        }
+      });
     }
     svg.addEventListener('click', event => {
       if (visibleDates.length < 2) return;

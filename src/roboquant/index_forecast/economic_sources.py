@@ -616,7 +616,7 @@ def _parse_bok_rate(source: dict[str, Any], now: datetime, body_hash: str,
     change = rf"Base Rate\s+(?:by\s+{number}\s+basis points?,?\s+)?(?:from\s+{number}\s*%\s+)?to\s+({number})\s*%"
     hold = rf"Base Rate\s+(?:unchanged\s+)?at\s+(?:the current level of\s+)?({number})\s*%"
     decision = re.search(r"(?:decided|voted)\s+(?:today\s+)?to\s+[^.!?]{0,80}?Base Rate", text, re.I)
-    statement = text[decision.start():] if decision else text
+    statement = re.split(r"[.!?](?:\s|$)", text[decision.start():], maxsplit=1)[0] if decision else text
     match = re.search(rf"(?:{change})|(?:{hold})", statement, re.I)
     date_match = re.search(r"\b(20\d{2})\.(\d{1,2})\.(\d{1,2})\b", text)
     period = None

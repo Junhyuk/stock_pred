@@ -253,7 +253,8 @@ def yahoo_points(key: str, payload: dict, cutoff: datetime) -> Points:
     for stamp, raw in zip(result["timestamp"], result["indicators"]["quote"][0]["close"], strict=True):
         day = datetime.fromtimestamp(stamp, zone).date()
         value = number(raw)
-        if day.weekday() < 5 and (day < today or (day == today and closed_today)) and value and value > 0:
+        valid_close = value is not None and (value > 0 or key in {"wti", "brent"})
+        if day.weekday() < 5 and (day < today or (day == today and closed_today)) and valid_close:
             add_point(points, day.isoformat(), value)
     if instrument == "ETF":
         _validate_split_series(sorted(points.items()), result.get("events", {}).get("splits", {}))

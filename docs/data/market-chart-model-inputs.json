@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-28T12:54:38.063025+00:00",
+  "generated_at": "2026-11-28T12:59:46.030011+00:00",
   "models": [
     {
       "asof_date": "2026-11-27",
@@ -118,7 +118,7 @@
       "label": "모델 B",
       "market": "KOSPI",
       "prediction_cutoff": "2026-11-27T23:04:55.624821+00:00",
-      "provenance": "unavailable",
+      "provenance": "frozen",
       "publication_id": "734bfc7b79c379451be98432831aa17cd79c17ee2179ce81ccd9803a03a4f4d7",
       "rows": [
         {
@@ -137,7 +137,7 @@
           "value": 4915.68
         },
         {
-          "availability": "unavailable",
+          "availability": "reconstructed",
           "chart_series_key": "kospi",
           "chart_transform": "return1",
           "date": "2026-11-27",
@@ -148,12 +148,12 @@
           ],
           "key": "return_1d",
           "label": "1일 수익률",
-          "reason": "이 게시물과 일치하는 동결 입력을 확인할 수 없습니다.",
+          "reason": null,
           "unit": "ratio",
-          "value": null
+          "value": 0.04340073993729865
         },
         {
-          "availability": "unavailable",
+          "availability": "reconstructed",
           "chart_series_key": "kospi",
           "chart_transform": "return5",
           "date": "2026-11-27",
@@ -164,12 +164,12 @@
           ],
           "key": "return_5d",
           "label": "5일 수익률",
-          "reason": "이 게시물과 일치하는 동결 입력을 확인할 수 없습니다.",
+          "reason": null,
           "unit": "ratio",
-          "value": null
+          "value": 0.00938816745928106
         },
         {
-          "availability": "unavailable",
+          "availability": "reconstructed",
           "chart_series_key": "kospi",
           "chart_transform": "volatility20_daily",
           "date": "2026-11-27",
@@ -181,15 +181,15 @@
           ],
           "key": "volatility_20d",
           "label": "20일 일간 수익률 변동성",
-          "reason": "이 게시물과 일치하는 동결 입력을 확인할 수 없습니다.",
+          "reason": null,
           "unit": "ratio",
-          "value": null
+          "value": 0.037072178528937356
         },
         {
-          "availability": "unavailable",
+          "availability": "reconstructed",
           "chart_series_key": "sp500",
           "chart_transform": "return1",
-          "date": null,
+          "date": "2026-11-27",
           "derivation": "컷오프 이전 확정 미국 거래일 종가 / 직전 거래일 종가 - 1",
           "heads": [
             "close",
@@ -197,15 +197,15 @@
           ],
           "key": "sp500_return_1d",
           "label": "S&P 500 1일 수익률",
-          "reason": "이 게시물과 일치하는 동결 미국 종가를 확인할 수 없습니다.",
+          "reason": null,
           "unit": "ratio",
-          "value": null
+          "value": 0.015970202713969872
         },
         {
-          "availability": "unavailable",
+          "availability": "reconstructed",
           "chart_series_key": "nasdaq",
           "chart_transform": "return1",
-          "date": null,
+          "date": "2026-11-27",
           "derivation": "컷오프 이전 확정 미국 거래일 종가 / 직전 거래일 종가 - 1",
           "heads": [
             "close",
@@ -213,15 +213,15 @@
           ],
           "key": "nasdaq_return_1d",
           "label": "Nasdaq 1일 수익률",
-          "reason": "이 게시물과 일치하는 동결 미국 종가를 확인할 수 없습니다.",
+          "reason": null,
           "unit": "ratio",
-          "value": null
+          "value": 0.02305188726235685
         },
         {
-          "availability": "unavailable",
+          "availability": "reconstructed",
           "chart_series_key": "sox",
           "chart_transform": "return1",
-          "date": null,
+          "date": "2026-11-27",
           "derivation": "컷오프 이전 확정 미국 거래일 종가 / 직전 거래일 종가 - 1",
           "heads": [
             "close",
@@ -229,15 +229,15 @@
           ],
           "key": "sox_return_1d",
           "label": "SOX 1일 수익률",
-          "reason": "이 게시물과 일치하는 동결 미국 종가를 확인할 수 없습니다.",
+          "reason": null,
           "unit": "ratio",
-          "value": null
+          "value": 0.04693449716925979
         },
         {
-          "availability": "unavailable",
+          "availability": "reconstructed",
           "chart_series_key": "ewy",
           "chart_transform": "return1",
-          "date": null,
+          "date": "2026-11-27",
           "derivation": "컷오프 이전 확정 미국 거래일 종가 / 직전 거래일 종가 - 1",
           "heads": [
             "close",
@@ -245,24 +245,24 @@
           ],
           "key": "ewy_return_1d",
           "label": "EWY 1일 수익률",
-          "reason": "이 게시물과 일치하는 동결 미국 종가를 확인할 수 없습니다.",
+          "reason": null,
           "unit": "ratio",
-          "value": null
+          "value": 0.0516293679301576
         },
         {
-          "availability": "unavailable",
+          "availability": "reconstructed",
           "chart_series_key": "koru",
           "chart_transform": "return1",
-          "date": null,
+          "date": "2026-11-27",
           "derivation": "컷오프 이전 확정 미국 거래일 종가 / 직전 거래일 종가 - 1",
           "heads": [
             "close"
           ],
           "key": "koru_return_1d",
           "label": "KORU 1일 수익률",
-          "reason": "이 게시물과 일치하는 동결 미국 종가를 확인할 수 없습니다.",
+          "reason": null,
           "unit": "ratio",
-          "value": null
+          "value": 0.1404175048640557
         }
       ],
       "run_id": "46080118002",
@@ -278,7 +278,7 @@
       "label": "모델 C",
       "market": "KOSPI",
       "prediction_cutoff": "2026-11-27T23:04:55.624821+00:00",
-      "provenance": "unavailable",
+      "provenance": "frozen",
       "publication_id": "734bfc7b79c379451be98432831aa17cd79c17ee2179ce81ccd9803a03a4f4d7",
       "rows": [
         {
@@ -312,7 +312,7 @@
           "value": 4915.68
         },
         {
-          "availability": "unavailable",
+          "availability": "reconstructed",
           "chart_series_key": "kospi",
           "chart_transform": "return1",
           "date": "2026-11-27",
@@ -322,12 +322,12 @@
           ],
           "key": "return_1d",
           "label": "1일 수익률",
-          "reason": "이 게시물과 일치하는 동결 입력을 확인할 수 없습니다.",
+          "reason": null,
           "unit": "ratio",
-          "value": null
+          "value": 0.04340073993729865
         },
         {
-          "availability": "unavailable",
+          "availability": "reconstructed",
           "chart_series_key": "kospi",
           "chart_transform": "return5",
           "date": "2026-11-27",
@@ -337,12 +337,12 @@
           ],
           "key": "return_5d",
           "label": "5일 수익률",
-          "reason": "이 게시물과 일치하는 동결 입력을 확인할 수 없습니다.",
+          "reason": null,
           "unit": "ratio",
-          "value": null
+          "value": 0.00938816745928106
         },
         {
-          "availability": "unavailable",
+          "availability": "reconstructed",
           "chart_series_key": "kospi",
           "chart_transform": "volatility20_daily",
           "date": "2026-11-27",
@@ -352,9 +352,9 @@
           ],
           "key": "volatility_20d",
           "label": "20일 일간 수익률 변동성",
-          "reason": "이 게시물과 일치하는 동결 입력을 확인할 수 없습니다.",
+          "reason": null,
           "unit": "ratio",
-          "value": null
+          "value": 0.037072178528937356
         }
       ],
       "run_id": "46080118002",
@@ -478,7 +478,7 @@
       "label": "모델 B",
       "market": "KOSDAQ",
       "prediction_cutoff": "2026-11-27T23:04:55.624821+00:00",
-      "provenance": "unavailable",
+      "provenance": "frozen",
       "publication_id": "734bfc7b79c379451be98432831aa17cd79c17ee2179ce81ccd9803a03a4f4d7",
       "rows": [
         {
@@ -497,7 +497,7 @@
           "value": 708.99
         },
         {
-          "availability": "unavailable",
+          "availability": "reconstructed",
           "chart_series_key": "kosdaq",
           "chart_transform": "return1",
           "date": "2026-11-27",
@@ -508,12 +508,12 @@
           ],
           "key": "return_1d",
           "label": "1일 수익률",
-          "reason": "이 게시물과 일치하는 동결 입력을 확인할 수 없습니다.",
+          "reason": null,
           "unit": "ratio",
-          "value": null
+          "value": 0.08125543304204608
         },
         {
-          "availability": "unavailable",
+          "availability": "reconstructed",
           "chart_series_key": "kosdaq",
           "chart_transform": "return5",
           "date": "2026-11-27",
@@ -524,12 +524,12 @@
           ],
           "key": "return_5d",
           "label": "5일 수익률",
-          "reason": "이 게시물과 일치하는 동결 입력을 확인할 수 없습니다.",
+          "reason": null,
           "unit": "ratio",
-          "value": null
+          "value": 0.09805166646016605
         },
         {
-          "availability": "unavailable",
+          "availability": "reconstructed",
           "chart_series_key": "kosdaq",
           "chart_transform": "volatility20_daily",
           "date": "2026-11-27",
@@ -541,15 +541,15 @@
           ],
           "key": "volatility_20d",
           "label": "20일 일간 수익률 변동성",
-          "reason": "이 게시물과 일치하는 동결 입력을 확인할 수 없습니다.",
+          "reason": null,
           "unit": "ratio",
-          "value": null
+          "value": 0.039745592211505115
         },
         {
-          "availability": "unavailable",
+          "availability": "reconstructed",
           "chart_series_key": "sp500",
           "chart_transform": "return1",
-          "date": null,
+          "date": "2026-11-27",
           "derivation": "컷오프 이전 확정 미국 거래일 종가 / 직전 거래일 종가 - 1",
           "heads": [
             "close",
@@ -557,15 +557,15 @@
           ],
           "key": "sp500_return_1d",
           "label": "S&P 500 1일 수익률",
-          "reason": "이 게시물과 일치하는 동결 미국 종가를 확인할 수 없습니다.",
+          "reason": null,
           "unit": "ratio",
-          "value": null
+          "value": 0.015970202713969872
         },
         {
-          "availability": "unavailable",
+          "availability": "reconstructed",
           "chart_series_key": "nasdaq",
           "chart_transform": "return1",
-          "date": null,
+          "date": "2026-11-27",
           "derivation": "컷오프 이전 확정 미국 거래일 종가 / 직전 거래일 종가 - 1",
           "heads": [
             "close",
@@ -573,15 +573,15 @@
           ],
           "key": "nasdaq_return_1d",
           "label": "Nasdaq 1일 수익률",
-          "reason": "이 게시물과 일치하는 동결 미국 종가를 확인할 수 없습니다.",
+          "reason": null,
           "unit": "ratio",
-          "value": null
+          "value": 0.02305188726235685
         },
         {
-          "availability": "unavailable",
+          "availability": "reconstructed",
           "chart_series_key": "sox",
           "chart_transform": "return1",
-          "date": null,
+          "date": "2026-11-27",
           "derivation": "컷오프 이전 확정 미국 거래일 종가 / 직전 거래일 종가 - 1",
           "heads": [
             "close",
@@ -589,15 +589,15 @@
           ],
           "key": "sox_return_1d",
           "label": "SOX 1일 수익률",
-          "reason": "이 게시물과 일치하는 동결 미국 종가를 확인할 수 없습니다.",
+          "reason": null,
           "unit": "ratio",
-          "value": null
+          "value": 0.04693449716925979
         },
         {
-          "availability": "unavailable",
+          "availability": "reconstructed",
           "chart_series_key": "ewy",
           "chart_transform": "return1",
-          "date": null,
+          "date": "2026-11-27",
           "derivation": "컷오프 이전 확정 미국 거래일 종가 / 직전 거래일 종가 - 1",
           "heads": [
             "close",
@@ -605,9 +605,9 @@
           ],
           "key": "ewy_return_1d",
           "label": "EWY 1일 수익률",
-          "reason": "이 게시물과 일치하는 동결 미국 종가를 확인할 수 없습니다.",
+          "reason": null,
           "unit": "ratio",
-          "value": null
+          "value": 0.0516293679301576
         }
       ],
       "run_id": "46080118002",
@@ -623,7 +623,7 @@
       "label": "모델 C",
       "market": "KOSDAQ",
       "prediction_cutoff": "2026-11-27T23:04:55.624821+00:00",
-      "provenance": "unavailable",
+      "provenance": "frozen",
       "publication_id": "734bfc7b79c379451be98432831aa17cd79c17ee2179ce81ccd9803a03a4f4d7",
       "rows": [
         {
@@ -657,7 +657,7 @@
           "value": 708.99
         },
         {
-          "availability": "unavailable",
+          "availability": "reconstructed",
           "chart_series_key": "kosdaq",
           "chart_transform": "volatility20_daily",
           "date": "2026-11-27",
@@ -667,9 +667,9 @@
           ],
           "key": "volatility_20d",
           "label": "20일 일간 수익률 변동성",
-          "reason": "이 게시물과 일치하는 동결 입력을 확인할 수 없습니다.",
+          "reason": null,
           "unit": "ratio",
-          "value": null
+          "value": 0.039745592211505115
         }
       ],
       "run_id": "46080118002",

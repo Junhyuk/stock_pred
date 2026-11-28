@@ -47,6 +47,8 @@ INDEX_FORECAST_PAGE_FILES = (
     "assets/market-indicators.js",
     "assets/unofficial-numerics.js",
     "assets/cross-assets.js",
+    "assets/market-data-explorer.js",
+    "assets/market-data-explorer.css",
     "assets/forecast-ranges.js",
     "assets/model-b.js",
     "assets/model-c.js",

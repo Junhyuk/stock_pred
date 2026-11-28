@@ -24,6 +24,9 @@ def test_bok_uses_decided_destination_rate_before_dissent():
         text = f"2026.11.26 The Board decided today to {decision}. Other members proposed to keep the Base Rate at 3.50%."
         _, releases, _, _ = economic_sources._parse_bok_rate(source, NOW, "hash", text)
         assert [row["value"] for row in releases] == [expected]
+    text = "The Board decided to change the Base Rate. One member proposed to keep the Base Rate at 3.50%."
+    _, releases, _, _ = economic_sources._parse_bok_rate(source, NOW, "hash", text)
+    assert releases == []
 
 
 def _collect(*args, **kwargs):

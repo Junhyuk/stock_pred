@@ -30,7 +30,7 @@ jobs:
   forecast:
     if: github.ref == 'refs/heads/master' || inputs.mode == 'validate'
     runs-on: ubuntu-latest
-    timeout-minutes: ${{ inputs.mode == 'prepare' && 6 || (inputs.mode == 'validate' && inputs.replay_chart_inputs) && 10 || (inputs.mode == 'validate' && inputs.indicators_only) && 4 || inputs.mode == 'validate' && 10 || 25 }}
+    timeout-minutes: ${{ inputs.mode == 'prepare' && 6 || (inputs.mode == 'validate' && inputs.indicators_only && !inputs.replay_chart_inputs) && 4 || inputs.mode == 'validate' && 10 || 25 }}
     permissions:
       contents: write
       actions: read

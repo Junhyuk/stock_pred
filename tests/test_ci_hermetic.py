@@ -24,6 +24,8 @@ CLOCK_OWNERS = {"datetime", "date", "Timestamp"}
 
 # (test file, repo-relative path prefix) -> why this reference to a live-looking path is deliberate.
 ALLOWED_LIVE_PATHS = {
+    ("test_overseas_institutional_holdings.py", "docs/data/overseas-institutional-holdings.json"):
+        "manually curated SEC filing identifiers; the scheduled collectors do not rewrite this file",
     ("test_premarket_us_shadow_ops.py", "research/premarket_us_shadow/preregistration.json"):
         "frozen preregistration pinned by SHA-256; the shadow job only appends to ledger.jsonl",
     ("test_premarket_us_shadow_ops.py", "docs/data/should_not_exist.json"):
