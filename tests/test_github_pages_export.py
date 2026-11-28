@@ -52,13 +52,22 @@ def test_manual_bc_publication_survives_export_and_stays_out_of_runner_publish(t
         "data/model_b_accuracy.json",
         "data/model_c_forecast.json",
     )
-    preserved = exporter._preserve_index_forecast_pages(tmp_path / "site")
+    # The checked-in pair changes each morning. Exercise the local-run contract
+    # with explicitly local forecasts, regardless of the latest scheduled run.
+    site = tmp_path / "site"
+    (site / "data").mkdir(parents=True)
+    for name in ("data/model_b_forecast.json", "data/model_c_forecast.json"):
+        payload = json.loads((docs / name).read_bytes())
+        payload["trigger"] = "local_cpu"
+        (site / name).write_text(json.dumps(payload), encoding="utf-8")
+
+    preserved = exporter._preserve_index_forecast_pages(site)
     for name in files:
-        assert preserved[name] == (docs / name).read_bytes()
+        source = site / name if (site / name).is_file() else docs / name
+        assert preserved[name] == source.read_bytes()
 
-    runner_paths = set(exporter.public_payload_paths(docs / "data"))
-    assert runner_paths.isdisjoint(docs / name for name in files)
-
+    runner_paths = set(exporter.public_payload_paths(site / "data"))
+    assert runner_paths.isdisjoint(site / name for name in files)
 
 
 def test_export_github_pages_site_writes_static_json_and_relative_assets(tmp_path) -> None:
@@ -81,7 +90,9 @@ def test_export_github_pages_site_writes_static_json_and_relative_assets(tmp_pat
     landing = (output / "index.html").read_text(encoding="utf-8")
     assert 'href="reliable-index-forecast.html"' in landing
     assert 'Top50 Daily Dashboard' not in landing
-    for relative in ("reliable-index-forecast.html", "assets/forecast-ranges.js", "assets/margin-credit.js", "assets/margin-credit.css",
+    for relative in ("reliable-index-forecast.html", "assets/forecast-market-tabs.js",
+                     "assets/benchmarks/kospi200-1y.png", "assets/benchmarks/kosdaq150-1y.png",
+                     "assets/forecast-ranges.js", "assets/margin-credit.js", "assets/margin-credit.css",
                      "assets/economic-calendar.js", "data/margin_credit_chart.json", "data/economic_calendar.json",
                      "data/market_closes.json", "data/market_closes_publication.json", "data/automation_status.json"):
         assert (output / relative).read_bytes() == (ROOT / "docs" / relative).read_bytes()
@@ -193,9 +204,9 @@ def test_export_github_pages_site_writes_static_json_and_relative_assets(tmp_pat
     x_impact = json.loads((output / "data" / "x_news_top20_impact.json").read_text(encoding="utf-8"))
     assert x_impact["status"] == "not_collected"
     assert "X 뉴스 영향도 미생성" in x_impact["messages"][0]
-    combined = "\n".join(path.read_text(encoding="utf-8") for path in output.rglob("*") if path.is_file())
-    assert "super-secret" not in combined
-    assert "연구·정보제공용" in combined
+    combined = b"\n".join(path.read_bytes() for path in output.rglob("*") if path.is_file())
+    assert b"super-secret" not in combined
+    assert "연구·정보제공용".encode("utf-8") in combined
 
 
 def test_premarket_shadow_readiness_uses_latest_prediction_date(tmp_path) -> None:
