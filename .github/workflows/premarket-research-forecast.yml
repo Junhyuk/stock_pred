@@ -233,6 +233,7 @@ jobs:
         env:
           CHART_SQLITE: ${{ steps.refresh.outputs.sqlite }}
           BOK_ECOS_API_KEY: ${{ secrets.BOK_ECOS_API_KEY }}
+          DATA_GO_KR_SERVICE_KEY: ${{ secrets.DATA_GO_KR_SERVICE_KEY }}
         run: python scripts/collect_market_chart_history.py --sqlite "$CHART_SQLITE" --output docs/data/market-chart-history.json
       - name: Seal private cache
         id: seal
@@ -254,7 +255,7 @@ jobs:
         timeout-minutes: 2
         run: |
           set -euo pipefail
-          python -m pytest -q tests/test_market_chart_history.py tests/test_market_chart_model_inputs.py tests/test_market_chart_workflow.py
+          python -m pytest -q tests/test_market_chart_history.py tests/test_market_chart_macro.py tests/test_market_chart_credit.py tests/test_market_chart_model_inputs.py tests/test_market_chart_workflow.py
           npm install --prefix "$RUNNER_TEMP/chart-browser" --no-audit --no-fund --ignore-scripts playwright-core@1.65.1
           NODE_PATH="$RUNNER_TEMP/chart-browser/node_modules" node tests/market_data_explorer_ui.test.cjs
           mkdir -p "$RUNNER_TEMP/chart-smoke" "$RUNNER_TEMP/chart-smoke-private"

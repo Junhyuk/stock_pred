@@ -41,7 +41,7 @@ def test_indicator_credentials_are_scoped_to_collection_steps():
         "Collect bounded market indicators": ("scripts/collect_market_indicators.py", credentials),
         "Validate market indicators without publication": ("scripts/collect_market_indicators.py", credentials),
         "Refresh exact Korean benchmark observations": ("scripts/run_benchmark_forecasts.py collect", {"DATA_GO_KR_SERVICE_KEY"}),
-        "Refresh public market chart history": ("scripts/collect_market_chart_history.py", {"BOK_ECOS_API_KEY"}),
+        "Refresh public market chart history": ("scripts/collect_market_chart_history.py", credentials),
     }
     collectors = set()
     for step in job["steps"]:

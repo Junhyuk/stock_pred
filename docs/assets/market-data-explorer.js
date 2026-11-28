@@ -6,7 +6,7 @@
   if (!section) return;
 
   const nodes = Object.fromEntries([
-    'status', 'controls', 'model', 'category', 'chart', 'range', 'custom', 'start', 'end', 'panel',
+    'status', 'controls', 'model', 'category', 'country', 'chart', 'range', 'custom', 'start', 'end', 'panel',
     'chart-title', 'description', 'plot', 'observation', 'date', 'prev', 'next', 'readings', 'model-inputs',
   ].map(key => [key, pick('market-explorer-' + key)]));
   const dayMs = 86400000;
@@ -16,27 +16,49 @@
   ];
   const unitNames = {
     percent: '%', index_points: 'pt', index_point: 'pt', points: 'pt', KRW: '원', USD: 'USD',
-    thousand_persons: '천 명', persons: '명', million_persons: '백만 명',
+    thousand_persons: '천 명', persons: '명', million_persons: '백만 명', trillion_KRW: '조 원',
   };
   const domestic = ['kospi', 'kosdaq'];
   const american = ['sp500', 'nasdaq', 'sox', 'ewy', 'koru'];
   const horizons = [1, 5, 20];
+  const treasuryMaturities = [1, 3, 5, 10];
+  const treasuryCountries = [['kr', '한국'], ['us', '미국'], ['jp', '일본']];
+  const creditKey = 'margin_credit_total';
   const labels = {
     kospi: '코스피', kosdaq: '코스닥', sp500: 'S&P 500', nasdaq: '나스닥 종합', sox: '필라델피아 반도체',
     ewy: 'EWY', koru: 'KORU', usdkrw: '원/달러', dxy: '달러 인덱스', vix: 'VIX',
-    kr_1y: '한국 국채 1년', kr_3y: '한국 국채 3년', kr_10y: '한국 국채 10년',
-    us_1y: '미국 국채 1년', us_3y: '미국 국채 3년', us_10y: '미국 국채 10년',
-    wti: 'WTI', brent: '브렌트유', gold: '금', copper: '구리',
+    ...Object.fromEntries(treasuryCountries.flatMap(([country, name]) =>
+      treasuryMaturities.map(years => [country + '_' + years + 'y', name + ' 국채 ' + years + '년']))),
+    [creditKey]: '전체 신용융자 잔고',
+    wti: 'WTI', brent: '브렌트유', gold: '금', copper: '구리', btc: '비트코인 (BTC)', eth: '이더리움 (ETH)',
     es_futures: 'S&P 500 선물', nq_futures: '나스닥 100 선물', kospi200_basis: '코스피 200 선물 베이시스',
     kr_inflation: '한국 소비자물가', us_inflation: '미국 소비자물가',
     kr_unemployment: '한국 실업률', us_unemployment: '미국 실업률',
     kr_employment: '한국 고용', us_employment: '미국 고용',
     kr_policy_rate: '한국 기준금리', us_policy_rate: '미국 정책금리 중간값',
     us_policy_rate_lower: '미국 정책금리 하단', us_policy_rate_upper: '미국 정책금리 상단',
+    us_pce: '미국 PCE 물가', us_core_pce: '미국 근원 PCE 물가', us_employment_change: '미국 비농업 고용 전월 증감',
+    jp_inflation: '일본 소비자물가', jp_unemployment: '일본 실업률', jp_employment: '일본 고용',
+    jp_policy_rate: '일본 무담보 익일물 콜금리 목표', jp_policy_rate_lower: '일본 콜금리 목표 하단',
+    jp_policy_rate_upper: '일본 콜금리 목표 상단', jp_negative_policy_balances: '일본 정책금리 잔고 적용금리 (종료)',
+    ea_inflation: '유로 지역 소비자물가', ea_unemployment: '유로 지역 실업률', ea_policy_rate: 'ECB 예금금리',
   };
   const level = key => ({ id: key, keys: [key], label: labels[key], transform: 'level' });
   const group = (id, label, charts) => ({ id, label, charts });
   const chart = (id, label, keys, transform = 'level', note = '') => ({ id, label, keys, transform, note });
+  const economics = {
+    KR: ['kr_inflation', 'kr_unemployment', 'kr_employment', 'kr_policy_rate'],
+    US: ['us_inflation', 'us_unemployment', 'us_employment', 'us_employment_change', 'us_pce', 'us_core_pce',
+      'us_policy_rate', 'us_policy_rate_lower', 'us_policy_rate_upper'],
+    JP: ['jp_inflation', 'jp_unemployment', 'jp_employment', 'jp_policy_rate', 'jp_policy_rate_lower', 'jp_policy_rate_upper',
+      'jp_negative_policy_balances'],
+    EA: ['ea_inflation', 'ea_unemployment', 'ea_policy_rate'],
+  };
+  const historyLinks = {
+    'market-history-economics': { group: 'economics', country: 'KR', chart: 'kr_inflation' },
+    'market-history-rates': { group: 'kr-rates', chart: 'kr-rates' },
+    'market-history-cross-assets': { group: 'cross-snapshot', chart: 'usdkrw' },
+  };
   const groups = [
     group('domestic', '국내 지수', [
       chart('kr-rebased', '코스피·코스닥 비교', domestic, 'rebased'),
@@ -50,14 +72,14 @@
       ...american.map(level),
     ]),
     group('fx-volatility', '환율·변동성', ['usdkrw', 'dxy', 'vix'].map(level)),
-    group('kr-rates', '한국 국채 금리', [
-      chart('kr-rates', '한국 국채 1·3·10년', ['kr_1y', 'kr_3y', 'kr_10y']),
-      ...['kr_1y', 'kr_3y', 'kr_10y'].map(level),
-    ]),
-    group('us-rates', '미국 국채 금리', [
-      chart('us-rates', '미국 국채 1·3·10년', ['us_1y', 'us_3y', 'us_10y']),
-      ...['us_1y', 'us_3y', 'us_10y'].map(level),
-    ]),
+    ...treasuryCountries.map(([country, name]) => {
+      const keys = treasuryMaturities.map(years => country + '_' + years + 'y');
+      return group(country + '-rates', name + ' 국채 금리', [
+        chart(country + '-rates', name + ' 국채 1·3·5·10년', keys), ...keys.map(level),
+      ]);
+    }),
+    group('margin-credit', '전체 신용융자', [level(creditKey)]),
+    group('cross-snapshot', '환율·원유·가상자산', ['usdkrw', 'dxy', 'wti', 'brent', 'btc', 'eth'].map(level)),
     group('oil', '국제 원유', [
       chart('oil-comparison', 'WTI·브렌트유 비교', ['wti', 'brent']), ...['wti', 'brent'].map(level),
     ]),
@@ -68,10 +90,7 @@
       chart('us-futures', '미국 지수 선물 비교', ['es_futures', 'nq_futures'], 'rebased'),
       ...['es_futures', 'nq_futures', 'kospi200_basis'].map(level),
     ]),
-    group('economics', '경제지표·정책금리', [
-      ...['kr_inflation', 'us_inflation', 'kr_unemployment', 'us_unemployment', 'kr_employment', 'us_employment',
-        'kr_policy_rate', 'us_policy_rate', 'us_policy_rate_lower', 'us_policy_rate_upper'].map(level),
-    ]),
+    group('economics', '경제지표·정책금리', Object.values(economics).flat().map(level)),
   ];
   const transforms = {
     return1: '1거래일 수익률', return5: '5거래일 수익률', return20: '20거래일 수익률',
@@ -84,11 +103,16 @@
     unavailable: '확인 불가', selected_not_ready: '선택된 입력 · 예측 미공개',
   };
   const headNames = { close: '종가', direction: '방향', interval: '범위', probability: '확률', trigger: '급변 조건' };
-  const dateLabels = { release_date: '발표일', reference_month: '기준 기간', effective_date: '적용일' };
+  const dateLabels = { release_date: '발표일', reference_month: '기준 기간', effective_date: '적용일', settlement_date: '결제일' };
   const kst = new Intl.DateTimeFormat('ko-KR', {
     timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
   });
+  const kstCalendar = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit',
+  });
   let history = {};
+  let historyAsOf = '';
+  let activeHistoryLink = '';
   let models = new Map();
   let chartOptions = [];
   let verifiedModel = null;
@@ -199,12 +223,30 @@
     return target.toISOString().slice(0, 10);
   }
 
+  function setPolicyWindow(entry, start, end) {
+    const last = entry.points.findLast(point => point.date <= end);
+    if (!last) return;
+    const verified = entry.source.verified_through;
+    entry.stepEnd = last.date;
+    if (entry.key !== 'jp_negative_policy_balances' && isoDate(verified) && verified > last.date) {
+      entry.stepEnd = verified < end ? verified : end;
+    }
+    if (entry.stepEnd >= start && !entry.visible.has(start)) {
+      entry.carry = entry.points.findLast(point => point.date < start);
+    }
+  }
+
   function makeFrame(config) {
     const series = config.keys.map((key, index) => {
       const source = history[key] || { points: [] };
+      const credit = key === creditKey;
+      const scaleCredit = credit && source.unit === 'KRW';
+      const points = scaleCredit ? source.points.map(([date, value]) => [date, value / 1e12]) : source.points;
       return {
         key, source, label: source.label || labels[key] || key, style: colors[index % colors.length],
-        points: transformPoints(key, source.points, config.transform),
+        basis: credit ? 'settlement_date' : source.date_basis,
+        unit: scaleCredit ? 'trillion_KRW' : source.unit, pointsOnly: credit,
+        points: transformPoints(key, points, config.transform),
       };
     });
     const allDates = Array.from(new Set(series.flatMap(entry => entry.points.map(point => point.date)))).sort();
@@ -214,14 +256,21 @@
       node.min = first || '';
       node.max = last || '';
     }
-    const months = { '1m': 1, '3m': 3, '6m': 6, '1y': 12 }[nodes.range.value];
+    const range = nodes.range.value;
+    const months = { '1m': 1, '3m': 3, '6m': 6, '1y': 12 }[range];
+    const longRange = range === '3y';
     const custom = nodes.range.value === 'custom';
-    const start = custom && nodes.start.value ? nodes.start.value : last && months ? periodStart(last, months) : first;
-    const end = custom && nodes.end.value ? nodes.end.value : last;
+    const end = longRange ? historyAsOf : custom && nodes.end.value ? nodes.end.value : last;
+    const start = longRange ? periodStart(end, 36) :
+      custom && nodes.start.value ? nodes.start.value : last && months ? periodStart(last, months) : first;
+    const startMonth = longRange ? start.slice(0, 7) + '-01' : start;
+    const axisStart = series[0]?.basis === 'reference_month' ? startMonth : start;
     const dateError = Boolean(start && end && start > end);
     for (const entry of series) {
-      entry.visible = new Map(entry.points.filter(point => !dateError && point.date >= start && point.date <= end)
+      const firstDate = entry.basis === 'reference_month' ? startMonth : start;
+      entry.visible = new Map(entry.points.filter(point => !dateError && point.date >= firstDate && point.date <= end)
         .map(point => [point.date, point]));
+      if (!dateError && config.transform === 'level' && entry.basis === 'effective_date') setPolicyWindow(entry, start, end);
     }
     const available = series.filter(entry => entry.visible.size);
     let baseline;
@@ -234,24 +283,29 @@
           initial && date >= baseline ? [[date, { ...point, value: 100 * point.value / initial }]] : []));
       }
     }
-    const visibleDates = Array.from(new Set(series.flatMap(entry => Array.from(entry.visible.keys())))).sort();
+    const visibleDates = Array.from(new Set(series.flatMap(entry => entry.carry ?
+      [start, ...entry.visible.keys()] : [...entry.visible.keys()]))).sort();
     const transform = config.transform;
-    const unit = transform === 'rebased' ? '' : Object.hasOwn(transforms, transform) ? '%' : series.find(entry => entry.visible.size)?.source.unit;
-    return { config, series, visibleDates, baseline, unit, first, last, start, end, dateError, requiresBaseline: available.length > 0 && !baseline && transform === 'rebased' };
+    const unit = transform === 'rebased' ? '' : Object.hasOwn(transforms, transform) ? '%' :
+      series.find(entry => entry.visible.size || entry.carry)?.unit;
+    return { config, series, visibleDates, baseline, unit, start, end, axisStart, longRange, dateError,
+      requiresBaseline: available.length > 0 && !baseline && transform === 'rebased' };
   }
 
   function description(current) {
-    const { config, baseline, unit, series } = current;
+    const { config, baseline, unit, series, longRange, start, end } = current;
     const notes = [];
+    if (longRange) notes.push('조회 범위 ' + start + ' ~ ' + end + ' (한국시간)');
     if (config.transform === 'rebased' && baseline) notes.push('공통 관측일 ' + baseline + '의 실제 값을 100으로 환산했습니다.');
     if (config.transform.startsWith('return')) notes.push('각 지표의 ' + transforms[config.transform] + ' · 단위 %');
     if (config.transform === 'volatility20') notes.push('최근 20개 일간 수익률의 표본 표준편차 × √252 · 단위 %');
     if (config.transform === 'volatility20_daily') notes.push('최근 20개 일간 수익률의 표본 표준편차 · 단위 %');
     if (config.transform === 'level' && unit) notes.push('단위 ' + (unitNames[unit] || unit));
-    const basis = dateLabels[series[0]?.source.date_basis];
+    const basis = dateLabels[series[0]?.basis];
     if (basis) notes.push('가로축 ' + basis);
+    if (config.keys.includes(creditKey)) notes.push('공개된 결제일의 잔고를 점으로 표시합니다.');
     if (config.note) notes.push(config.note);
-    return notes.join(' ');
+    return notes.join(' · ');
   }
 
   function emptyPlot(message) {
@@ -260,11 +314,13 @@
 
   function renderPlot() {
     if (!frame?.visibleDates.length) return;
-    const { series, visibleDates, unit, config } = frame;
+    const { series, visibleDates, unit, config, longRange } = frame;
     const width = Math.max(250, Math.floor(nodes.plot.getBoundingClientRect().width));
     plotWidth = width;
     const height = width < 500 ? 220 : 300;
-    const values = series.flatMap(entry => Array.from(entry.visible.values(), point => point.value));
+    const values = series.flatMap(entry => [
+      ...Array.from(entry.visible.values(), point => point.value), ...(entry.carry ? [entry.carry.value] : []),
+    ]);
     const crossesZero = Math.min(...values) < 0 && Math.max(...values) > 0;
     const showZero = config.transform.startsWith('return') || config.keys.includes('kospi200_basis') || crossesZero;
     const centerline = config.transform === 'rebased' ? 100 : showZero ? 0 : null;
@@ -284,8 +340,11 @@
       [...gridValues.filter(tick => Math.abs(tick - centerline) > spacing), centerline];
     const x0 = Math.max(53, 10 + Math.max(...yTicks.map(value => format(value, '', false, tickPrecision).length)) * 7);
     const x1 = width - 17;
-    const firstDay = Date.parse(visibleDates[0]);
-    const lastDay = Date.parse(visibleDates.at(-1));
+    const axisStart = longRange ? frame.axisStart : visibleDates[0];
+    const axisEnd = longRange ? frame.end : series.reduce(
+      (last, entry) => entry.stepEnd > last ? entry.stepEnd : last, visibleDates.at(-1));
+    const firstDay = Date.parse(axisStart);
+    const lastDay = Date.parse(axisEnd);
     const x = date => firstDay === lastDay ? (x0 + x1) / 2 : x0 + (Date.parse(date) - firstDay) * (x1 - x0) / (lastDay - firstDay);
     const y = value => y1 - (value - lower) * (y1 - y0) / (upper - lower);
     const svg = svgElement('svg', {
@@ -295,7 +354,7 @@
     svg.append(
       svgElement('title', { id: 'market-explorer-svg-title' }, config.label),
       svgElement('desc', { id: 'market-explorer-svg-desc' },
-        visibleDates[0] + ' ~ ' + visibleDates.at(-1) + ' · ' + (unitNames[unit] || unit || '공통 시작일 = 100') + ' · 아래 관측일에서 날짜별 실제 값을 확인할 수 있습니다.'),
+        axisStart + ' ~ ' + axisEnd + ' · ' + (unitNames[unit] || unit || '공통 시작일 = 100') + ' · 아래 관측일에서 날짜별 실제 값을 확인할 수 있습니다.'),
     );
     for (const tick of yTicks) {
       const lineClass = tick === centerline ? 'market-explorer-centerline' : 'market-explorer-grid';
@@ -304,30 +363,40 @@
         svgElement('text', { x: x0 - 7, y: y(tick) + 4, 'text-anchor': 'end' }, format(tick, '', false, tickPrecision)),
       );
     }
-    const dateMarkers = firstDay === lastDay ? [visibleDates[0]] :
-      width < 520 ? [visibleDates[0], visibleDates.at(-1)] :
-        [visibleDates[0], new Date(firstDay + Math.round((lastDay - firstDay) / dayMs / 2) * dayMs).toISOString().slice(0, 10), visibleDates.at(-1)];
+    const dateMarkers = firstDay === lastDay ? [axisStart] : width < 520 ? [axisStart, axisEnd] :
+      [axisStart, new Date(firstDay + Math.round((lastDay - firstDay) / dayMs / 2) * dayMs).toISOString().slice(0, 10), axisEnd];
     dateMarkers.forEach((date, index) => svg.append(svgElement('text', {
       x: x(date), y: height - 8, 'text-anchor': dateMarkers.length === 1 || index === 1 && dateMarkers.length === 3 ? 'middle' : index === 0 ? 'start' : 'end',
-    }, series[0]?.source.date_basis === 'reference_month' ? date.slice(0, 7) : date)));
+    }, series[0]?.basis === 'reference_month' ? date.slice(0, 7) : date)));
     svg.append(svgElement('line', { x1: x(selectedDate), y1: y0, x2: x(selectedDate), y2: y1, class: 'market-explorer-cursor' }));
     for (const entry of series) {
       const points = Array.from(entry.visible.values());
-      const connected = index => index > 0 && index < points.length &&
-        (points[index].session == null || points[index].session === points[index - 1].session + 1);
-      const path = points.map(({ date, value }, index) => {
+      if (entry.carry) points.unshift({ ...entry.carry, date: frame.start });
+      const connected = index => {
+        if (entry.pointsOnly || index < 1 || index >= points.length) return false;
+        const previous = points[index - 1];
+        const point = points[index];
+        if (entry.basis === 'reference_month') {
+          return periodStart(point.date, 1).slice(0, 7) === previous.date.slice(0, 7);
+        }
+        return point.session == null || point.session === previous.session + 1;
+      };
+      const path = entry.pointsOnly ? [] : points.map(({ date, value }, index) => {
         if (!connected(index)) return 'M' + x(date) + ' ' + y(value);
-        if (entry.source.date_basis === 'effective_date') return 'H' + x(date) + 'V' + y(value);
+        if (entry.basis === 'effective_date') return 'H' + x(date) + 'V' + y(value);
         return 'L' + x(date) + ' ' + y(value);
-      }).join(' ');
-      if (path) svg.append(svgElement('path', {
-        d: path, fill: 'none', stroke: entry.style.ink, 'stroke-dasharray': entry.style.dash, 'stroke-width': 2,
+      });
+      if (path.length && entry.stepEnd > points.at(-1).date) path.push('H' + x(entry.stepEnd));
+      if (path.length) svg.append(svgElement('path', {
+        d: path.join(' '), fill: 'none', stroke: entry.style.ink, 'stroke-dasharray': entry.style.dash, 'stroke-width': 2,
       }));
+      const markerSize = entry.pointsOnly && points.length > 200 ? 1.8 : 3;
       points.forEach((point, index) => {
-        if (point.date === selectedDate || (!connected(index) && !connected(index + 1))) {
+        const active = point.date === selectedDate;
+        if (active || (!connected(index) && !connected(index + 1))) {
           svg.append(svgElement('circle', {
-            cx: x(point.date), cy: y(point.value), r: point.date === selectedDate ? 4 : 3,
-            fill: entry.style.ink, stroke: 'white', 'stroke-width': 1,
+            cx: x(point.date), cy: y(point.value), r: active ? 4 : markerSize,
+            fill: entry.style.ink, stroke: active || !entry.pointsOnly ? 'white' : 'none', 'stroke-width': 1,
           }));
         }
       });
@@ -343,6 +412,11 @@
     nodes.plot.replaceChildren(svg);
   }
 
+  function displayDate(entry, date) {
+    if (entry.basis !== 'reference_month') return date;
+    return entry.source.reference_periods?.[date] || date.slice(0, 7);
+  }
+
   function renderReadings() {
     const transformed = frame.config.transform !== 'level';
     nodes.readings.replaceChildren(...frame.series.map(entry => {
@@ -354,9 +428,10 @@
       if (entry.style.dash) swatch.dataset.dashed = 'true';
       label.prepend(swatch);
       item.append(label);
-      const point = entry.visible.get(selectedDate);
+      const carried = frame.start === selectedDate && entry.carry;
+      const point = entry.visible.get(selectedDate) || carried;
       if (point) {
-        item.append(element('strong', format(point.actual, entry.source.unit), 'market-explorer-value'));
+        item.append(element('strong', format(point.actual, entry.unit), 'market-explorer-value'));
         if (transformed) {
           const value = format(point.value, frame.unit, frame.config.transform.startsWith('return'), 2);
           const label = frame.config.transform === 'rebased' ? '환산값' : transforms[frame.config.transform];
@@ -364,18 +439,36 @@
         }
         const period = entry.source.reference_periods?.[point.date];
         const release = entry.source.release_dates?.[point.date];
-        const dateLabel = dateLabels[entry.source.date_basis] || '기준일';
-        item.append(element('span', dateLabel + ' ' + (dateLabel === '기준 기간' ? period || point.date.slice(0, 7) : point.date), 'market-explorer-reading-note'));
+        const dateLabel = dateLabels[entry.basis] || '기준일';
+        item.append(element('span', dateLabel + ' ' + displayDate(entry, point.date), 'market-explorer-reading-note'));
+        if (carried) item.append(element('span', '조회 시작일에 적용된 값', 'market-explorer-reading-note'));
         if (period && dateLabel !== '기준 기간') item.append(element('span', '기준 기간 ' + period, 'market-explorer-reading-note'));
-        if (release && dateLabel !== '발표일') item.append(element('span', '발표일 ' + release, 'market-explorer-reading-note'));
-        if (!release && entry.source.date_basis === 'reference_month') item.append(element('span', '발표일 미확인', 'market-explorer-reading-note'));
+        if (isoDate(release) && dateLabel !== '발표일') item.append(element('span', '발표일 ' + release, 'market-explorer-reading-note'));
+        if (!isoDate(release) && entry.basis === 'reference_month') item.append(element('span', '발표일 미확인', 'market-explorer-reading-note'));
       } else {
         item.append(element('span', '선택일 관측 없음', 'market-explorer-reading-note'));
         const latest = entry.points.at(-1);
-        if (latest) item.append(element('span', '이력의 마지막 관측 ' + latest.date, 'market-explorer-reading-note'));
+        if (latest && !frame.longRange) item.append(element('span', '이력의 마지막 관측 ' + latest.date, 'market-explorer-reading-note'));
+      }
+      if (frame.longRange || entry.pointsOnly) {
+        const dates = Array.from(entry.visible.keys());
+        const latest = dates.at(-1);
+        if (latest && selectedDate !== latest && frame.longRange) {
+          const value = format(entry.visible.get(latest).actual, entry.unit);
+          item.append(element('span', '최근 관측 ' + displayDate(entry, latest) + ' · ' + value, 'market-explorer-reading-note'));
+        }
+        const coverage = latest ? '관측 범위 ' + displayDate(entry, dates[0]) + ' ~ ' + displayDate(entry, latest) +
+          ' · ' + dates.length.toLocaleString('ko-KR') + '건' : '조회 범위 내 관측 없음';
+        item.append(element('span', coverage, 'market-explorer-reading-note'));
+        if (entry.stepEnd && (entry.carry || entry.stepEnd > latest)) {
+          item.append(element('span', '확인된 적용 범위 ' + (entry.carry ? frame.start : dates[0]) +
+            ' ~ ' + entry.stepEnd, 'market-explorer-reading-note'));
+        }
       }
       if (entry.source.source) {
-        item.append(sourceLink(entry.source.release_urls?.[selectedDate] || entry.source.source_url, entry.source.source));
+        const confirmed = point && (entry.basis === 'release_date' || isoDate(entry.source.release_dates?.[point.date]));
+        const url = (confirmed && entry.source.release_urls?.[point.date]) || entry.source.source_url;
+        item.append(sourceLink(url, entry.source.source));
       }
       if (entry.source.note) item.append(element('span', entry.source.note, 'market-explorer-reading-note'));
       return item;
@@ -403,7 +496,8 @@
     frame = makeFrame(config);
     nodes['chart-title'].textContent = config.label;
     nodes.description.textContent = description(frame);
-    const basis = frame.series[0]?.source.date_basis;
+    const primary = frame.series[0];
+    const basis = primary?.basis;
     nodes.observation.querySelector('label').textContent = dateLabels[basis] || '관측일';
     nodes.observation.hidden = !frame.visibleDates.length;
     if (!frame.visibleDates.length) {
@@ -413,7 +507,11 @@
       renderReadings();
       return;
     }
-    setOptions(nodes.date, [...frame.visibleDates].reverse().map(date => [date, basis === 'reference_month' ? date.slice(0, 7) : date]), preferredDate);
+    const dates = [...frame.visibleDates].reverse().map(date => {
+      const carried = date === frame.start && !frame.series.some(entry => entry.visible.has(date));
+      return [date, carried ? date + ' · 조회 시작일' : displayDate(primary, date)];
+    });
+    setOptions(nodes.date, dates, preferredDate);
     chooseDate(nodes.date.value);
   }
 
@@ -541,15 +639,19 @@
     container.append(wrapper);
   }
 
-  function updateCharts(preferredDate) {
+  function updateCharts(preferredDate, preferredChart = nodes.chart.value) {
     const filtering = Boolean(nodes.model.value);
+    const countryFilter = !filtering && nodes.category.value === 'economics';
     const options = filtering ?
       (verifiedModel?.rows || []).map(modelChart).filter(Boolean) :
       groups.find(entry => entry.id === nodes.category.value).charts;
-    chartOptions = options.filter((option, index) => options.findIndex(entry => entry.id === option.id) === index);
-    setOptions(nodes.chart, chartOptions.map(option => [option.id, option.label]), nodes.chart.value);
+    chartOptions = options.filter((option, index) => options.findIndex(entry => entry.id === option.id) === index &&
+      (!countryFilter || !nodes.country.value || economics[nodes.country.value].includes(option.id)));
+    setOptions(nodes.chart, chartOptions.map(option => [option.id, option.label]), preferredChart);
     nodes.category.closest('label').hidden = filtering;
+    nodes.country.closest('label').hidden = !countryFilter;
     nodes.controls.dataset.filtered = String(filtering);
+    nodes.controls.dataset.economics = String(countryFilter);
     nodes.chart.disabled = !chartOptions.length;
     nodes.range.disabled = !chartOptions.length;
     nodes.start.disabled = !chartOptions.length;
@@ -573,7 +675,41 @@
     if (destination?.matches('details.market-explorer-snapshot')) destination.open = true;
   }
 
-  window.addEventListener('hashchange', openLinkedSnapshot);
+  function selectLinkedHistory(focus = false) {
+    const target = window.location.hash.slice(1);
+    const intent = Object.hasOwn(historyLinks, target) && historyLinks[target];
+    const reset = activeHistoryLink && target === 'cross-assets';
+    if (!intent && !reset) return false;
+    if (focus) {
+      section.scrollIntoView({ block: 'start' });
+      pick('cross-assets-title').focus({ preventScroll: true });
+    }
+    if (nodes.controls.hidden) return false;
+    activeHistoryLink = intent ? target : '';
+    ++modelRequest;
+    verifiedModel = null;
+    nodes.model.value = '';
+    nodes.range.value = intent ? '3y' : '1y';
+    nodes.category.value = intent ? intent.group : 'domestic';
+    nodes.country.value = intent?.country || '';
+    renderModel(null);
+    updateCharts('', intent?.chart || '');
+    if (!focus) section.scrollIntoView({ block: 'start' });
+    return true;
+  }
+
+  window.addEventListener('hashchange', () => {
+    openLinkedSnapshot();
+    selectLinkedHistory();
+  });
+  for (const link of document.querySelectorAll('a.market-explorer-history-link')) {
+    link.addEventListener('click', event => {
+      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      event.preventDefault();
+      if (window.location.hash !== link.hash) window.history.pushState(null, '', link.hash);
+      selectLinkedHistory(true);
+    });
+  }
   for (const link of document.querySelectorAll('a[href="#extra-numerics"], a[href="#market-indicators"], a[href="#economic-calendar"]')) {
     link.addEventListener('click', event => {
       if (event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) pick(link.hash.slice(1)).open = true;
@@ -595,6 +731,7 @@
     updateCharts(model.asof_date || '');
   });
   nodes.category.addEventListener('change', () => updateCharts(''));
+  nodes.country.addEventListener('change', () => updateCharts(''));
   nodes.chart.addEventListener('change', () => {
     const choice = chartOptions.find(option => option.id === nodes.chart.value);
     renderChart(choice?.inputDate || verifiedModel?.asof_date || selectedDate);
@@ -621,6 +758,9 @@
     load('market-chart-model-inputs', 'market_chart_model_inputs_v1'),
   ]).then(([historyResult, inputsResult]) => {
     if (historyResult.status === 'fulfilled') history = parseHistory(historyResult.value.series);
+    const publishedAsOf = historyResult.status === 'fulfilled' && historyResult.value.as_of_date;
+    const today = kstCalendar.format(new Date());
+    historyAsOf = isoDate(publishedAsOf) ? publishedAsOf : today;
     if (inputsResult.status === 'fulfilled') {
       models = new Map((inputsResult.value.models || []).map(model => [model.key + ':' + model.market, model]));
     }
@@ -630,7 +770,8 @@
     ]);
     nodes.model.disabled = !models.size;
     setOptions(nodes.category, groups.map(entry => [entry.id, entry.label]));
+    setOptions(nodes.country, [['', '전체'], ['KR', '한국'], ['US', '미국'], ['JP', '일본'], ['EA', '유로 지역']]);
     nodes.controls.hidden = false;
-    updateCharts('');
+    if (!selectLinkedHistory()) updateCharts('');
   });
 })();

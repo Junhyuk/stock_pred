@@ -81,8 +81,10 @@ def points(rows):
 
 
 def category(key, item):
-    if item.get("date_basis") == "reference_month" or "policy_rate" in key:
+    if item.get("date_basis") in {"reference_month", "effective_date"} or "policy_rate" in key:
         return "경제지표"
+    if key == "margin_credit_total":
+        return "신용·CFD"
     if key.startswith(("kr_", "us_", "jp_")) and key.endswith(("1y", "3y", "5y", "10y")):
         return "금리"
     if key.startswith(("kospi", "kosdaq")):
@@ -180,6 +182,7 @@ def build_catalog(directory, now=None):
             s.get("date_basis"),
             s.get("points", []),
             note=s.get("note"),
+            chart_kind="points" if key == "margin_credit_total" else "line",
             release_dates=s.get("release_dates", {}),
             release_urls=s.get("release_urls", {}),
         )

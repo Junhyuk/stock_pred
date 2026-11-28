@@ -1,7 +1,7 @@
 import json
 import math
 import sqlite3
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 
 import pytest
 
@@ -161,3 +161,158 @@ def test_failed_refresh_keeps_an_older_valid_chart_until_new_data_arrives(tmp_pa
     data = charts.export_history(tmp_path / 'private.sqlite', output, fetch=offline,
                                  as_of=datetime(2026, 11, 28, 12, tzinfo=UTC))
     assert data['series']['brent']['points'] == row['points']
+
+
+def test_ecos_daily_request_reads_multiple_full_pages():
+    first = date(2024, 1, 1)
+    days = [first + timedelta(days=offset) for offset in range(741)]
+
+    def fetch(url):
+        _, _, _, _, first_row, last_row, table, _, _, _, item = url.split('/')[-11:]
+        return json.dumps({'StatisticSearch': {'list_total_count': len(days), 'row': [
+            {'STAT_CODE': table, 'ITEM_CODE1': item, 'ITEM_CODE2': None, 'UNIT_NAME': '연%',
+             'TIME': day.strftime('%Y%m%d'), 'DATA_VALUE': '3.5'}
+            for day in days[int(first_row) - 1:int(last_row)]
+        ]}}).encode()
+
+    actual = charts.fetch_ecos('817Y002', '010200001', None, '연%', 'D', first, days[-1], 'key', fetch)
+    assert (len(actual), actual['2024-01-01'], actual['2026-01-10']) == (741, 3.5, 3.5)
+
+
+def test_treasury_5_year_is_read_from_its_own_official_xml_element():
+    raw = b'''<feed xmlns="http://www.w3.org/2005/Atom"
+      xmlns:m="http://schemas.microsoft.com/ado/2007/08/dataservices/metadata"
+      xmlns:d="http://schemas.microsoft.com/ado/2007/08/dataservices">
+      <entry><content><m:properties><d:NEW_DATE>2026-11-27T00:00:00</d:NEW_DATE>
+      <d:BC_1YEAR>4.61</d:BC_1YEAR><d:BC_3YEAR>4.72</d:BC_3YEAR>
+      <d:BC_5YEAR>4.80</d:BC_5YEAR><d:BC_10YEAR>4.94</d:BC_10YEAR>
+      </m:properties></content></entry></feed>'''
+    actual = charts.fetch_us_yields(2026, date(2026, 11, 28), lambda _url: raw)
+    assert actual.get('us_5y') == {'2026-11-27': 4.80}
+
+
+def test_crypto_has_weekend_observations_and_excludes_unfinished_utc_day():
+    stamps = [int(datetime(2026, 11, day, tzinfo=UTC).timestamp()) for day in (21, 22, 23)]
+    payload = {'chart': {'error': None, 'result': [{
+        'meta': {'symbol': 'BTC-USD', 'currency': 'USD', 'instrumentType': 'CRYPTOCURRENCY',
+                 'dataGranularity': '1d', 'exchangeTimezoneName': 'UTC',
+                 'currentTradingPeriod': {'regular': {'end': stamps[-1] + 3600}}},
+        'timestamp': stamps, 'indicators': {'quote': [{'close': [90_000, 91_000, 92_000]}]},
+    }]}}
+    assert charts.fetch_yahoo('btc', datetime(2026, 11, 23, 12, tzinfo=UTC),
+                              lambda _url: json.dumps(payload).encode()) == {
+        '2026-11-21': 90_000, '2026-11-22': 91_000,
+    }
+
+
+def test_refresh_keeps_three_year_fx_but_uses_legacy_window_for_other_prices(tmp_path):
+    rows = {}
+    for key in ('dxy', 'gold'):
+        rows[key] = {**charts.SPECS[key].metadata(), 'points': [
+            ['2023-11-27', 100], ['2023-11-28', 101], ['2025-11-28', 102],
+        ]}
+    seed = tmp_path / 'seed.json'
+    seed.write_text(json.dumps({'schema_version': charts.SCHEMA, 'series': rows}))
+
+    def fetch(url):
+        if '/DX-Y.NYB?' in url:
+            symbol, kind = 'DX-Y.NYB', 'INDEX'
+        elif '/GC%3DF?' in url:
+            symbol, kind = 'GC=F', 'FUTURE'
+        else:
+            raise OSError('offline')
+        return json.dumps({'chart': {'error': None, 'result': [{
+            'meta': {'symbol': symbol, 'currency': 'USD', 'instrumentType': kind,
+                     'dataGranularity': '1d', 'exchangeTimezoneName': 'America/New_York'},
+            'timestamp': [int(datetime(2026, 11, 27, 15, tzinfo=UTC).timestamp())],
+            'indicators': {'quote': [{'close': [103]}]},
+        }]}}).encode()
+
+    result = charts.export_history(tmp_path / 'private.sqlite', tmp_path / 'public' / 'out.json',
+                                   seed=seed, as_of=datetime(2026, 11, 28, 12, tzinfo=UTC), fetch=fetch)
+    rows = result['series']
+    assert result.get('as_of_date') == '2026-11-28'
+    assert rows['dxy']['points'] == [['2023-11-28', 101], ['2025-11-28', 102], ['2026-11-27', 103]]
+    assert rows['dxy']['coverage'] == {'rows': 3, 'first': '2023-11-28', 'last': '2026-11-27'}
+    assert rows['gold']['points'] == [['2025-11-28', 102], ['2026-11-27', 103]]
+
+
+def test_jgb_csv_carries_yield_sign_and_excludes_unpublished_rows():
+    raw = b'''Interest Rate,,,,(Unit : %)
+Date,5Y,3Y,1Y,10Y
+2023/11/28,0.355,-0.075,-0.120,0.761
+2026/11/27,2.571,1.550,1.254,3.026
+'''
+    actual = charts.japan_points(raw, date(2023, 11, 28), date(2026, 11, 26))
+    assert actual == {
+        'jp_1y': {'2023-11-28': -0.120}, 'jp_3y': {'2023-11-28': -0.075},
+        'jp_5y': {'2023-11-28': 0.355}, 'jp_10y': {'2023-11-28': 0.761},
+    }
+
+
+def test_adjacent_month_delta_skips_gaps_and_crosses_year():
+    values = {'2025-09-01': 120, '2025-11-01': 121, '2025-12-01': 119, '2026-01-01': 123}
+    assert charts.month_over_month(values) == {'2025-12-01': -2, '2026-01-01': 4}
+
+
+def test_mods_archive_connects_the_misspelled_july_2024_cpi_listing():
+    raw = b'''<a class="board_link" href="javascript:addSearchParam('/board.es?act=view&amp;bid=11751&amp;list_no=432068');">
+    Cousumer Price Index in July 2024</a><strong>Date</strong><span>2024-08-02</span>'''
+    assert charts.fetch_mods_releases('mods_cpi', 3, date(2026, 11, 28), lambda _url: raw) == {
+        '2024-07-01': ('2024-08-02', 'https://mods.go.kr/board.es?act=view&bid=11751&list_no=432068'),
+    }
+
+
+def test_establishment_payroll_uses_the_combined_shutdown_release(tmp_path):
+    def fetch(url):
+        if url.endswith('/bls/news-release/empsit.htm'):
+            return b'<a href="/news.release/archives/empsit_12162025.htm">November 2025 Employment Situation</a>'
+        if '/CES0000000001?' in url:
+            return json.dumps({'status': 'REQUEST_SUCCEEDED', 'Results': {'series': [{
+                'seriesID': 'CES0000000001', 'data': [
+                    {'year': '2025', 'period': 'M09', 'value': '100'},
+                    {'year': '2025', 'period': 'M10', 'value': '99'},
+                    {'year': '2025', 'period': 'M11', 'value': '101'},
+                ],
+            }]}}).encode()
+        raise OSError('offline')
+
+    result = charts.export_history(tmp_path / 'private.sqlite', tmp_path / 'public' / 'out.json',
+                                   as_of=datetime(2026, 11, 28, 12, tzinfo=UTC), fetch=fetch)['series']
+    for key in ('us_employment', 'us_employment_change'):
+        assert result[key]['release_dates']['2025-10-01'] == '2025-12-16'
+        assert result[key]['release_urls']['2025-10-01'].endswith('/empsit_12162025.htm')
+    assert result['us_unemployment']['points'] == []
+
+
+def test_policy_anchor_and_verified_through_survive_failed_refresh(tmp_path):
+    path = tmp_path / 'public' / 'out.json'
+    private = tmp_path / 'private.sqlite'
+
+    def fetch(url):
+        if url == charts.BOK_RATE:
+            return '''<table><tr><th>변경일자</th></tr>
+            <tr><td>2026</td><td>11월 26일</td><td>3.25</td></tr>
+            <tr><td>2023</td><td>1월 13일</td><td>3.50</td></tr>
+            <tr><td>2022</td><td>11월 24일</td><td>3.25</td></tr></table>'''.encode()
+        raise OSError('offline')
+
+    def offline(_url):
+        raise OSError('offline')
+
+    first = charts.export_history(private, path, as_of=datetime(2026, 11, 28, 12, tzinfo=UTC), fetch=fetch)
+    second = charts.export_history(private, path, as_of=datetime(2026, 11, 29, 12, tzinfo=UTC), fetch=offline)
+    for result in (first, second):
+        policy = result['series']['kr_policy_rate']
+        assert policy['points'] == [['2023-01-13', 3.5], ['2026-11-26', 3.25]]
+        assert policy.get('verified_through') == '2026-11-28'
+
+
+def test_daily_refresh_uses_the_recent_overlap_only_after_backfill_is_complete():
+    first = date(2023, 11, 28)
+    days = [(first + timedelta(days=offset)).isoformat() for offset in range(1096)]
+    full = dict.fromkeys(days, 100)
+    assert charts.daily_refresh_start(full, first, every_day=True) == date(2026, 11, 13)
+    for day in days[250:350]:
+        del full[day]
+    assert charts.daily_refresh_start(full, first, every_day=True) == first

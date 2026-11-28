@@ -70,7 +70,9 @@ def _record(series: str, day: date, value: float, source: str, received: str) ->
     }
 
 
-def _parse_treasury(content: bytes, received: str, last_day: date) -> dict:
+def _parse_treasury(
+    content: bytes, received: str, last_day: date, *, maturities: tuple[int, ...] = (1, 3, 10),
+) -> dict:
     ns = {
         "a": "http://www.w3.org/2005/Atom",
         "m": "http://schemas.microsoft.com/ado/2007/08/dataservices/metadata",
@@ -87,7 +89,7 @@ def _parse_treasury(content: bytes, received: str, last_day: date) -> dict:
             if day > last_day:
                 continue
             values = {}
-            for maturity in (1, 3, 10):
+            for maturity in maturities:
                 value = float(p.findtext(f"d:BC_{maturity}YEAR", namespaces=ns))
                 if not math.isfinite(value):
                     raise ValueError

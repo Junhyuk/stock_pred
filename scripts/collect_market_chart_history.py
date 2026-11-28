@@ -36,16 +36,24 @@ from roboquant.index_forecast.economic_sources import _Links, _month_year, _Tabl
 from roboquant.index_forecast.market_calendar import exchange_schedule
 from roboquant.index_forecast.official_yields import ECOS_ITEMS, US_URL, _parse_treasury
 from scripts.export_overseas_market_prices import _validate_split_series
+from scripts.market_chart_credit import CREDIT_SPECS, credit_history
+from scripts.market_chart_macro import MACRO_SPECS, macro_history
 
 SCHEMA = "market_chart_history_v1"
 OUTPUT = "market-chart-history.json"
 DAYS = 370
+TENORS = (1, 3, 5, 10)
+KR_TENORS = {**{code: years for code, (years, _) in ECOS_ITEMS.items()}, "010200001": 5}
 SEOUL = ZoneInfo("Asia/Seoul")
 NY = ZoneInfo("America/New_York")
+TOKYO = ZoneInfo("Asia/Tokyo")
 ECOS_HOME = "https://ecos.bok.or.kr/"
 BOK_RATE = "https://www.bok.or.kr/portal/singl/baseRate/list.do?menuNo=200656"
 FRED = "https://fred.stlouisfed.org"
 TREASURY = "https://home.treasury.gov/resource-center/data-chart-center/interest-rates"
+JGB = "https://www.mof.go.jp/english/policy/jgbs/reference/interest_rate/"
+JGB_HISTORICAL = JGB + "historical/jgbcme_all.csv"
+JGB_CURRENT = JGB + "jgbcme.csv"
 CBOE_CSV = "https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv"
 BLS = "https://data.bls.gov/timeseries/"
 NAVER = "https://m.stock.naver.com/domestic/index/"
@@ -90,7 +98,11 @@ YAHOO = {
     "copper": ("HG=F", "구리 선물", "USD/lb", "USD", "FUTURE"),
     "es_futures": ("ES=F", "S&P 500 E-mini 선물", "index_points", "USD", "FUTURE"),
     "nq_futures": ("NQ=F", "나스닥 100 E-mini 선물", "index_points", "USD", "FUTURE"),
+    "btc": ("BTC-USD", "비트코인", "USD", "USD", "CRYPTOCURRENCY"),
+    "eth": ("ETH-USD", "이더리움", "USD", "USD", "CRYPTOCURRENCY"),
 }
+WIDE_YAHOO = frozenset({"usdkrw", "dxy", "wti", "brent", "btc", "eth"})
+CRYPTO_NOTE = "UTC 기준으로 하루가 끝난 뒤 집계하는 일별 종가이며 주말을 포함합니다."
 US_ECON = {
     "us_inflation": "CUUR0000SA0", "us_unemployment": "LNS14000000",
     "us_employment": "CES0000000001",
@@ -110,7 +122,7 @@ RELEASE_MATCH = {
 }
 ECON_ARCHIVES = {
     "bls_cpi": ("us_inflation",),
-    "bls_empsit": ("us_unemployment", "us_employment"),
+    "bls_empsit": ("us_unemployment", "us_employment", "us_employment_change"),
     "mods_cpi": ("kr_inflation",),
     "mods_employment": ("kr_unemployment", "kr_employment"),
 }
@@ -118,11 +130,16 @@ MODS_ARCHIVES = {
     "mods_cpi": ("a20101000000", "11751", "Consumer Price Index in "),
     "mods_employment": ("a20105020000", "11732", "Economically Active Population Survey in "),
 }
+def yahoo_spec(key: str) -> Series:
+    symbol, label, unit, _, kind = YAHOO[key]
+    notes = {"FUTURE": ROLL_NOTE, "CRYPTOCURRENCY": CRYPTO_NOTE}
+    return Series(label, unit, "Yahoo Finance", f"https://finance.yahoo.com/quote/{quote(symbol, safe='')}/history/",
+                  "observation_date" if kind == "CRYPTOCURRENCY" else "session_date", notes.get(kind))
+
+
 SPECS = {
     **{
-        key: Series(label, unit, "Yahoo Finance", f"https://finance.yahoo.com/quote/{quote(symbol, safe='')}/history/",
-                    "session_date", ROLL_NOTE if kind == "FUTURE" else None)
-        for key, (symbol, label, unit, _, kind) in YAHOO.items()
+        key: yahoo_spec(key) for key in YAHOO
     },
     **{
         key: Series(label, "index_points", "네이버페이 증권", NAVER + key.upper(), "session_date")
@@ -148,8 +165,9 @@ SPECS = {
         for country, label, source, url in (
             ("kr", "한국 국고채", "한국은행 ECOS", ECOS_HOME),
             ("us", "미국 국채", "미국 재무부", TREASURY),
+            ("jp", "일본 국채", "일본 재무성", JGB + "index.htm"),
         )
-        for years in (1, 3, 10)
+        for years in TENORS
     },
     **{
         key: Series(
@@ -164,6 +182,8 @@ SPECS = {
             ("us_inflation", "미국 소비자물가 전년동월비", "percent", "미국 노동통계국", BLS + US_ECON["us_inflation"]),
             ("us_unemployment", "미국 실업률(계절조정)", "percent", "미국 노동통계국", BLS + US_ECON["us_unemployment"]),
             ("us_employment", "미국 비농업 고용(계절조정)", "thousand_persons", "미국 노동통계국", BLS + US_ECON["us_employment"]),
+            ("us_employment_change", "미국 비농업 고용 전월 증감(계절조정)", "thousand_persons",
+             "미국 노동통계국", BLS + US_ECON["us_employment"]),
         )
     },
     "kr_policy_rate": Series("한국은행 기준금리", "percent", "한국은행", BOK_RATE,
@@ -175,11 +195,17 @@ SPECS = {
                                    FRED + "/series/DFEDTARU", "effective_date"),
     "us_policy_rate_lower": Series("미국 연방기금금리 목표 하한", "percent", "연방준비제도 · FRED",
                                    FRED + "/series/DFEDTARL", "effective_date"),
+    **{key: Series(**fields) for key, fields in CREDIT_SPECS.items()},
+    **{key: Series(**fields) for key, fields in MACRO_SPECS.items()},
 }
 RATE_SOURCES = {
     "kr": {"bok_ecos_817Y002", "bok_ecos_817Y002_sample"},
     "us": {"us_treasury_daily_par_yield_curve"},
+    "jp": {"mof_jgb_historical"},
 }
+RATE_PREFIXES = {"kr": "KR_KTB", "us": "US_TREASURY", "jp": "JP_JGB"}
+YIELD_KEYS = {country: tuple(f"{country}_{years}y" for years in TENORS) for country in RATE_SOURCES}
+WIDE_KEYS = WIDE_YAHOO | CREDIT_SPECS.keys() | {key for keys in YIELD_KEYS.values() for key in keys}
 LOCAL_MARKET = {
     "sp500": ("US_SPX", "yfinance_poc"),
     "nasdaq": ("US_NASDAQ", "yfinance_poc"),
@@ -188,6 +214,8 @@ LOCAL_MARKET = {
     "usdkrw": ("YAHOO_USDKRW", "yahoo_chart_unofficial"),
     "dxy": ("YAHOO_DXY", "yahoo_chart_unofficial"),
     "wti": ("YAHOO_WTI", "yahoo_chart_unofficial"),
+    "btc": ("YAHOO_BTC", "yahoo_chart_unofficial"),
+    "eth": ("YAHOO_ETH", "yahoo_chart_unofficial"),
 }
 CACHE_TABLE = """CREATE TABLE IF NOT EXISTS market_chart_observation (
     series TEXT NOT NULL, observation_date TEXT NOT NULL, value REAL NOT NULL,
@@ -211,6 +239,13 @@ def canonical_day(raw) -> str | None:
     except (ValueError, TypeError):
         return None
     return day if day == raw else None
+
+
+def years_ago(day: date, years: int) -> date:
+    try:
+        return day.replace(year=day.year - years)
+    except ValueError:  # February 29 in a non-leap year.
+        return day.replace(year=day.year - years, day=28)
 
 
 def number(raw) -> float | None:
@@ -244,6 +279,9 @@ def yahoo_points(key: str, payload: dict, cutoff: datetime) -> Points:
         raise ValueError("unexpected Yahoo instrument identity")
     zone = ZoneInfo(meta["exchangeTimezoneName"])
     today = cutoff.astimezone(zone).date()
+    crypto = instrument == "CRYPTOCURRENCY"
+    if crypto and zone.key != "UTC":
+        raise ValueError("unexpected Yahoo crypto day boundary")
     regular_end = meta.get("currentTradingPeriod", {}).get("regular", {}).get("end")
     closed_today = regular_end is not None and (
         datetime.fromtimestamp(regular_end, zone).date() == today
@@ -254,19 +292,24 @@ def yahoo_points(key: str, payload: dict, cutoff: datetime) -> Points:
         day = datetime.fromtimestamp(stamp, zone).date()
         value = number(raw)
         valid_close = value is not None and (value > 0 or key in {"wti", "brent"})
-        if day.weekday() < 5 and (day < today or (day == today and closed_today)) and valid_close:
+        if (crypto or day.weekday() < 5) and (day < today or (not crypto and day == today and closed_today)) and valid_close:
             add_point(points, day.isoformat(), value)
     if instrument == "ETF":
         _validate_split_series(sorted(points.items()), result.get("events", {}).get("splits", {}))
     return {day: round(value, 4) for day, value in points.items()}
 
 
-def fetch_yahoo(key: str, cutoff: datetime, fetch: Fetch) -> Points:
+def fetch_yahoo(key: str, cutoff: datetime, fetch: Fetch, *, refresh_from: date | None = None) -> Points:
     symbol = quote(YAHOO[key][0], safe="")
+    query = "range=5y" if key in WIDE_YAHOO else "range=2y"
+    if refresh_from:
+        # Include the neighboring day to cover Yahoo's various exchange time zones.
+        lower = datetime.combine(refresh_from - timedelta(days=1), time(), UTC)
+        query = f"period1={int(lower.timestamp())}&period2={int(cutoff.timestamp()) + 1}"
     for host in ("query1", "query2"):
         try:
             points = yahoo_points(key, json.loads(fetch(
-                f"https://{host}.finance.yahoo.com/v8/finance/chart/{symbol}?range=2y&interval=1d&events=div%2Csplits"
+                f"https://{host}.finance.yahoo.com/v8/finance/chart/{symbol}?{query}&interval=1d&events=div%2Csplits"
             )), cutoff)
             if points:
                 return points
@@ -305,24 +348,56 @@ def fetch_vix(through: date, fetch: Fetch) -> Points:
 
 
 def fetch_us_yields(year: int, through: date, fetch: Fetch) -> dict[str, Points]:
-    observations = _parse_treasury(fetch(US_URL.format(year=year)), "", through)
+    observations = _parse_treasury(fetch(US_URL.format(year=year)), "", through, maturities=TENORS)
     return {
         f"us_{years}y": {day.isoformat(): values[years] for day, (values, _) in observations.items()}
-        for years in (1, 3, 10)
+        for years in TENORS
     }
+
+
+def last_jgb_day(cutoff: datetime) -> date:
+    # MOF releases the previous business day's yields at 09:30 JST.
+    tokyo = cutoff.astimezone(TOKYO)
+    release_through = tokyo.date() - timedelta(days=tokyo.time() < time(9, 30))
+    _, sessions = exchange_schedule("XTKS", release_through - timedelta(days=21), release_through)
+    return sessions[-2].date()
+
+
+def japan_points(raw: bytes, first: date, through: date) -> dict[str, Points]:
+    lines = io.StringIO(raw.decode("cp932"))
+    if "(Unit : %)" not in next(lines, ""):
+        raise ValueError("unexpected MOF JGB unit")
+    rows = csv.DictReader(lines)
+    columns = {f"{tenor}Y": f"jp_{tenor}y" for tenor in TENORS}
+    if not {"Date", *columns} <= set(rows.fieldnames or ()):
+        raise ValueError("missing MOF JGB tenor")
+    points: dict[str, Points] = {key: {} for key in columns.values()}
+    for row in rows:
+        stamp = (row["Date"] or "").strip()
+        if not re.fullmatch(r"\d{4}/\d{1,2}/\d{1,2}", stamp):
+            continue
+        day = datetime.strptime(stamp, "%Y/%m/%d").date()
+        if first <= day <= through:
+            for column, key in columns.items():
+                add_point(points[key], day.isoformat(), number(row[column]))
+    return points
 
 
 def fetch_ecos(
     table: str, item: str, second: str | None, unit: str, cycle: str, first: date, last: date,
     api_key: str, fetch: Fetch,
 ) -> Points:
+    if first > last:
+        return {}
     date_format = "%Y%m%d" if cycle == "D" else "%Y%m"
     page_size = 10 if api_key == "sample" else 500
+    maximum = (last - first).days + 1 if cycle == "D" else (last.year - first.year) * 12 + last.month - first.month + 1
     codes = f"{item}/{second}" if second else item
     points = {}
     # The sample API accepts ten consecutive observations on any valid page.
     endpoint = f"{ECOS_HOME}api/StatisticSearch/{api_key}/json/kr"
-    for start in range(1, 501, page_size):
+    total = None
+    for start in range(1, maximum + 1, page_size):
         end = start + page_size - 1
         url = f"{endpoint}/{start}/{end}/{table}/{cycle}/{first.strftime(date_format)}/{last.strftime(date_format)}/{codes}"
         payload = json.loads(fetch(url))
@@ -330,8 +405,10 @@ def fetch_ecos(
             return {}
         data = payload["StatisticSearch"]
         rows = data["row"]
-        total = int(data["list_total_count"])
-        if len(rows) != min(page_size, total - start + 1):
+        offered = int(data["list_total_count"])
+        if total is None:
+            total = offered
+        if not start <= offered <= maximum or offered != total or len(rows) != min(page_size, total - start + 1):
             raise ValueError("incomplete ECOS page")
         for row in rows:
             if (row["STAT_CODE"], row["ITEM_CODE1"], row.get("ITEM_CODE2"), row["UNIT_NAME"]) != (
@@ -387,7 +464,8 @@ def fetch_mods_releases(kind: str, page: int, through: date, fetch: Fetch) -> Re
         href = re.match(r"""\s+href="javascript:addSearchParam\('(/board\.es\?[^']+)'\);""", entry)
         label = entry.split("</a>", 1)[0]
         published = re.search(r"<strong>Date</strong>\s*<span>(\d{4}-\d{2}-\d{2})</span>", entry)
-        if href and title in label and published and (period := _month_year(label)):
+        matches_title = title in label or (kind == "mods_cpi" and "Cousumer Price Index in " in label)
+        if href and matches_title and published and (period := _month_year(label)):
             release = canonical_day(published.group(1))
             if release and (day := period + "-01") < release <= through.isoformat():
                 result[day] = (release, urljoin(origin, unescape(href.group(1))))
@@ -433,6 +511,15 @@ def year_over_year(points: Points, *, as_percent: bool) -> Points:
         prior = points.get(f"{int(day[:4]) - 1:04d}{day[4:]}")
         if prior is not None and (prior > 0 or not as_percent):
             result[day] = round((current / prior - 1) * 100 if as_percent else current - prior, 1)
+    return result
+
+
+def month_over_month(points: Points) -> Points:
+    result = {}
+    for day, current in points.items():
+        previous = (date.fromisoformat(day) - timedelta(days=1)).replace(day=1).isoformat()
+        if previous in points:
+            result[day] = round(current - points[previous], 6)
     return result
 
 
@@ -528,7 +615,7 @@ def retained(path: Path, through: date) -> dict[str, Points]:
     return result
 
 
-def read_sqlite(path: Path, cutoff: datetime, first: date) -> dict[str, Points]:
+def read_sqlite(path: Path, cutoff: datetime, first: date, *, legacy_first: date | None = None) -> dict[str, Points]:
     if not path.is_file():
         return {}
     observed = {}
@@ -539,7 +626,7 @@ def read_sqlite(path: Path, cutoff: datetime, first: date) -> dict[str, Points]:
             for series, day, close, receipt in db.execute(
                 """SELECT index_code, session_date, close, ingested_at FROM index_eod
                    WHERE index_code IN ('KOSPI','KOSDAQ') AND session_date BETWEEN ? AND ?
-                   ORDER BY session_date, ingested_at""", (minimum, maximum)
+                   ORDER BY session_date, ingested_at""", ((legacy_first or first).isoformat(), maximum)
             ):
                 if canonical_day(day) and known_at(receipt, cutoff) and (value := number(close)) and value > 0:
                     observed.setdefault(series.lower(), {})[day] = value
@@ -547,8 +634,8 @@ def read_sqlite(path: Path, cutoff: datetime, first: date) -> dict[str, Points]:
             mapping = {identity: key for key, identity in LOCAL_MARKET.items()}
             mapping.update({
                 (f"{prefix}_{years}Y", source): f"{country}_{years}y"
-                for country, prefix in (("kr", "KR_KTB"), ("us", "US_TREASURY"))
-                for years in (1, 3, 10) for source in RATE_SOURCES[country]
+                for country, prefix in RATE_PREFIXES.items()
+                for years in TENORS for source in RATE_SOURCES[country]
             })
             for series, day, raw, provider, receipt in db.execute(
                 """SELECT series_code, observation_date, value, source, ingested_at FROM macro_series
@@ -557,6 +644,8 @@ def read_sqlite(path: Path, cutoff: datetime, first: date) -> dict[str, Points]:
             ):
                 key = mapping.get((series, provider))
                 if key and canonical_day(day) and known_at(receipt, cutoff) and (value := number(raw)) is not None:
+                    if key in ("btc", "eth") and day >= datetime.fromisoformat(receipt).astimezone(UTC).date().isoformat():
+                        continue
                     observed.setdefault(key, {})[day] = value
         if "session_input_observations" in tables:
             for series, day, raw, provider, receipt in db.execute(
@@ -565,7 +654,7 @@ def read_sqlite(path: Path, cutoff: datetime, first: date) -> dict[str, Points]:
                    ORDER BY observation_date, received_at""", (minimum, maximum)
             ):
                 country, _, tenor = series.lower().partition("_yield_")
-                if (provider in RATE_SOURCES.get(country, ()) and tenor in ("1y", "3y", "10y")
+                if (provider in RATE_SOURCES.get(country, ()) and f"{country}_{tenor}" in YIELD_KEYS[country]
                         and canonical_day(day) and known_at(receipt, cutoff) and (value := number(raw)) is not None):
                     observed.setdefault(f"{country}_{tenor}", {})[day] = value
         if "market_chart_observation" in tables:
@@ -585,31 +674,66 @@ def persist(path: Path, series: dict, receipt: datetime) -> None:
         db.execute("BEGIN IMMEDIATE")
         db.execute(CACHE_TABLE)
         for key, row in series.items():
+            points = row["points"]
+            if not points:
+                continue
             previous = {}
             for day, value, source, url in db.execute(
                 """SELECT observation_date, value, source, source_url FROM market_chart_observation
-                   WHERE series=? ORDER BY observation_date, received_at""", (key,)
+                   WHERE series=? AND observation_date BETWEEN ? AND ?
+                   ORDER BY observation_date, received_at""", (key, points[0][0], points[-1][0])
             ):
                 previous[day] = (value, source, url)
             db.executemany("INSERT OR IGNORE INTO market_chart_observation VALUES (?, ?, ?, ?, ?, ?)", (
                 (key, day, value, row["source"], row["source_url"], receipt.isoformat())
-                for day, value in row["points"]
+                for day, value in points
                 if previous.get(day) != (value, row["source"], row["source_url"])
             ))
 
 
+def daily_refresh_start(points: Points, first: date, *, every_day: bool = False) -> date:
+    """Refresh the whole window when the saved observations have a substantial hole."""
+    days = sorted(date.fromisoformat(day) for day in points if day >= first.isoformat())
+    max_gap = 3 if every_day else 14
+    min_per_ten_days = 9 if every_day else 6
+    if not days or (days[0] - first).days > max_gap:
+        return first
+    if (len(days) * 10 < ((days[-1] - days[0]).days + 1) * min_per_ten_days
+            or any((end - start).days > max_gap for start, end in pairwise(days))):
+        return first
+    return max(first, days[-1] - timedelta(days=14))
+
+
+def missing_treasury_years(first: date, through: date, cached: dict[str, Points]) -> list[int]:
+    missing = []
+    for year in range(first.year, through.year):
+        start = max(first, date(year, 1, 1))
+        end = date(year, 12, 31)
+        for key in YIELD_KEYS["us"]:
+            annual = {day: value for day, value in cached[key].items() if start.isoformat() <= day <= end.isoformat()}
+            if not annual or max(annual) < (end - timedelta(days=7)).isoformat() or daily_refresh_start(annual, start) == start:
+                missing.append(year)
+                break
+    return [*missing, through.year]
+
+
 def source_results(
-    cutoff: datetime, first: date, cached: dict[str, Points], fetch: Fetch,
-) -> tuple[dict[str, Points], dict[str, ReleaseDates]]:
+    cutoff: datetime, first: date, cached: dict[str, Points], fetch: Fetch, public_dir: Path,
+) -> tuple[dict[str, Points], dict[str, ReleaseDates], dict[str, str]]:
     kst, et = cutoff.astimezone(SEOUL), cutoff.astimezone(NY)
     kr_through = kst.date() - timedelta(days=kst.time() < time(16, 30))
+    kr_yields_through = kst.date() - timedelta(days=1)
+    jp_through = last_jgb_day(cutoff)
     us_through = et.date() - timedelta(days=et.time() < time(17))
     month = kst.date().replace(day=1)
-    first_month = first.replace(day=1).replace(year=first.year - 1)
+    first_month = years_ago(first.replace(day=1), 1)
     api_key = os.environ.get("BOK_ECOS_API_KEY", "").strip()
     if not re.fullmatch(r"[a-zA-Z0-9]+", api_key):
         api_key = "sample"
-    jobs = {key: partial(fetch_yahoo, key, cutoff, fetch) for key in YAHOO}
+    jobs = {"macro": partial(macro_history, cutoff, first, cached, fetch)}
+    for key in YAHOO:
+        refresh_from = daily_refresh_start(cached[key], first, every_day=key in ("btc", "eth")) if key in WIDE_YAHOO else first
+        jobs[key] = partial(fetch_yahoo, key, cutoff, fetch, refresh_from=refresh_from if refresh_from > first else None)
     jobs.update({
         key: partial(fetch_naver, symbol, kr_through, fetch)
         for key, symbol in (("kospi", "KOSPI"), ("kosdaq", "KOSDAQ"), ("spot", "KPI200"), ("future", "FUT"))
@@ -617,23 +741,21 @@ def source_results(
     jobs.update({
         "vix": partial(fetch_vix, us_through, fetch),
         "kr_policy_rate": partial(fetch_bok_rate, kst.date(), fetch),
-        "us_policy_rate_upper": partial(fetch_fed_rate, "DFEDTARU", first, us_through, fetch),
-        "us_policy_rate_lower": partial(fetch_fed_rate, "DFEDTARL", first, us_through, fetch),
+        "us_policy_rate_upper": partial(fetch_fed_rate, "DFEDTARU", first - timedelta(days=1), us_through, fetch),
+        "us_policy_rate_lower": partial(fetch_fed_rate, "DFEDTARL", first - timedelta(days=1), us_through, fetch),
     })
     jobs.update({
         f"treasury_{year}": partial(fetch_us_yields, year, us_through, fetch)
-        for year in range(first.year, us_through.year + 1)
+        for year in missing_treasury_years(first, us_through, cached)
     })
-    for code, (years, _) in ECOS_ITEMS.items():
+    if any(daily_refresh_start(cached[key], first) <= jp_through - timedelta(days=45) for key in YIELD_KEYS["jp"]):
+        jobs["jgb_historical"] = lambda: japan_points(fetch(JGB_HISTORICAL), first, jp_through)
+    jobs["jgb_current"] = lambda: japan_points(fetch(JGB_CURRENT), first, jp_through)
+    for code, years in KR_TENORS.items():
         key = f"kr_{years}y"
-        older = cached.get(key, {})
-        # Backfill a whole year on cold start, then overlap recent observations
-        # to capture corrections without re-downloading the entire series.
-        yield_first = first
-        if len(older) >= 200 and min(older) <= (first + timedelta(days=14)).isoformat():
-            yield_first = max(first, date.fromisoformat(max(older)) - timedelta(days=14))
+        yield_first = daily_refresh_start(cached[key], first)
         jobs[key] = partial(fetch_ecos, "817Y002", code, None, "연%", "D",
-                            yield_first, kr_through, api_key, fetch)
+                            yield_first, kr_yields_through, api_key, fetch)
     jobs.update({
         key: partial(fetch_ecos, table, item, second, unit, "M",
                      first_month, month, api_key, fetch)
@@ -651,11 +773,13 @@ def source_results(
     jobs.update({f"bls_{kind}": partial(bls_archive, kind) for kind in ("cpi", "empsit")})
     jobs.update({
         f"{kind}_{page}": partial(fetch_mods_releases, kind, page, kst.date(), fetch)
-        for kind in MODS_ARCHIVES for page in (1, 2)
+        for kind in MODS_ARCHIVES for page in (1, 2, 3, 4, 5)
     })
+    jobs["credit"] = partial(credit_history, first, kst.date(), cached, fetch, public_dir=public_dir, cutoff=cutoff)
 
     fresh = {}
     releases = {}
+    verified = {}
     with ThreadPoolExecutor(max_workers=6) as pool:
         futures = {key: pool.submit(job) for key, job in jobs.items()}
         for key, future in futures.items():
@@ -667,9 +791,20 @@ def source_results(
             if archive in ECON_ARCHIVES:
                 for series in ECON_ARCHIVES[archive]:
                     releases.setdefault(series, {}).update(points)
-            elif key.startswith("treasury_"):
+                # BLS published October 2025 establishment data in the November report.
+                # https://www.bls.gov/bls/2025-lapse-revised-release-dates.htm
+                november = points.get("2025-11-01")
+                if archive == "bls_empsit" and november and november[0] == "2025-12-16":
+                    for series in ("us_employment", "us_employment_change"):
+                        releases[series]["2025-10-01"] = november
+            elif key.startswith(("treasury_", "jgb_")) or key == "credit":
                 for series, values in points.items():
                     fresh.setdefault(series, {}).update(values)
+            elif key == "macro":
+                values, dates, verification = points
+                fresh.update(values)
+                releases.update(dates)
+                verified.update(verification)
             else:
                 fresh[key] = points
 
@@ -681,13 +816,39 @@ def source_results(
     }
     for key in ("kr_inflation", "us_inflation", "kr_employment"):
         fresh[key] = year_over_year(fresh.get(key, {}), as_percent=key.endswith("_inflation"))
-    return fresh, releases
+    fresh["us_employment_change"] = month_over_month(fresh.get("us_employment", {}))
+    if fresh.get("kr_policy_rate"):
+        verified["kr_policy_rate"] = kst.date().isoformat()
+    for key in ("us_policy_rate", "us_policy_rate_upper", "us_policy_rate_lower"):
+        if fresh.get(key):
+            verified[key] = max(fresh[key])
+    return fresh, releases, verified
 
 
 def _storable(points: Points, start: str, *, keep_older: bool) -> list[list[str | float]]:
     earlier = [day for day in points if day < start] if keep_older else []
     boundary = max(earlier, default=start)
     return [[day, value] for day, value in sorted(points.items()) if day >= boundary]
+
+
+def retained_releases(row: dict, days: Points) -> ReleaseDates:
+    dates = row.get("release_dates", {})
+    urls = row.get("release_urls", {})
+    if not isinstance(dates, dict) or not isinstance(urls, dict):
+        return {}
+    return {day: (dates[day], urls[day]) for day in days if day in dates and day in urls}
+
+
+def dated_releases(details: ReleaseDates, points: list, through: date, *, effective: bool) -> ReleaseDates:
+    valid = {}
+    for day, _ in points:
+        if day not in details:
+            continue
+        release, url = details[day]
+        if (canonical_day(release) and release <= through.isoformat() and isinstance(url, str)
+                and url.startswith("https://") and (release <= day if effective else day < release)):
+            valid[day] = release, url
+    return valid
 
 
 def export_history(
@@ -702,14 +863,19 @@ def export_history(
             or sqlite.resolve().is_relative_to(output.resolve().parent)):
         raise ValueError("The private database must be outside the public directory")
     through = cutoff.astimezone(SEOUL).date()
-    first = through - timedelta(days=DAYS)
-    warmup = first - timedelta(days=45)
+    first = years_ago(through, 3)
+    legacy_first = through - timedelta(days=DAYS)
+    warmup = legacy_first - timedelta(days=45)
     seed = output if output.is_file() else (seed or output)
     saved = retained(seed, through)
-    local = read_sqlite(sqlite, cutoff, warmup)
+    local = read_sqlite(sqlite, cutoff, first - timedelta(days=45), legacy_first=warmup)
     cached = {key: {**local.get(key, {}), **saved.get(key, {})} for key in SPECS}
-    fresh, archived_releases = source_results(cutoff, first, cached, fetch)
+    fresh, archived_releases, verified = source_results(cutoff, first, cached, fetch, public_dir)
     combined = {key: {**cached[key], **fresh.get(key, {})} for key in SPECS}
+    # A missing release month cannot serve as the previous month for the difference.
+    combined["us_employment_change"] = {
+        **combined["us_employment_change"], **month_over_month(combined["us_employment"]), **fresh["us_employment_change"],
+    }
     # Do not mix old ETF prices with newer prices that have a different split basis.
     for key in ("ewy", "koru"):
         values = fresh.get(key, {})
@@ -726,34 +892,44 @@ def export_history(
 
     releases = release_metadata(public_dir / "economic_history.json", combined, cutoff)
     seed_series = read_json(seed).get("series", {})
+    seed_series = seed_series if isinstance(seed_series, dict) else {}
     series = {}
     for key, spec in SPECS.items():
-        # Retain a previous anchor point on the sparse policy-rate step series.
-        start = first.replace(day=1).isoformat() if spec.date_basis == "reference_month" else first.isoformat()
+        monthly = spec.date_basis == "reference_month"
+        effective = spec.date_basis == "effective_date"
+        wide = monthly or effective or key in WIDE_KEYS
+        start = (first.replace(day=1) if monthly else first if wide else legacy_first).isoformat()
         if not fresh.get(key) and saved.get(key):
             start = min(start, min(saved[key]))
-        points = _storable(combined[key], start, keep_older=(key == "kr_policy_rate"))
-        row = {**spec.metadata(), "points": points}
-        if spec.date_basis == "reference_month":
-            old = seed_series.get(key, {}) if isinstance(seed_series, dict) else {}
-            dates = old.get("release_dates", {}) if isinstance(old, dict) else {}
-            urls = old.get("release_urls", {}) if isinstance(old, dict) else {}
-            details = {}
-            if isinstance(dates, dict) and isinstance(urls, dict):
-                details.update({
-                    day: (dates[day], urls[day])
-                    for day in saved.get(key, {})
-                    if canonical_day(dates.get(day)) and day < dates[day] <= through.isoformat()
-                    and isinstance(urls.get(day), str) and urls[day].startswith("https://")
-                })
+        points = _storable(combined[key], start, keep_older=effective)
+        row = {
+            **spec.metadata(), "points": points, "history_years": 3 if wide else 1,
+            "coverage": {"rows": len(points), "first": points[0][0] if points else None,
+                         "last": points[-1][0] if points else None},
+        }
+        if monthly or effective:
+            old = seed_series.get(key, {})
+            details = retained_releases(old, saved.get(key, {})) if isinstance(old, dict) else {}
+            if key == "us_employment_change":
+                level = seed_series.get("us_employment", {})
+                if isinstance(level, dict):
+                    details.update(retained_releases(level, saved.get("us_employment", {})))
             details.update(archived_releases.get(key, {}))
             details.update(releases.get(key, {}))
-            details = {day: details[day] for day, _ in points if day in details}
+            details = dated_releases(details, points, through, effective=effective)
             if details:
                 row["release_dates"] = {day: item[0] for day, item in details.items()}
                 row["release_urls"] = {day: item[1] for day, item in details.items()}
+            if effective and points:
+                last = points[-1][0]
+                prior = old.get("verified_through") if isinstance(old, dict) else None
+                current = verified.get(key) if max(fresh.get(key, {}), default="") >= last else None
+                candidates = [day for day in (prior, current)
+                              if canonical_day(day) and last <= day <= through.isoformat()]
+                if candidates:
+                    row["verified_through"] = max(candidates)
         series[key] = row
-    result = {"schema_version": SCHEMA, "series": series}
+    result = {"schema_version": SCHEMA, "as_of_date": through.isoformat(), "series": series}
     if not read_only:
         persist(sqlite, series, datetime.now(UTC))
     if read_json(output) != result:
@@ -771,11 +947,7 @@ def main() -> None:
     args = parser.parse_args()
     result = export_history(args.sqlite, args.output, seed=args.seed, public_dir=args.public_dir,
                             read_only=args.read_only)
-    print(json.dumps({
-        key: {"rows": len(row["points"]),
-              "last": row["points"][-1][0] if row["points"] else None}
-        for key, row in result["series"].items()
-    }))
+    print(json.dumps({key: row["coverage"] for key, row in result["series"].items()}))
 
 
 if __name__ == "__main__":

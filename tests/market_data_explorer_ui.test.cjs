@@ -61,6 +61,114 @@ const gapHistory = {
   },
 };
 
+const marketPoint = (unit, dateBasis, points) => ({ ...source, unit, date_basis: dateBasis, points });
+const longHistory = {
+  ...history,
+  as_of_date: '2026-11-28',
+  series: {
+    ...history.series,
+    kr_policy_rate: {
+      ...marketPoint('percent', 'effective_date', [['2023-10-19', 3.5], ['2024-10-11', 3.25], ['2025-05-29', 2.5]]),
+      verified_through: '2026-10-15',
+    },
+    jp_policy_rate: marketPoint('percent', 'effective_date', [['2024-03-21', 0.05], ['2025-01-24', 0.5]]),
+    jp_negative_policy_balances: marketPoint('percent', 'effective_date', [['2023-11-28', -0.1], ['2024-03-20', -0.1]]),
+    ea_inflation: marketPoint('percent', 'reference_month', [
+      ['2023-10-01', 2.9], ['2023-11-01', 2.4], ['2024-01-01', 2.8], ['2024-02-01', 2.6], ['2026-10-01', 2.1],
+    ]),
+    us_pce: {
+      ...marketPoint('percent', 'reference_month', [['2024-07-01', 2.5], ['2024-08-01', 2.3]]),
+      source: '미국 경제분석국', source_url: 'https://www.bea.gov/data/personal-consumption-expenditures-price-index',
+      release_dates: { '2024-07-01': '2024-08-30' },
+      release_urls: { '2024-07-01': 'https://www.bea.gov/news/2024/personal-income-and-outlays-july-2024' },
+    },
+    kr_1y: marketPoint('percent', 'observation_date', [
+      ['2023-11-27', 99], ['2023-11-28', 3.7], ['2026-11-27', 3.2], ['2026-11-29', 99],
+    ]),
+    kr_5y: marketPoint('percent', 'observation_date', [['2026-11-27', 3.8]]),
+    us_5y: marketPoint('percent', 'observation_date', [['2026-11-27', 4.3]]),
+    jp_5y: marketPoint('percent', 'observation_date', [['2026-11-27', 1.5]]),
+    margin_credit_total: marketPoint('KRW', 'settlement_date', [['2024-02-01', 17750000000000], ['2026-11-26', 22300000000000]]),
+    usdkrw: marketPoint('KRW', 'session_date', [['2026-11-27', 1400]]),
+    btc: marketPoint('USD', 'session_date', [['2026-11-27', 90000]]),
+    eth: marketPoint('USD', 'session_date', [['2026-11-27', 3000]]),
+  },
+};
+
+async function checkLongHistory(page, base, explorer, category, chart, observedDate, readings, width) {
+  await page.goto(`${base}?history=3y#economic-calendar`, { waitUntil: 'networkidle' });
+  const range = explorer.getByRole('combobox', { name: '기간', exact: true });
+  const country = explorer.getByRole('combobox', { name: '국가·지역' });
+  const go = async (section, categoryId) => {
+    const link = page.locator(section).getByRole('link', { name: /3년 추이 보기/ });
+    await link.focus();
+    await link.press('Enter');
+    assert.equal(await range.inputValue(), '3y');
+    assert.equal(await category.inputValue(), categoryId);
+    assert.equal(await page.evaluate(() => document.activeElement.id), 'cross-assets-title');
+    assert.equal(await explorer.getByRole('img').count(), 1);
+  };
+
+  await go('#economic-calendar', 'economics');
+  await country.selectOption('KR');
+  await chart.selectOption('kr_policy_rate');
+  assert.match(await readings.innerText(), /적용일\s*2025-05-29/);
+  assert.match(await explorer.getByRole('img').locator('path').first().getAttribute('d'), /H.+V.+ H[\d.]+$/);
+  await explorer.getByRole('combobox', { name: '적용일' }).selectOption({ label: '2023-11-28 · 조회 시작일' });
+  assert.match(await readings.innerText(), /3\.5%.*적용일\s*2023-10-19/s);
+  await country.selectOption('JP');
+  await chart.selectOption('jp_policy_rate');
+  assert.doesNotMatch(await readings.innerText(), /−0\.1|\-0\.1/);
+  await chart.selectOption('jp_negative_policy_balances');
+  assert.match(await readings.innerText(), /2024-03-20/);
+  assert.doesNotMatch(await readings.innerText(), /2025-01-24/);
+  await country.selectOption('EA');
+  await chart.selectOption('ea_inflation');
+  assert.match(await readings.innerText(), /2026-10/);
+  const reference = explorer.getByRole('combobox', { name: '기준 기간' });
+  assert.equal(await reference.locator('option[value="2023-11-01"]').count(), 1);
+  assert.equal(await reference.locator('option[value="2023-10-01"]').count(), 0);
+  assert.match(await explorer.getByRole('img').locator('path').first().getAttribute('d'), /^M[^ML]+ M[^ML]+ L/);
+  await country.selectOption('US');
+  await chart.selectOption('us_pce');
+  assert.doesNotMatch(await readings.innerText(), /2024-08-30/);
+  const plot = explorer.getByRole('img');
+  await plot.click({ position: { x: 1, y: 20 } });
+  assert.equal(await explorer.getByRole('combobox', { name: '기준 기간' }).inputValue(), '2024-07-01');
+  assert.match(await readings.innerText(), /기준 기간 2024-07/);
+  assert.match(await readings.innerText(), /발표일 2024-08-30/);
+  assert.match(await readings.innerText(), /최근 관측.*2024-08/);
+  assert.match(await readings.getByRole('link', { name: '미국 경제분석국' }).getAttribute('href'), /personal-income-and-outlays-july-2024/);
+
+  await page.locator('#market-indicators-title').click();
+  await go('#market-indicators', 'kr-rates');
+  await chart.selectOption('kr_1y');
+  assert.deepEqual(await observedDate.locator('option').evaluateAll(options => options.map(option => option.value)), ['2026-11-27', '2023-11-28']);
+  assert.match(await explorer.locator('#market-explorer-description').innerText(), /2023-11-28 ~ 2026-11-28/);
+  for (const [group, series] of [['kr-rates', 'kr_5y'], ['us-rates', 'us_5y'], ['jp-rates', 'jp_5y']]) {
+    await category.selectOption(group);
+    await chart.selectOption(series);
+    assert.equal(await explorer.getByRole('img').count(), 1);
+  }
+  await category.selectOption('margin-credit');
+  assert.match(await readings.innerText(), /22\.3 조 원/);
+  assert.match(await readings.innerText(), /관측 범위 2024-02-01 ~ 2026-11-26/);
+  assert.match(await readings.innerText(), /결제일 2026-11-26/);
+  assert.equal(await explorer.getByRole('img').locator('path').count(), 0, 'gapped credit only marks observations');
+
+  await explorer.locator('details.market-explorer-snapshot summary').click();
+  await go('#cross-assets details', 'cross-snapshot');
+  for (const key of ['usdkrw', 'dxy', 'wti', 'brent', 'btc', 'eth']) await chart.selectOption(key);
+  assert.match(await readings.innerText(), /3,000 USD/);
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `3y page overflow at ${width}`);
+  await page.reload({ waitUntil: 'networkidle' });
+  assert.equal(await category.inputValue(), 'cross-snapshot');
+  assert.equal(await range.inputValue(), '3y');
+  await page.goto(`${base}?history=3y#cross-assets`, { waitUntil: 'networkidle' });
+  assert.equal(await category.inputValue(), 'domestic');
+  assert.equal(await range.inputValue(), '1y');
+}
+
 async function main() {
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   const browser = await chromium.launch({ headless: true, executablePath: process.env.CHROME_BIN || '/usr/bin/google-chrome', args: ['--no-sandbox'] });
@@ -156,6 +264,8 @@ async function main() {
       await chart.selectOption('kospi:volatility20_daily');
       assert.equal(await availableDate('2026-02-13'), 0, 'daily volatility cannot span the gap');
       assert.equal(await availableDate('2026-02-14'), 1, 'daily volatility resumes after a complete window');
+      servedHistory = longHistory;
+      await checkLongHistory(page, base, explorer, category, chart, observedDate, readings, width);
       await page.close();
     }
     console.log('Market data explorer passed at mobile and desktop widths.');

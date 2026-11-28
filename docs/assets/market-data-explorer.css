@@ -1,10 +1,13 @@
 .market-explorer {
+  position: relative;
   scroll-margin-top: 12px;
   font-variant-numeric: tabular-nums;
   word-break: keep-all;
 }
 
 .market-explorer [hidden] { display: none; }
+.market-explorer-bookmarks { position: absolute; inset-block-start: 0; }
+.market-explorer-bookmarks span { display: block; scroll-margin-top: 12px; }
 
 .market-explorer-controls {
   display: grid;
@@ -15,6 +18,10 @@
 
 .market-explorer-controls[data-filtered="true"] {
   grid-template-columns: minmax(150px, 1fr) minmax(190px, 1.4fr) minmax(100px, .7fr);
+}
+
+.market-explorer-controls[data-economics="true"] {
+  grid-template-columns: minmax(115px, 1fr) minmax(115px, 1fr) minmax(95px, .65fr) minmax(145px, 1.25fr) minmax(85px, .7fr);
 }
 
 .market-explorer-controls label,
@@ -45,8 +52,8 @@
   padding: 6px 8px;
 }
 
-.market-explorer :is(button, input, [tabindex]):focus-visible,
-.market-explorer-snapshot [tabindex]:focus-visible {
+.market-explorer :is(a, button, input, select, [tabindex]):focus-visible,
+.market-explorer-snapshot :is(a, [tabindex]):focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
@@ -179,8 +186,19 @@
 
 .market-explorer-snapshot[open] { padding-bottom: 12px; }
 
+.market-explorer-history-link {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  font-size: .875rem;
+  font-weight: 700;
+  text-underline-offset: 3px;
+}
+
 @media (max-width: 720px) {
-  .market-explorer-controls, .market-explorer-controls[data-filtered="true"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .market-explorer-controls,
+  .market-explorer-controls[data-filtered="true"],
+  .market-explorer-controls[data-economics="true"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 360px) {

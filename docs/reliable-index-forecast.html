@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="assets/cfd-balance.css" />
   <link rel="stylesheet" href="assets/kospi-flow.css" />
   <link rel="stylesheet" href="assets/overseas-market-charts.css?v=20261125-flow" />
-  <link rel="stylesheet" href="assets/market-data-explorer.css" />
+  <link rel="stylesheet" href="assets/market-data-explorer.css?v=20261128-history" />
   <style>
     .notice {
       padding: 16px;
@@ -544,16 +544,20 @@
   </div>
   <div id="automation-status" hidden></div>
   <section id="cross-assets" class="notice market-explorer" aria-labelledby="cross-assets-title">
-    <h2 id="cross-assets-title">시장 데이터 탐색</h2>
+    <div class="market-explorer-bookmarks" aria-hidden="true">
+      <span id="market-history-economics"></span><span id="market-history-rates"></span><span id="market-history-cross-assets"></span>
+    </div>
+    <h2 id="cross-assets-title" tabindex="-1">시장 데이터 탐색</h2>
     <p id="market-explorer-status" class="market-explorer-meta" role="status">시장 이력을 불러오는 중입니다.</p>
     <div id="market-explorer-controls" class="market-explorer-controls" hidden>
       <label for="market-explorer-model">예측 입력<select id="market-explorer-model"></select></label>
       <label for="market-explorer-category">지표 분류<select id="market-explorer-category"></select></label>
+      <label for="market-explorer-country" hidden>국가·지역<select id="market-explorer-country"></select></label>
       <label for="market-explorer-chart">세부 지표<select id="market-explorer-chart"></select></label>
       <label for="market-explorer-range">기간
         <select id="market-explorer-range">
           <option value="1m">1개월</option><option value="3m">3개월</option><option value="6m">6개월</option>
-          <option value="1y" selected>1년</option><option value="all">전체</option><option value="custom">직접 지정</option>
+          <option value="1y" selected>1년</option><option value="3y">3년</option><option value="all">전체</option><option value="custom">직접 지정</option>
         </select>
       </label>
       <div id="market-explorer-custom" class="market-explorer-custom" hidden>
@@ -587,6 +591,7 @@
     </nav>
     <details class="market-explorer-snapshot">
       <summary>환율·금리·원유 최근 스냅샷</summary>
+      <a class="market-explorer-history-link" href="#market-history-cross-assets">3년 추이 보기<span class="visually-hidden"> · 환율·금리·원유</span></a>
       <p id="cross-assets-status" role="status">환율·금리·원유를 불러오는 중입니다.</p>
       <div class="economic-table" tabindex="0" role="region" aria-label="환율·금리·원유 최근 스냅샷"><table>
         <thead><tr><th scope="col">수치</th><th scope="col">값</th><th scope="col">전일 대비</th><th scope="col">기준일</th></tr></thead>
@@ -605,6 +610,7 @@
   </details>
   <details id="market-indicators" class="notice market-explorer-snapshot">
     <summary id="market-indicators-title">국채 금리와 전체 신용융자 스냅샷</summary>
+    <a class="market-explorer-history-link" href="#market-history-rates">3년 추이 보기<span class="visually-hidden"> · 국채 금리와 신용융자</span></a>
     <p id="market-indicators-status" role="status">수집 상태를 확인하는 중입니다.</p>
     <div class="economic-table"><table>
       <thead><tr><th scope="col">지표</th><th scope="col">최근 값</th><th scope="col">기준일</th><th scope="col">수집 상태</th></tr></thead>
@@ -614,6 +620,7 @@
   </details>
   <details id="economic-calendar" class="notice market-explorer-snapshot">
     <summary id="economic-calendar-title">경제 발표 캘린더와 실제 수치</summary>
+    <a class="market-explorer-history-link" href="#market-history-economics">3년 추이 보기<span class="visually-hidden"> · 경제 발표</span></a>
     <p id="economic-collection-status" role="status">공식 소스 수집 상태 확인 중</p>
     <div id="economic-calendar-content">경제일정을 불러오는 중입니다.</div>
   </details>
@@ -913,7 +920,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) refr
 <script src="assets/market-indicators.js"></script>
 <script src="assets/overseas-market-charts.js?v=20261125-top"></script>
 <script src="assets/cross-assets.js?v=20261123"></script>
-<script src="assets/market-data-explorer.js"></script>
+<script src="assets/market-data-explorer.js?v=20261128-history"></script>
 <script src="assets/unofficial-numerics.js?v=20261123"></script>
 <script src="assets/forecast-ranges.js?v=bc-cpu-v1"></script>
 <script src="assets/model-b.js?v=market-tabs"></script>
