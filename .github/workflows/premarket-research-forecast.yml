@@ -399,6 +399,11 @@ jobs:
         timeout-minutes: 2
         continue-on-error: true
         run: python scripts/refresh_cfd_dashboard.py --output-dir docs/data --publish-approved-aggregates
+      - name: Export native market indicator catalog
+        if: steps.operation.outputs.allowed == 'true' && steps.operation.outputs.mode != 'validate' && success()
+        timeout-minutes: 1
+        continue-on-error: true
+        run: python scripts/export_market_indicator_catalog.py --data-dir docs/data
       - name: Commit reviewed public payloads
         id: publish
         if: steps.operation.outputs.allowed == 'true' && steps.operation.outputs.mode != 'validate' && success()

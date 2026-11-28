@@ -92,7 +92,7 @@ def test_export_github_pages_site_writes_static_json_and_relative_assets(tmp_pat
     assert 'Top50 Daily Dashboard' not in landing
     for relative in ("reliable-index-forecast.html", "assets/forecast-market-tabs.js",
                      "assets/market-data-explorer.js", "assets/market-data-explorer.css",
-                     "data/market-chart-history.json", "data/market-chart-model-inputs.json",
+                     "data/market-chart-history.json", "data/market-chart-model-inputs.json", "data/market-indicator-catalog.json",
                      "assets/benchmarks/kospi200-1y.png", "assets/benchmarks/kosdaq150-1y.png",
                      "assets/forecast-ranges.js", "assets/margin-credit.js", "assets/margin-credit.css",
                      "assets/economic-calendar.js", "data/margin_credit_chart.json", "data/economic_calendar.json",
