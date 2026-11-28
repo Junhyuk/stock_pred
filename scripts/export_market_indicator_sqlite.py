@@ -149,7 +149,9 @@ def verify_pair(directory, scope="public"):
     path = directory / DATABASE
     size = path.stat().st_size
     if (
-        manifest.get("schema_version") != 1
+        type(manifest.get("schema_version")) is not int
+        or manifest["schema_version"] != 1
+        or type(manifest.get("size_bytes")) is not int
         or not 0 < size <= MAX_SIZE
         or size != manifest.get("size_bytes")
         or hashlib.sha256(path.read_bytes()).hexdigest() != manifest.get("sha256")

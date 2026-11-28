@@ -4,10 +4,8 @@
 from __future__ import annotations
 
 import argparse
-import json
 import logging
 import shutil
-import sqlite3
 import subprocess
 import sys
 import tempfile
@@ -50,35 +48,26 @@ def prepare_publication(data_dir, stage, previous, base_url):
     # changing the source catalog's timestamp. The native client requires a new
     # timestamp for a different digest, and rejects replay of an older release.
     source_time = datetime.fromisoformat(candidate["generated_at"])
-    last_time = source_time
     try:
         download(base_url, MANIFEST, previous, 4096)
-        manifest = json.loads((previous / MANIFEST).read_bytes())
-        prior_time = datetime.fromisoformat(manifest["generated_at"])
-        if prior_time.tzinfo is None:
-            raise ValueError("previous release has no timezone")
-        last_time = prior_time
-        if manifest == candidate or last_time < source_time:
-            return stage
-        download(base_url, DATABASE, previous, MAX_SIZE)
-        verify_pair(previous)
-        with read_only(previous / DATABASE) as db:
-            meta = dict(db.execute("SELECT key,value FROM meta"))
-        previous_source = datetime.fromisoformat(
-            meta.get("catalog_generated_at", meta["generated_at"])
-        )
-        if previous_source > source_time:
-            return previous
-        if last_time > source_time:
-            replay = export(data_dir, stage, generated_at=manifest["generated_at"])
-            if replay == manifest:
-                return previous
     except HTTPError as error:
-        if error.code == 404 and not (previous / MANIFEST).exists():
-            return stage  # First release.
-        logging.warning("Could not verify prior public release: %s", error)
-    except (OSError, ValueError, KeyError, TypeError, sqlite3.Error) as error:
-        logging.warning("Could not verify prior public release: %s", error)
+        if error.code == 404:
+            return stage  # No prior manifest on first release.
+        raise
+    download(base_url, DATABASE, previous, MAX_SIZE)
+    manifest = verify_pair(previous)
+    last_time = datetime.fromisoformat(manifest["generated_at"])
+    if manifest == candidate or last_time < source_time:
+        return stage
+    with read_only(previous / DATABASE) as db:
+        meta = dict(db.execute("SELECT key,value FROM meta"))
+    previous_source = datetime.fromisoformat(meta.get("catalog_generated_at", meta["generated_at"]))
+    if previous_source > source_time:
+        return previous
+    if last_time > source_time:
+        replay = export(data_dir, stage, generated_at=manifest["generated_at"])
+        if replay == manifest:
+            return previous
     publication_time = max(
         datetime.now(UTC),
         source_time + timedelta(microseconds=1),

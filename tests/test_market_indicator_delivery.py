@@ -182,3 +182,23 @@ def test_pages_rebuild_advances_conflicting_timestamp_and_reuses_identical_relea
     stage_database(data, second, first.as_uri())
     assert (first / MANIFEST).read_bytes() == (second / MANIFEST).read_bytes()
     assert (first / DB).read_bytes() == (second / DB).read_bytes()
+
+
+@pytest.mark.parametrize("fault", ["unavailable", "malformed", "missing_db", "wrong_digest"])
+def test_pages_keeps_live_site_if_previous_release_cannot_be_verified(tmp_path, fault):
+    prior = tmp_path / "previous"
+    assert export(prior).returncode == 0
+    manifest = json.loads((prior / MANIFEST).read_text())
+    if fault == "unavailable":
+        (prior / MANIFEST).unlink()  # file transport raises URLError, not an HTTP 404
+    elif fault == "malformed":
+        (prior / MANIFEST).write_text('{"generated_at":"2025-01-01T00:00:00Z"}')
+    elif fault == "missing_db":
+        (prior / DB).unlink()
+    else:
+        manifest["sha256"] = "0" * 64
+        (prior / MANIFEST).write_text(json.dumps(manifest))
+    target = tmp_path / "stage"
+    with pytest.raises((ValueError, OSError)):
+        stage_database(DATA, target, prior.as_uri())
+    assert not target.exists()
