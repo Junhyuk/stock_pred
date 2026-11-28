@@ -288,15 +288,7 @@ jobs:
         if: steps.operation.outputs.collect == 'true'
         timeout-minutes: 2
         continue-on-error: true
-        env:
-          CFD_KOFIA_AGGREGATES_APPROVED: ${{ vars.CFD_KOFIA_AGGREGATES_APPROVED }}
-        run: |
-          set -euo pipefail
-          cfd_args=(--output-dir docs/data)
-          if [[ "${CFD_KOFIA_AGGREGATES_APPROVED}" == "true" ]]; then
-            cfd_args+=(--publish-approved-aggregates)
-          fi
-          python scripts/refresh_cfd_dashboard.py "${cfd_args[@]}"
+        run: python scripts/refresh_cfd_dashboard.py --output-dir docs/data --publish-approved-aggregates
       - name: Commit reviewed public payloads
         id: publish
         if: steps.operation.outputs.allowed == 'true' && steps.operation.outputs.mode != 'validate' && success()

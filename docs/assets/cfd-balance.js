@@ -14,7 +14,7 @@
     source_current: '공시 확인',
     source_delayed: '이전 공시 표시',
     source_unavailable: '공시 조회 지연',
-    source_permission_unconfirmed: '잔고 차트는 원천의 이용 범위를 확인한 뒤 표시됩니다.',
+    source_permission_unconfirmed: '자료 확인 중',
     pdf_parser_unavailable: '잔고 PDF 읽기 대기',
     stale: '마지막 정상 잔고 표시',
     unavailable: '잔고 자료를 확인하지 못했습니다.'
@@ -22,6 +22,7 @@
   const datePattern = /^\d{4}-\d{2}-\d{2}$/;
   const dayMs = 86400000;
   const trillions = (value) => (value / 1e12).toLocaleString('ko-KR', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+  const amount = value => `${(value / 1e8).toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 8 })}억 원`;
   const changeText = (value) => (value / 1e8).toLocaleString('ko-KR', {
     minimumFractionDigits: 2, maximumFractionDigits: 2, signDisplay: 'exceptZero'
   });
@@ -42,15 +43,15 @@
     return response.json();
   }
 
-  function line(canvas, points, key, signed = false) {
+  function line(canvas, points, key, signed = false, eok = signed) {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     const { width, height } = canvas;
-    const left = signed ? 76 : 58;
+    const left = eok ? 76 : 58;
     const right = width - 20;
     const top = 20;
     const bottom = height - 27;
-    const values = points.map(row => row.value / (signed ? 1e8 : 1e12));
+    const values = points.map(row => row.value / (eok ? 1e8 : 1e12));
     const min = Math.min(...values);
     const max = Math.max(...values);
     const padding = Math.max((max - min) * 0.12, signed ? 0.05 : 0.005);
@@ -60,7 +61,7 @@
     const duration = days.at(-1) - days[0];
     const x = (i) => duration > 0 ? left + (right - left) * (days[i] - days[0]) / duration : (left + right) / 2;
     const y = (value) => bottom - (bottom - top) * (value - low) / (high - low);
-    ctx.font = '12px system-ui';
+    ctx.font = '16px system-ui';
     for (const part of [0, 0.5, 1]) {
       const value = low + (high - low) * part;
       ctx.beginPath();
@@ -70,7 +71,7 @@
       ctx.lineTo(right, y(value));
       ctx.stroke();
       ctx.fillStyle = '#49586f';
-      ctx.fillText(value.toFixed(2), 9, y(value) + 4);
+      ctx.fillText(value.toFixed(eok && Math.max(Math.abs(low), Math.abs(high)) < 1 ? 4 : 2), 9, y(value) + 4, left - 14);
     }
     if (signed) {
       ctx.beginPath();
@@ -96,13 +97,13 @@
     }
   }
 
-  function drawChart(points, key, title, signed = false) {
+  function drawChart(points, key, title, signed = false, eok = signed) {
     const canvas = document.createElement('canvas');
     canvas.width = 520;
     canvas.height = 170;
     canvas.setAttribute('role', 'img');
     canvas.setAttribute('aria-label', title);
-    line(canvas, points, key, signed);
+    line(canvas, points, key, signed, eok);
     return canvas;
   }
 
@@ -125,7 +126,7 @@
     return details;
   }
 
-  function card(key, list, field) {
+  function card(key, list, field, state) {
     if (!Array.isArray(list) || !list.length || !list.every((row, i) =>
       datePattern.test(row?.date) && Number.isSafeInteger(row[field]) && row[field] >= 0 &&
       (i === 0 || list[i - 1].date < row.date))) return null;
@@ -133,24 +134,25 @@
     const latest = points.at(-1);
     const article = element('article', null, 'cfd-chart-card');
     article.append(element('h4', labels[key]), element('p', `${trillions(latest.value)}조 원`, 'cfd-value'),
-      element('p', `기준일 ${latest.date} · 최근 ${points.length}개 관측`, 'cfd-caption'),
+      element('p', `기준일 ${latest.date}${state === 'stale' ? ' · 지난 자료' : state === 'ready' ? '' : ' · 갱신 상태 확인 불가'} · 최근 ${points.length}개 관측`, 'cfd-caption'),
       drawChart(points, key, `${labels[key]} 잔고 추이, 단위 조 원`),
       detailTable('날짜별 잔고', ['기준일', '잔고 (조 원)'],
         points.slice().reverse().map(point => [point.date, trillions(point.value)])));
     return article;
   }
 
-  function group(title, contents, keys, field) {
-    const cards = keys.map((key) => card(key, contents?.[key], field)).filter(Boolean);
-    if (!cards.length) return;
+  function group(title, contents, keys, field, state) {
+    const cards = keys.map((key) => card(key, contents?.[key], field, state)).filter(Boolean);
+    if (!cards.length) return false;
     const grid = element('div', null, 'cfd-chart-grid');
     grid.append(...cards);
     charts.append(element('h3', title), grid);
+    return true;
   }
 
   function twoYearWindow(rows) {
-    if (!Array.isArray(rows) || rows.length < 2 || !rows.every((point, i) =>
-      datePattern.test(point?.date) && Number.isFinite(Date.parse(point.date)) &&
+    if (!Array.isArray(rows) || rows.length < 2 || rows.length > 2000 || !rows.every((point, i) =>
+      validDate(point?.date) &&
       (i === 0 || rows[i - 1].date < point.date))) return null;
     const end = rows.at(-1).date;
     const year = String(Number(end.slice(0, 4)) - 2).padStart(4, '0');
@@ -162,10 +164,78 @@
     return window;
   }
 
+  function validDate(value) {
+    if (!datePattern.test(value)) return false;
+    const date = new Date(`${value}T00:00:00Z`);
+    return Number.isFinite(date.valueOf()) && date.toISOString().slice(0, 10) === value;
+  }
+
+  function validPoints(rows, scope) {
+    if (!Array.isArray(rows) || rows.length > 2000) return [];
+    const [buy, sell, total] = scope.fields;
+    const result = [];
+    for (const row of rows) {
+      if (!validDate(row?.date) || !scope.fields.every(field => Number.isSafeInteger(row[field]) && row[field] >= 0)
+          || !Number.isSafeInteger(row[buy] + row[sell]) || row[buy] + row[sell] !== row[total]) continue;
+      const fields = Object.values(scopes).flatMap(item => item.fields);
+      if (!fields.every(field => Number.isSafeInteger(row[field]) && row[field] >= 0)
+          || Object.values(scopes).some(item => row[item.fields[0]] + row[item.fields[1]] !== row[item.fields[2]])
+          || row.kospi_buy_krw + row.kosdaq_buy_krw > row.buy_krw
+          || row.kospi_sell_krw + row.kosdaq_sell_krw > row.sell_krw) continue;
+      if (result.length && result.at(-1).date >= row.date) return [];
+      result.push(row);
+    }
+    return result;
+  }
+
+  function balanceCard(definition, points, scope, info) {
+    const article = element('article', null, 'cfd-chart-card');
+    const latest = points.at(-1);
+    const state = info?.frees_is_series_status?.[definition] || info?.frees_is_status;
+    const freshness = state === 'stale' ? ' · 지난 자료' : state === 'ready' ? '' : ' · 갱신 상태 확인 불가';
+    article.append(element('h4', labels[definition]),
+      element('p', `기준일 ${latest.date}${freshness} · ${points[0].date} ~ ${latest.date} · ${points.length}개 관측`, 'cfd-caption'));
+    for (const [field, label, color] of [[scope.fields[0], '매수', 'buy'], [scope.fields[1], '매도', 'sell']]) {
+      const figure = element('figure', null, 'cfd-side-figure');
+      figure.append(element('figcaption', `${label} ${amount(latest[field])}`, 'cfd-value'),
+        drawChart(points.map(row => ({ date: row.date, value: row[field] })), color,
+          `${scope.label} ${labels[definition]} ${label} 명목잔고, 단위 억 원`, false, true));
+      article.append(figure);
+    }
+    article.append(detailTable('날짜별 잔고', ['기준일', '매수', '매도'],
+      points.slice().reverse().map(row => [row.date, amount(row[scope.fields[0]]), amount(row[scope.fields[1]])])));
+    return article;
+  }
+
+  function balances(series, info) {
+    if (!['with_margin', 'without_margin'].some(key => validPoints(series?.[key], scopes.all).length)) return null;
+    const grid = element('div', null, 'cfd-chart-grid');
+    const picker = element('label', '시장 ', 'cfd-scope');
+    const input = element('select');
+    for (const [key, scope] of Object.entries(scopes)) {
+      const option = element('option', scope.label);
+      option.value = key;
+      input.append(option);
+    }
+    function update() {
+      const scope = scopes[input.value] || scopes.all;
+      const cards = ['with_margin', 'without_margin'].map(key => {
+        const points = validPoints(series?.[key], scope);
+        return points.length ? balanceCard(key, points, scope, info) : null;
+      }).filter(Boolean);
+      grid.replaceChildren(...(cards.length ? cards : [element('p', '확인된 매수·매도 잔고가 없습니다.')]));
+    }
+    input.addEventListener('change', update);
+    picker.append(input);
+    charts.append(element('h3', '매수·매도 명목잔고'),
+      element('p', '단위: 억 원. 공시된 잔고 금액이며 거래대금이 아닙니다. 각 차트의 세로축 범위는 다릅니다.', 'cfd-caption'), picker, grid);
+    update();
+    return input;
+  }
+
   function sideCard(definition, window, scope) {
     const [buyField, sellField, totalField] = scope.fields;
-    if (!window.every(row => scope.fields.every(field => Number.isSafeInteger(row[field]) && row[field] >= 0)
-      && row[buyField] + row[sellField] === row[totalField])) return null;
+    if (validPoints(window, scope).length !== window.length) return null;
     const first = window[0];
     const last = window.at(-1);
     const article = element('article', null, 'cfd-chart-card');
@@ -184,57 +254,54 @@
     return article;
   }
 
-  function cumulativeGroup(series) {
+  function cumulativeGroup(series, input) {
     const windows = ['with_margin', 'without_margin']
       .map(key => [key, twoYearWindow(series?.[key])]).filter(([, window]) => window);
     const cardsFor = (scope) => windows.map(([key, window]) => sideCard(key, window, scope)).filter(Boolean);
     const initial = cardsFor(scopes.all);
     if (!initial.length) return;
     const grid = element('div', null, 'cfd-chart-grid');
-    const picker = element('label', '시장 ', 'cfd-scope');
-    const input = element('select');
-    for (const [key, scope] of Object.entries(scopes)) {
-      const option = element('option', scope.label);
-      option.value = key;
-      input.append(option);
-    }
     input.addEventListener('change', () => {
-      const cards = cardsFor(scopes[input.value]);
+      const cards = cardsFor(scopes[input.value] || scopes.all);
       grid.replaceChildren(...(cards.length ? cards : [element('p', '이 시장의 2년 잔고 이력이 아직 없습니다.')]));
     });
-    picker.append(input);
     grid.append(...initial);
     charts.append(element('h3', '2년 매수·매도 명목잔고 누적 변화'),
-      element('p', '각 기준일 잔고에서 시작일 잔고를 뺀 값입니다. 거래대금과 별도로 집계되며 매수와 매도 차트의 세로축 범위는 다릅니다.', 'cfd-caption'),
-      picker, grid);
+      element('p', '각 기준일 잔고에서 시작일 잔고를 뺀 값입니다. 거래대금과 별도로 집계되며 매수와 매도 차트의 세로축 범위는 다릅니다.', 'cfd-caption'), grid);
   }
 
   async function start() {
-    try {
-      const info = await read('cfd_status');
-      if (info.schema_version !== 'cfd_status_v1') throw new Error('invalid CFD status');
+    const [statusResult, domestic, allReported] = await Promise.allSettled([
+      read('cfd_status'), read('cfd_market_history'), read('cfd_frees_is_history')
+    ]);
+    const info = statusResult.value?.schema_version === 'cfd_status_v1' ? statusResult.value : null;
+    if (info) {
       const date = new Date(info.checked_at);
       const checked = Number.isNaN(date.valueOf()) ? '' : ` · 조회 ${dateTime.format(date)} KST`;
-      const latest = datePattern.test(info.latest?.observation_date) && datePattern.test(info.latest?.posted_date)
-        ? ` · 기준일 ${info.latest.observation_date} · 게시일 ${info.latest.posted_date}` : '';
-      const decision = states[info.data_status] || '';
+      const latest = validDate(info.latest?.observation_date) && validDate(info.latest?.posted_date)
+        ? ` · 국내 공시 게시판 기준일 ${info.latest.observation_date} · 게시일 ${info.latest.posted_date}` : '';
       const freeStale = info.frees_is_status === 'stale' ? ' · FreeSIS 지난 자료' : '';
-      status.textContent = `${states[info.status] || '공시 상태 확인 중'}${latest}${checked}${decision ? ` · ${decision}` : ''}${freeStale}`;
-      const [domestic, allReported] = await Promise.allSettled([
-        ['ready', 'stale'].includes(info.data_status) ? read('cfd_market_history') : null,
-        ['ready', 'stale'].includes(info.frees_is_status) ? read('cfd_frees_is_history') : null
-      ]);
-      if (domestic.value?.schema_version === 'cfd_market_history_v1') {
-        group('국내 공시 종목 합계', domestic.value.markets, ['KOSPI', 'KOSDAQ'], 'value_krw');
-      }
-      if (allReported.value?.schema_version === 'cfd_frees_is_history_v1') {
-        cumulativeGroup(allReported.value.series);
-        group('FreeSIS 전체 명목잔고 · 해외 포함', allReported.value.series,
-          ['with_margin', 'without_margin'], 'total_krw');
-      }
-    } catch {
-      status.textContent = '공시 조회 결과를 불러오지 못했습니다. 아래 원천에서 확인할 수 있습니다.';
+      status.textContent = `${states[info.status] || '공시 상태 확인 중'}${latest}${checked}${freeStale}`;
+    } else {
+      status.textContent = '공시 조회 상태를 확인하지 못했습니다. 아래 잔고의 기준일을 확인하세요.';
     }
+    let displayed = false;
+    if (allReported.value?.schema_version === 'cfd_frees_is_history_v1') {
+      const series = allReported.value.series;
+      const input = balances(series, info);
+      if (input) {
+        displayed = true;
+        cumulativeGroup(series, input);
+      } else {
+        displayed = group('FreeSIS 전체 명목잔고 · 해외 포함', series,
+          ['with_margin', 'without_margin'], 'total_krw', info?.frees_is_status) || displayed;
+      }
+    }
+    if (domestic.value?.schema_version === 'cfd_market_history_v1') {
+      displayed = group('국내 공시 종목 잔고 합계 · 매수·매도 구분 없음', domestic.value.markets,
+        ['KOSPI', 'KOSDAQ'], 'value_krw', info?.data_status) || displayed;
+    }
+    if (!displayed) charts.append(element('p', '확인된 잔고 자료가 없습니다.', 'cfd-caption'));
   }
   start();
 })();

@@ -96,6 +96,14 @@ def _fetch_metric(object_name: str, first: date, last: date) -> list[dict]:
     return [balances[day] for day in sorted(balances)]
 
 
+def fetch_total(definition: str, first: str, last: str) -> list[dict]:
+    """Fetch one FreeSIS definition so a failure cannot mask the other one."""
+    first_day, last_day = _iso_date(first), _iso_date(last)
+    if first_day > last_day:
+        raise ValueError("First CFD query date must not be after the last date")
+    return _fetch_metric(METRIC_OBJECTS[definition], first_day, last_day)
+
+
 def fetch_totals(first: str, last: str) -> dict[str, list[dict]]:
     """Fetch inclusive ISO dates, with one request per margin treatment.
 
@@ -104,13 +112,7 @@ def fetch_totals(first: str, last: str) -> dict[str, list[dict]]:
     Buy and sell are outstanding notional balances. Gross totals are retained
     for callers that use the sum of both sides. Observations are ordered by date.
     """
-    first_day, last_day = _iso_date(first), _iso_date(last)
-    if first_day > last_day:
-        raise ValueError("First CFD query date must not be after the last date")
-    series = {
-        metric: _fetch_metric(object_name, first_day, last_day)
-        for metric, object_name in METRIC_OBJECTS.items()
-    }
+    series = {metric: fetch_total(metric, first, last) for metric in METRIC_OBJECTS}
     if [row["date"] for row in series["with_margin"]] != [row["date"] for row in series["without_margin"]]:
         raise ValueError("FreeSIS CFD metrics do not cover the same dates")
     return series

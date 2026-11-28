@@ -66,15 +66,25 @@ def test_cfd_chart_refresh_runs_after_forecasting_and_before_pages_staging():
     model_steps = [
         i
         for i, step in enumerate(steps)
-        if step.get("id") in {"kr_forecast", "us_forecast", "seal"}
+        if step.get("id") in {"kr_forecast", "us_forecast", "bc_cpu", "seal"}
         or "--phase publish-models" in step.get("run", "")
     ]
-    assert len(model_steps) == 4
+    assert len(model_steps) == 5
     assert max(model_steps) < chart_index
     assert chart["if"] == "steps.operation.outputs.collect == 'true'"
     assert chart["continue-on-error"] is True
+    assert chart["timeout-minutes"] == 2
     assert "--output-dir docs/data" in chart["run"]
-    assert "vars.CFD_KOFIA_AGGREGATES_APPROVED" in chart["env"]["CFD_KOFIA_AGGREGATES_APPROVED"]
+    assert "CFD_KOFIA_AGGREGATES_APPROVED" not in WORKFLOWS[workflow]
+    assert "--publish-approved-aggregates" in chart["run"]
+
+
+def test_cfd_chart_contracts_run_in_read_only_smoke():
+    smoke = yaml.safe_load(WORKFLOWS["premarket-smoke.yml"])
+    assert smoke["permissions"] == {"contents": "read"}
+    commands = "\n".join(step.get("run", "") for step in smoke["jobs"]["smoke"]["steps"])
+    for name in ("test_cfd_research.py", "test_cfd_daily_refresh.py", "test_frees_is_cfd.py"):
+        assert f"tests/{name}" in commands
 
 
 def test_runner_install_excludes_the_gpu_stack():

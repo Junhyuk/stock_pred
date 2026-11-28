@@ -42,6 +42,11 @@ jobs:
             tests/test_premarket_workflow_smoke.py \
             tests/test_unofficial_numerics.py
 
+      - name: CFD chart and refresh contract tests
+        run: |
+          python -m pytest -q tests/test_cfd_research.py tests/test_cfd_daily_refresh.py \
+            tests/test_frees_is_cfd.py tests/test_runner_model_boundary.py
+
       - name: CPU model and after-close contract tests
         env:
           OMP_NUM_THREADS: "1"

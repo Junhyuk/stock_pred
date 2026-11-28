@@ -7,9 +7,10 @@
 .cfd-value { margin: 0; font-size: 1.28rem; font-weight: 700; }
 .cfd-caption { margin: 4px 0; color: var(--muted); font-size: .82rem; }
 .cfd-scope { display: flex; align-items: center; gap: 8px; margin: 10px 0 12px; }
-.cfd-scope select { max-width: 100%; padding: 5px 8px; font: inherit; }
+.cfd-scope select { width: 240px; max-width: calc(100% - 48px); padding: 5px 8px; font: inherit; }
 .cfd-side-figure { margin: 12px 0 4px; }
 .cfd-value-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
 .cfd-value-table th, .cfd-value-table td { text-align: left; padding: 5px; border-bottom: 1px solid var(--line); }
 .cfd-value-table th:last-child, .cfd-value-table td:last-child { text-align: right; }
 @media (max-width: 580px) { .cfd-chart-grid { grid-template-columns: 1fr; } }
+.cfd-notice { margin: 0 0 10px; color: var(--muted); font-size: .9rem; }
