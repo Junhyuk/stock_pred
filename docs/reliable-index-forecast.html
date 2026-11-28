@@ -264,7 +264,6 @@
       font-weight: 700;
     }
     .benchmark-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-    .benchmark-meta { margin-bottom: 12px; color: var(--muted); font-size: .875rem; }
     .benchmark-card { padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
     .benchmark-card header { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 4px 8px; margin-bottom: 8px; }
     .benchmark-card h3 { margin: 0; font-size: 16px; }
@@ -294,7 +293,7 @@
     .benchmark-chart-data th, .benchmark-chart-data td { padding: 4px 8px; text-align: right; border-bottom: 1px solid var(--line); }
     .benchmark-chart-data th:first-child, .benchmark-chart-data td:first-child { text-align: left; }
     .benchmark-chart-table { max-height: 240px; overflow: auto; }
-    .benchmark-empty { color: var(--muted); font-size: .875rem; }
+    .benchmark-quote-meta { color: var(--muted); margin: 4px 0 10px; font-size: .875rem; }
     .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
     @media (max-width: 680px) { .benchmark-grid { grid-template-columns: minmax(0, 1fr); } }
     @media (max-width: 380px) {
@@ -332,7 +331,7 @@
     <details class="market-menu">
       <summary>차트·지표</summary>
       <nav aria-label="차트·지표 및 리포트">
-        <a href="#benchmark-indices">200·150 예측·차트</a>
+        <a href="#benchmark-indices">코스피 200·코스닥 150</a>
         <a href="#recent-market-closes">최근 확인 종가</a>
         <a href="#kospi-flow">시장 수급</a>
         <a href="#stock-investor-flow">종목 수급</a>
@@ -424,15 +423,11 @@
     <p class="credit-source">출처 <a href="https://freesis.kofia.or.kr/stat/FreeSIS.do?parentDivId=MSIS10000000000000&amp;serviceId=STATSCU0100000140">금융투자협회 FreeSIS</a></p>
   </section>
   <section id="benchmark-indices" class="notice" aria-labelledby="benchmark-indices-title">
-    <h2 id="benchmark-indices-title">코스피 200·코스닥 150 · 다음 거래일 예측</h2>
-    <p id="benchmark-forecast-status" class="benchmark-meta" role="status">지수별 예측과 1년 종가를 확인 중입니다.</p>
-    <div id="benchmark-forecast-cards" class="benchmark-grid" aria-busy="true"></div>
-    <details id="benchmark-static-fallback" open>
-    <summary>정적 참고 차트 · 2026-11-27</summary>
-    <p class="benchmark-meta">아래 이미지는 자동 갱신되지 않는 과거 스냅샷입니다. 공개 가능한 종가 이력이 없는 지수는 이 정적 참고 차트를 제공합니다. 기준 거래일 <time datetime="2026-11-27">2026-11-27</time> · 출처 TradingView</p>
-    <div class="benchmark-grid">
-      <article class="benchmark-card" aria-labelledby="benchmark-kospi200">
-        <header><h3 id="benchmark-kospi200">코스피 200 · 정적 참고</h3><p class="benchmark-close">기록 종가 <strong>758.51</strong></p></header>
+    <h2 id="benchmark-indices-title">코스피 200·코스닥 150 · 1년 차트</h2>
+    <div id="benchmark-forecast-cards" class="benchmark-grid">
+      <article class="benchmark-card benchmark-forecast-card" data-benchmark="KOSPI200" aria-labelledby="benchmark-kospi200">
+        <header><h3 id="benchmark-kospi200">코스피 200</h3><p class="benchmark-close">종가 <strong>758.51</strong></p></header>
+        <p class="benchmark-quote-meta">기준일 <time datetime="2026-11-27">2026-11-27</time> · <span class="benchmark-source">TradingView</span></p>
         <a class="benchmark-image" href="assets/benchmarks/kospi200-1y.png" aria-label="코스피 200 1년 차트 원본 이미지 열기">
           <img src="assets/benchmarks/kospi200-1y.png" alt="코스피 200의 최근 1년 흐름. 2026년 11월 27일 종가 758.51." width="1570" height="996" loading="lazy" decoding="async" />
         </a>
@@ -441,8 +436,9 @@
           <a href="https://kr.tradingview.com/symbols/KRX-KOSPI200/">최신 차트 열기<span class="visually-hidden"> · 코스피 200</span></a>
         </div>
       </article>
-      <article class="benchmark-card" aria-labelledby="benchmark-kosdaq150">
-        <header><h3 id="benchmark-kosdaq150">코스닥 150 · 정적 참고</h3><p class="benchmark-close">기록 종가 <strong>1,198.25</strong></p></header>
+      <article class="benchmark-card benchmark-forecast-card" data-benchmark="KOSDAQ150" aria-labelledby="benchmark-kosdaq150">
+        <header><h3 id="benchmark-kosdaq150">코스닥 150</h3><p class="benchmark-close">종가 <strong>1,198.25</strong></p></header>
+        <p class="benchmark-quote-meta">기준일 <time datetime="2026-11-27">2026-11-27</time> · <span class="benchmark-source">TradingView</span></p>
         <a class="benchmark-image" href="assets/benchmarks/kosdaq150-1y.png" aria-label="코스닥 150 1년 차트 원본 이미지 열기">
           <img src="assets/benchmarks/kosdaq150-1y.png" alt="코스닥 150의 최근 1년 흐름. 2026년 11월 27일 종가 1,198.25." width="1570" height="996" loading="lazy" decoding="async" />
         </a>
@@ -452,7 +448,6 @@
         </div>
       </article>
     </div>
-    </details>
   </section>
   <!-- model-bc-range:start -->
   <section id="model-bc-range" class="notice" aria-labelledby="model-bc-range-title" data-target-date="2026-11-25">

@@ -56,8 +56,6 @@ async function main() {
       assert.doesNotMatch(await page.locator('#model-c-cards').innerText(), /대상 거래일/);
       assert.match(await page.locator('#model-c-cards').innerText(), /예상 종가/);
       assert.match(await page.locator('#model-c-cards').innerText(), /80% 예측 구간/);
-      const snapshots = page.locator('#benchmark-static-fallback');
-      if (await snapshots.getAttribute('open') === null) await snapshots.locator('summary').click();
       const images = page.locator('#benchmark-indices img');
       assert.ok(await images.count() >= 2, 'both benchmark charts present');
       for (const image of await images.all()) {
