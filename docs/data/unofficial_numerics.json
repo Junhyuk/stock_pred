@@ -1,6 +1,6 @@
 {
   "schema_version": "unofficial_numerics_v1",
-  "received_at": "2026-11-27T23:04:15.545109+00:00",
+  "received_at": "2026-11-28T12:09:16.454605+00:00",
   "production_weight": 0.0,
   "series": [
     {
@@ -96,10 +96,10 @@
     {
       "id": "usdkrw",
       "label": "원/달러",
-      "value": 1333.0,
-      "display": "1,333.00원",
-      "change_pct": -0.749,
-      "date": "2026-11-27",
+      "value": 1333.9,
+      "display": "1,333.90원",
+      "change_pct": -0.682,
+      "date": "2026-11-28",
       "source": "yahoo_chart_unofficial",
       "unit": "원"
     },
@@ -116,20 +116,20 @@
     {
       "id": "btc",
       "label": "비트코인",
-      "value": 59797.27,
-      "display": "59,797.27달러",
-      "change_pct": -1.154,
-      "date": "2026-11-27",
+      "value": 59275.36,
+      "display": "59,275.36달러",
+      "change_pct": -3.697,
+      "date": "2026-11-28",
       "source": "yahoo_chart_unofficial",
       "unit": "USD"
     },
     {
       "id": "eth",
       "label": "이더리움",
-      "value": 1658.26,
-      "display": "1,658.26달러",
-      "change_pct": -1.7153,
-      "date": "2026-11-27",
+      "value": 1650.19,
+      "display": "1,650.19달러",
+      "change_pct": -4.2035,
+      "date": "2026-11-28",
       "source": "yahoo_chart_unofficial",
       "unit": "USD"
     },
