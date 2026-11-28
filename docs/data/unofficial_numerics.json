@@ -1,6 +1,6 @@
 {
   "schema_version": "unofficial_numerics_v1",
-  "received_at": "2026-11-28T12:09:16.454605+00:00",
+  "received_at": "2026-11-28T13:47:11.687634+00:00",
   "production_weight": 0.0,
   "series": [
     {
@@ -116,9 +116,9 @@
     {
       "id": "btc",
       "label": "비트코인",
-      "value": 59275.36,
-      "display": "59,275.36달러",
-      "change_pct": -3.697,
+      "value": 58969.76,
+      "display": "58,969.76달러",
+      "change_pct": -3.935,
       "date": "2026-11-28",
       "source": "yahoo_chart_unofficial",
       "unit": "USD"
@@ -126,9 +126,9 @@
     {
       "id": "eth",
       "label": "이더리움",
-      "value": 1650.19,
-      "display": "1,650.19달러",
-      "change_pct": -4.2035,
+      "value": 1637.61,
+      "display": "1,637.61달러",
+      "change_pct": -4.9134,
       "date": "2026-11-28",
       "source": "yahoo_chart_unofficial",
       "unit": "USD"

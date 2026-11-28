@@ -7,15 +7,15 @@
     },
     "status": "triggered"
   },
-  "cutoff": "2026-11-28T12:10:10.529002+00:00",
+  "cutoff": "2026-11-28T13:48:17.038893+00:00",
   "issue_kind": "preliminary",
-  "issued_at": "2026-11-28T12:10:11.367054+00:00",
+  "issued_at": "2026-11-28T13:48:18.903201+00:00",
   "markets": {
     "KOSDAQ150": {
       "asof_date": "2026-11-27",
       "chart": {},
       "close": null,
-      "cutoff": "2026-11-28T12:10:10.529002+00:00",
+      "cutoff": "2026-11-28T13:48:17.038893+00:00",
       "eligible_history": {
         "count": 0,
         "end": null,
@@ -81,7 +81,7 @@
       "asof_date": "2026-11-27",
       "chart": {},
       "close": null,
-      "cutoff": "2026-11-28T12:10:10.529002+00:00",
+      "cutoff": "2026-11-28T13:48:17.038893+00:00",
       "eligible_history": {
         "count": 0,
         "end": null,
