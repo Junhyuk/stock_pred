@@ -106,6 +106,45 @@ def approved_market(key, item):
     )
 
 
+def series_country(sid):
+    key = sid.removeprefix("snapshot_").removeprefix("official_")
+    for code in COUNTRIES:
+        if key.startswith(code.lower() + "_"):
+            return code
+    if key.startswith(("kospi", "kosdaq", "flow_", "margin_", "cfd_")):
+        return "KR"
+    if key in {"sp500", "nasdaq", "sox", "es_futures", "nq_futures", "vix"}:
+        return "US"
+    return None
+
+
+def rolled_off_observations(current, previous):
+    """Keep dated evidence before the new public window for active, matching definitions."""
+    old_by_id = {s["id"]: s for s in previous.get("series", [])}
+    archive = {}
+    for series in current:
+        sid = series["id"]
+        old = old_by_id.get(sid)
+        if not old or any(old.get(k) != series.get(k) for k in ("source", "unit", "date_basis")):
+            continue
+        dates = [day for day, _ in series["points"]] + series["missing_dates"]
+        boundary = min(dates, default="9999-12-31")
+        prior = previous.get("observation_archive", {}).get(sid, {})
+        points = dict(prior.get("points", []))
+        points.update(old["points"])
+        points.update(dict.fromkeys(old["missing_dates"]))
+        archived = [[d, points[d]] for d in sorted(points) if d < boundary]
+        if archived:
+            item = {"points": archived}
+            for field in ("release_dates", "release_urls"):
+                refs = {**prior.get(field, {}), **old.get(field, {})}
+                refs = {d: refs[d] for d, value in archived if d in refs}
+                if refs:
+                    item[field] = refs
+            archive[sid] = item
+    return archive
+
+
 def build_catalog(directory, now=None):
     directory = Path(directory)
     now = now or datetime.now(UTC).isoformat()
@@ -161,6 +200,8 @@ def build_catalog(directory, now=None):
             "status": status,
             "updated_at": updated_at,
             "chart_kind": chart_kind,
+            "country": series_country(id),
+            "verified_through": None,
             "points": points(raw_points),
             "missing_dates": missing,
         }
@@ -169,6 +210,7 @@ def build_catalog(directory, now=None):
         result["series"].append(s)
 
     history = read(directory, "market-chart-history.json")
+    result["as_of_date"] = history.get("as_of_date")
     for key, s in history.get("series", {}).items():
         if not approved_market(key, s):
             continue
@@ -183,6 +225,8 @@ def build_catalog(directory, now=None):
             s.get("points", []),
             note=s.get("note"),
             chart_kind="points" if key == "margin_credit_total" else "line",
+            country=s.get("country") or series_country(key),
+            verified_through=s.get("verified_through"),
             release_dates=s.get("release_dates", {}),
             release_urls=s.get("release_urls", {}),
         )
@@ -575,6 +619,7 @@ def build_catalog(directory, now=None):
             [(day, r["value"]) for day, r in rows.items()],
             note="기준기간별 최신 수집 관측치입니다. 최초 발표값과 수정값은 구분된 발표 기록을 확인하세요.",
             updated_at=latest.get("available_at"),
+            country=country,
             release_dates={
                 day: r["actual_release_date"]
                 for day, r in rows.items()
@@ -634,6 +679,9 @@ def build_catalog(directory, now=None):
                     "unit": row.get("unit"),
                 }
             )
+    result["observation_archive"] = rolled_off_observations(
+        result["series"], read(directory, "market-indicator-catalog.json")
+    )
     return result
 
 
