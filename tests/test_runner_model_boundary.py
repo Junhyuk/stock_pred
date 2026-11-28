@@ -62,7 +62,11 @@ def test_cfd_chart_refresh_runs_after_forecasting_and_before_pages_staging():
     steps = yaml.safe_load(WORKFLOWS[workflow])["jobs"]["forecast"]["steps"]
     [chart_index] = [i for i, step in enumerate(steps) if script in step.get("run", "")]
     chart = steps[chart_index]
-    assert steps[chart_index + 1]["id"] == "publish"
+    [catalog_index] = [
+        i for i, step in enumerate(steps)
+        if "scripts/export_market_indicator_catalog.py" in step.get("run", "")
+    ]
+    [publish_index] = [i for i, step in enumerate(steps) if step.get("id") == "publish"]
     model_steps = [
         i
         for i, step in enumerate(steps)
@@ -70,13 +74,29 @@ def test_cfd_chart_refresh_runs_after_forecasting_and_before_pages_staging():
         or "--phase publish-models" in step.get("run", "")
     ]
     assert len(model_steps) == 5
-    assert max(model_steps) < chart_index
+    assert max(model_steps) < chart_index < catalog_index < publish_index
     assert chart["if"] == "steps.operation.outputs.collect == 'true'"
     assert chart["continue-on-error"] is True
     assert chart["timeout-minutes"] == 2
     assert "--output-dir docs/data" in chart["run"]
     assert "CFD_KOFIA_AGGREGATES_APPROVED" not in WORKFLOWS[workflow]
     assert "--publish-approved-aggregates" in chart["run"]
+
+
+def test_both_pages_deployments_stage_chart_database_before_artifact_upload():
+    for workflow in ("premarket-research-forecast.yml", "github-pages.yml"):
+        steps = yaml.safe_load(WORKFLOWS[workflow])["jobs"]["deploy"]["steps"]
+        [stage_index] = [
+            i for i, step in enumerate(steps)
+            if "scripts/stage_market_indicator_pages.py" in step.get("run", "")
+        ]
+        [upload_index] = [
+            i for i, step in enumerate(steps)
+            if step.get("uses", "").startswith("actions/upload-pages-artifact@")
+        ]
+        assert stage_index < upload_index, workflow
+        assert "--output-dir _site" in steps[stage_index]["run"]
+        assert steps[upload_index]["with"]["path"] == "_site"
 
 
 def test_cfd_chart_contracts_run_in_read_only_smoke():
