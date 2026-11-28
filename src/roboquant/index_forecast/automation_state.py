@@ -428,6 +428,15 @@ def public_payload_paths(directory):
                 or payload.get('artifact_hash') != _hash({k: v for k, v in payload.items() if k != 'artifact_hash'})):
                 raise ValueError(f'invalid public model artifact: {path}')
             result.append(path)
+    constituents = directory / 'index_constituents.json'
+    if constituents.is_file():
+        from roboquant.index_forecast.index_constituents import valid_payload
+        try:
+            if valid_payload(json.loads(constituents.read_text(encoding='utf-8')),
+                             today=datetime.now(KST).date().isoformat()):
+                result.append(constituents)
+        except (OSError, ValueError):
+            pass
     benchmark = directory / 'benchmark_forecasts.json'
     if benchmark.is_file():
         from roboquant.index_forecast.benchmark_publication import valid_benchmark_payload

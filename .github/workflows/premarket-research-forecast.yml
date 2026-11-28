@@ -55,7 +55,7 @@ jobs:
         run: python -m pip install -e '.[forecast,dev]' 'scikit-learn==1.9.1'
       - name: Verify premarket gate and refresh contracts
         if: steps.operation.outputs.allowed == 'true'
-        run: python -m pytest -q tests/test_premarket_trading_day_gate.py tests/test_premarket_workflow_smoke.py tests/test_postclose_protocol.py
+        run: python -m pytest -q tests/test_premarket_trading_day_gate.py tests/test_premarket_workflow_smoke.py tests/test_postclose_protocol.py tests/test_index_constituents.py
       - name: Restore authenticated private cache
         if: steps.operation.outputs.allowed == 'true' && steps.operation.outputs.mode != 'validate'
         uses: actions/cache/restore@v4
@@ -85,6 +85,11 @@ jobs:
         timeout-minutes: 2
         continue-on-error: true
         run: python scripts/collect_unofficial_numerics.py --output docs/data/unofficial_numerics.json
+      - name: Collect index constituent snapshots
+        if: steps.operation.outputs.collect == 'true'
+        timeout-minutes: 2
+        continue-on-error: true
+        run: python scripts/collect_index_constituents.py
       - name: Collect KOSPI investor flow chart
         if: steps.operation.outputs.collect == 'true'
         timeout-minutes: 2

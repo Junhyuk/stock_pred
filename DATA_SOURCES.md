@@ -151,3 +151,20 @@ Tier 3는 비용과 데이터 라이선스를 먼저 확인한다.
 현재 로컬 DB에 없는 항목과 수집 가드는
 `MISSING_DATA_FOR_INDEX_FORECAST.md`에 있다.
 
+
+## Index constituent snapshots
+
+`docs/data/index_constituents.json` contains code and name pairs for KOSPI 200
+and KOSDAQ 150. The daily forecast workflow refreshes them with
+`python scripts/collect_index_constituents.py`. The source is Korea Investment &
+Securities' public current [KOSPI and KOSDAQ security masters and documented
+field layouts](https://github.com/koreainvestment/open-trading-api/tree/main/stocks_info).
+The KOSPI200 sector field identifies membership; the KOSDAQ150 field uses Y/N.
+These are index membership fields, not ETF holdings. No prices are published.
+
+Each `as_of` is the calendar date stored in that market's upstream ZIP member
+metadata: the date of the master snapshot, not a certified exchange session or
+a historical query date. The two dates can differ. Invalid, stale, incomplete,
+future-dated or failed downloads leave that market's last validated snapshot
+intact; no JSON is created until both markets have valid snapshots. Counts are
+included as integrity checks and may differ from the index's nominal name.
