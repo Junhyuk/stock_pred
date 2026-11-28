@@ -255,14 +255,20 @@ def build_catalog(directory, now=None):
 
     cfd_status = read(directory, "cfd_status.json")
     disclosed = read(directory, "cfd_market_history.json")
+    disclosed_source = disclosed.get("source")
+    if isinstance(disclosed_source, dict):
+        disclosed_url = disclosed_source.get("url")
+        disclosed_source = disclosed_source.get("label")
+    else:
+        disclosed_url = "https://www.kofia.or.kr/brd/m_198/list.do"
     for market, rows in disclosed.get("markets", {}).items():
         add(
             f"cfd_disclosed_{market.lower()}",
             f"{market} CFD 공시 종목 잔고",
             "신용·CFD",
             disclosed.get("unit"),
-            disclosed.get("source"),
-            "https://www.kofia.or.kr/brd/m_198/list.do",
+            disclosed_source,
+            disclosed_url,
             "observation_date",
             [(p.get("date"), p.get("value_krw")) for p in rows],
             note="공시된 국내 종목 합계이며 전체 CFD 잔고가 아닙니다.",
@@ -683,6 +689,49 @@ def validate_inputs(directory):
 
 def validate_output(payload):
     series = payload["series"]
+    required_strings = (
+        "id",
+        "label",
+        "category",
+        "unit",
+        "source",
+        "date_basis",
+        "status",
+        "chart_kind",
+    )
+    nullable_strings = ("source_url", "note", "updated_at")
+    for item in series:
+        if not isinstance(item, dict):
+            raise ValueError("invalid series entry")
+        for field in required_strings:
+            value = item.get(field)
+            if not isinstance(value, str) or not value.strip():
+                raise ValueError(f"invalid series {field}")
+        for field in nullable_strings:
+            if item.get(field) is not None and not isinstance(item[field], str):
+                raise ValueError(f"invalid series {field}")
+        if not isinstance(item.get("points"), list) or not isinstance(
+            item.get("missing_dates"), list
+        ):
+            raise ValueError("invalid series observations")
+        for point in item["points"]:
+            if (
+                not isinstance(point, list)
+                or len(point) != 2
+                or not valid_date(point[0])
+                or not number(point[1])
+            ):
+                raise ValueError("invalid series point")
+        if not all(valid_date(day) for day in item["missing_dates"]):
+            raise ValueError("invalid missing dates")
+        for field in ("release_dates", "release_urls"):
+            if field in item and (
+                not isinstance(item[field], dict)
+                or not all(
+                    isinstance(k, str) and isinstance(v, str) for k, v in item[field].items()
+                )
+            ):
+                raise ValueError(f"invalid series {field}")
     if len({item["id"] for item in series}) != len(series):
         raise ValueError("duplicate series IDs")
     required = {"국내 지수", "해외 지수", "환율·원자재", "금리", "경제지표", "수급", "신용·CFD"}

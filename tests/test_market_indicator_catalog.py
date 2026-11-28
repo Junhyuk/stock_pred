@@ -2,7 +2,9 @@ import json
 import math
 from pathlib import Path
 
-from scripts.export_market_indicator_catalog import build_catalog
+import pytest
+
+from scripts.export_market_indicator_catalog import build_catalog, validate_output
 
 
 def write(base, name, obj):
@@ -243,6 +245,11 @@ def test_real_public_catalog_is_finite_unique_and_has_market_coverage():
         "cfd_without_margin_total",
     } <= series.keys()
     assert payload["events"] and payload["releases"]
+    for market in ("kospi", "kosdaq"):
+        disclosed = series[f"cfd_disclosed_{market}"]
+        assert disclosed["source"] == "금융투자협회 종목별 CFD 잔고동향"
+        assert disclosed["source_url"] == "https://www.kofia.or.kr/brd/m_198/list.do"
+    validate_output(payload)
     for item in series.values():
         assert item["points"] == sorted(item["points"])
         assert len({p[0] for p in item["points"]}) == len(item["points"])
@@ -590,3 +597,76 @@ def test_partial_snapshot_retains_stale_series_and_merges_on_recovery(tmp_path):
         ["2026-01-03", 4.3],
     ]
     assert recovered["official_us_yield_1y_global"]["status"] == "ready"
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("source", {"label": "invalid"}),
+        ("source", None),
+        ("source", ""),
+        ("label", 42),
+        ("id", None),
+        ("category", []),
+        ("unit", None),
+        ("date_basis", 1),
+        ("status", {}),
+        ("chart_kind", []),
+        ("source_url", {}),
+        ("note", []),
+        ("updated_at", 10),
+        ("points", {}),
+        ("missing_dates", {}),
+    ],
+)
+def test_validation_rejects_invalid_series_metadata(field, value):
+    data = Path(__file__).resolve().parents[1] / "docs/data"
+    payload = build_catalog(data, now="2026-11-28T00:00:00+00:00")
+    payload["series"][0][field] = value
+    with pytest.raises(ValueError):
+        validate_output(payload)
+
+
+def test_disclosed_cfd_source_object_maps_label_and_url(tmp_path):
+    write(
+        tmp_path,
+        "cfd_market_history.json",
+        {
+            "source": {"label": "공식 출처", "url": "https://example.org/cfd"},
+            "unit": "KRW",
+            "markets": {"KOSPI": [{"date": "2026-01-01", "value_krw": 100}]},
+        },
+    )
+    payload = build_catalog(tmp_path, now="2026-01-02T00:00:00+00:00")
+    cfd = next(item for item in payload["series"] if item["id"] == "cfd_disclosed_kospi")
+    assert cfd["source"] == "공식 출처"
+    assert cfd["source_url"] == "https://example.org/cfd"
+
+
+def test_cli_preserves_catalog_when_source_metadata_is_not_a_string(tmp_path):
+    import shutil
+    import subprocess
+    import sys
+
+    root = Path(__file__).resolve().parents[1]
+    from scripts.export_market_indicator_catalog import REQUIRED
+
+    for name in REQUIRED:
+        shutil.copy(root / "docs/data" / name, tmp_path / name)
+    original = (tmp_path / "market-indicator-catalog.json").read_bytes()
+    path = tmp_path / "market-chart-history.json"
+    history = json.loads(path.read_text())
+    history["series"]["kospi"]["source"] = {"label": "bad"}
+    path.write_text(json.dumps(history))
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(root / "scripts/export_market_indicator_catalog.py"),
+            "--data-dir",
+            str(tmp_path),
+        ],
+        capture_output=True,
+    )
+    assert result.returncode != 0
+    assert b"invalid series source" in result.stderr
+    assert (tmp_path / "market-indicator-catalog.json").read_bytes() == original
