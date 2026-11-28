@@ -22,7 +22,13 @@
   const datePattern = /^\d{4}-\d{2}-\d{2}$/;
   const dayMs = 86400000;
   const trillions = (value) => (value / 1e12).toLocaleString('ko-KR', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
-  const amount = value => `${(value / 1e8).toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 8 })}억 원`;
+  const exactEok = new Intl.NumberFormat('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 8 });
+  const roundedEok = new Intl.NumberFormat('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const amount = value => `${exactEok.format(value / 1e8)}억 원`;
+  function balanceSummary(value) {
+    if (value > 0 && value < 1e6) return `${value.toLocaleString('ko-KR')}원`;
+    return `${roundedEok.format(value / 1e8)}억 원`;
+  }
   const changeText = (value) => (value / 1e8).toLocaleString('ko-KR', {
     minimumFractionDigits: 2, maximumFractionDigits: 2, signDisplay: 'exceptZero'
   });
@@ -197,7 +203,7 @@
       element('p', `기준일 ${latest.date}${freshness} · ${points[0].date} ~ ${latest.date} · ${points.length}개 관측`, 'cfd-caption'));
     for (const [field, label, color] of [[scope.fields[0], '매수', 'buy'], [scope.fields[1], '매도', 'sell']]) {
       const figure = element('figure', null, 'cfd-side-figure');
-      figure.append(element('figcaption', `${label} ${amount(latest[field])}`, 'cfd-value'),
+      figure.append(element('figcaption', `${label} ${balanceSummary(latest[field])}`, 'cfd-value'),
         drawChart(points.map(row => ({ date: row.date, value: row[field] })), color,
           `${scope.label} ${labels[definition]} ${label} 명목잔고, 단위 억 원`, false, true));
       article.append(figure);
@@ -228,7 +234,7 @@
     input.addEventListener('change', update);
     picker.append(input);
     charts.append(element('h3', '매수·매도 명목잔고'),
-      element('p', '단위: 억 원. 공시된 잔고 금액이며 거래대금이 아닙니다. 각 차트의 세로축 범위는 다릅니다.', 'cfd-caption'), picker, grid);
+      element('p', '차트 단위는 억 원입니다. 매수·매도 잔고는 각각의 세로축을 사용합니다.', 'cfd-caption'), picker, grid);
     update();
     return input;
   }
@@ -267,7 +273,7 @@
     });
     grid.append(...initial);
     charts.append(element('h3', '2년 매수·매도 명목잔고 누적 변화'),
-      element('p', '각 기준일 잔고에서 시작일 잔고를 뺀 값입니다. 거래대금과 별도로 집계되며 매수와 매도 차트의 세로축 범위는 다릅니다.', 'cfd-caption'), grid);
+      element('p', '시작일과 비교한 잔고 증감입니다. 매수·매도 차트의 세로축 범위는 다릅니다.', 'cfd-caption'), grid);
   }
 
   async function start() {

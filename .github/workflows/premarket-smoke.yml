@@ -42,6 +42,12 @@ jobs:
             tests/test_premarket_workflow_smoke.py \
             tests/test_unofficial_numerics.py
 
+      - name: Forecast market UI browser smoke
+        run: |
+          set -eu
+          npm install --prefix "$RUNNER_TEMP/forecast-ui" --no-save playwright-core@1.63.0
+          NODE_PATH="$RUNNER_TEMP/forecast-ui/node_modules" node tests/forecast_market_ui.test.cjs
+
       - name: CFD chart and refresh contract tests
         run: |
           python -m pytest -q tests/test_cfd_research.py tests/test_cfd_daily_refresh.py \

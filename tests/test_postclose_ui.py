@@ -43,7 +43,7 @@ def test_close_card_reports_source_received_session_and_conflict():
     item = {'session_date': '2026-11-16', 'close': 5100.5, 'status': 'single_source',
             'source': 'Naver index API', 'received_at': '2026-11-16T09:05:00Z'}
     out = run_ui('console.log(renderMarketClose("KOSPI", ' + json.dumps(item) + '));')
-    for text in ('5,100.5', '2026-11-16', 'Naver', '수신', '단일'):
+    for text in ('5,100.5', '2026-11-16', '네이버', '수신', '단일'):
         assert text in out
     assert 'undefined' not in out
 
@@ -184,19 +184,9 @@ console.log(formatKstClock(now));
     assert lines[4] == '2026-11-16 12:00'
 
 
-def test_page_places_automatic_korea_and_us_in_a_then_separate_research_models():
+def test_page_keeps_forecast_sections_and_supporting_assets():
     html = HTML.read_text()
-    assert 'href="#model-a"' in html
-    assert html.index('id="model-a"') < html.index('id="korea-forecast"') < html.index('id="content"')
-    assert html.index('id="content"') < html.index('id="model-b"') < html.index('id="model-c"')
-    assert html.index('id="model-c"') < html.index('id="model-bc-range"') < html.index('id="model-compare"')
+    for section in ('model-a', 'model-b', 'model-c', 'model-bc-range', 'model-compare'):
+        assert f'id="{section}"' in html
     assert 'assets/forecast-ranges.js' in html
     assert '수동 예측' in (HTML.parent / 'assets/model-b.js').read_text()
-
-
-def test_context_charts_immediately_follow_the_live_forecasts():
-    sections = re.findall(r'^  <section(?: id="([^"]+)")?[ >]', HTML.read_text(), re.MULTILINE)
-    first = sections.index('model-a')
-    assert sections[first:first + 6] == [
-        'model-a', 'model-b', 'model-c', 'kospi-flow', 'overseas-market-charts', 'margin-credit',
-    ]

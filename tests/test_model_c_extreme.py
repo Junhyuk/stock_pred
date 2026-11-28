@@ -71,11 +71,8 @@ def test_manual_model_c_is_separate_from_main_model_c():
     html = (ROOT / "docs" / "reliable-index-forecast.html").read_text()
     assert html.count('id="model-c"') == 1
     assert html.count("assets/model-c.js") == 1
-    assert html.index('id="model-a"') < html.index('id="model-c"') < html.index('<details id="model-compare"')
-    assert html.index('id="model-c"') < html.index('id="model-c-cards"') < html.index('<details id="model-compare"')
     assert "assets/model-b.js" in html
     script = (ROOT / "docs" / "assets" / "model-c.js").read_text()
-    assert "급등·급락 전용" in script
     assert "3%" in script
     page = html
     assert 'id="model-a"' in page and 'id="model-b"' in page
@@ -122,7 +119,7 @@ async function run(payload, now = '2026-11-26T06:29:59Z', fail = false) {
     assert.match(result.nodes['model-c-cards'].items[0].innerHTML, /중립<\/span><strong>53.00%/);
     const card = result.nodes['model-c-cards'].items[0].innerHTML;
     assert.match(card, /예상 종가<\/span><strong>4,650.53/);
-    assert.match(card, /80% 지수 구간 .*<strong>4,380.00 ~ 4,995.00/);
+    assert.match(card, /80% 예측 구간 .*<strong>4,380.00 ~ 4,995.00/);
     assert.match(card, /data-target-close="2026-11-26T15:30:00\+09:00"[^>]* hidden>/);
     const closed = await run(good, '2026-11-26T06:30:00Z');
     assert.equal(closed.nodes['model-c'].hidden, false);

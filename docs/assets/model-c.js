@@ -2,6 +2,7 @@
   'use strict';
   const status = document.getElementById('model-c-status');
   const cards = document.getElementById('model-c-cards');
+  const target = document.getElementById('model-c-target');
   const section = document.getElementById('model-c');
   const nav = document.getElementById('model-c-nav');
   const names = { KOSPI: '코스피', KOSDAQ: '코스닥' };
@@ -38,51 +39,25 @@
     return `${text}%`;
   };
 
-  const poolLine = (title, pool) => {
-    if (!pool || !pool.n) {
-      return `<div class="detail-line"><span>${title} </span><strong>표본 없음</strong></div>`;
-    }
-    const hit = Number.isFinite(pool.direction_hit) ? `${(pool.direction_hit * 100).toFixed(1)}%` : '확인 불가';
-    const brier = Number.isFinite(pool.brier) ? Number(pool.brier).toFixed(4) : '확인 불가';
-    const mae = Number.isFinite(pool.close_mae) ? level(pool.close_mae) : '확인 불가';
-    return `<div class="detail-line"><span>${title} </span><strong>${pool.n}일 · 적중 ${hit} · Brier ${brier} · 종가 오차 ${mae}</strong></div>`;
-  };
-
-  const renderCard = (row, threshold) => {
-    const label = names[row.market] || row.market;
-    return `<article class="forecast-card">
-      <h3>${escapeHtml(label)}</h3>
-      <div class="card-status warn">급등·급락 전용. 절대 수익률 ${escapeHtml(threshold)} 이상인 날만 성적에 넣습니다. 평범한 날은 성공도 실패도 아닙니다.</div>
-      <div class="card-dates session-dates">
-        <div><strong>기준 종가일</strong> ${escapeHtml(day(row.asof_date) || '확인 불가')}</div>
-        <div><strong>다음 거래일</strong> ${escapeHtml(day(row.target_date) || '확인 불가')}</div>
-      </div>
-      <div class="hero-metrics">
-        <div class="hero-metric"><span>기준 종가</span><strong>${escapeHtml(level(row.close))}</strong></div>
-        <div class="hero-metric"><span>예상 지수</span><strong>${escapeHtml(level(row.expected_index))}</strong></div>
-      </div>
-      <div class="prob-row">
-        <div class="prob-box up"><span>상승 확률</span><strong>${escapeHtml(probability(row.p_up))}</strong></div>
-        <div class="prob-box down"><span>하락 확률</span><strong>${escapeHtml(probability(row.p_down))}</strong></div>
-      </div>
-      <div class="detail-line"><span>예상 수익률 </span><strong>${escapeHtml(signedReturn(row.expected_return))}</strong></div>
-      <div class="detail-line"><span>급등·급락 학습 마지막 </span><strong>${escapeHtml(day(row.trained_through) || '확인 불가')}</strong></div>
-      ${poolLine('2026년 이전', row.examined?.pre_2026)}
-      ${poolLine('이미 확인한 2026년', row.examined?.year_2026)}
-      <div class="detail-line"><span>내일 수익률 </span><strong>아직 없으므로 예측은 그대로 표시</strong></div>
-    </article>`;
-  };
-
   const validThreeWay = row => {
     const values = [row.p_up, row.p_normal, row.p_down];
     return values.every(value => Number.isFinite(value) && value >= 0 && value <= 1)
       && Math.abs(values.reduce((sum, value) => sum + value, 0) - 1) <= 0.001;
   };
 
-  const renderThreeWay = (row, threshold, targetClose) => {
+  const renderThreeWay = (row, threshold, targetClose, sharedTarget) => {
     const evaluation = row.evaluation_2026;
     const review = evaluation?.n > 0 && Number.isFinite(evaluation.brier)
-      ? `<div class="detail-line">2026년 장후 재구성 · ${escapeHtml(evaluation.n)}거래일 · Brier ${evaluation.brier.toFixed(4)}${Number.isFinite(evaluation.baseline_brier) ? ` · 기준 ${evaluation.baseline_brier.toFixed(4)}` : ''}</div>`
+      ? `<p>2026년 장후 재구성 · ${escapeHtml(evaluation.n)}거래일 · Brier ${evaluation.brier.toFixed(4)}${Number.isFinite(evaluation.baseline_brier) ? ` · 기준 ${evaluation.baseline_brier.toFixed(4)}` : ''}</p>`
+      : '';
+    const trained = day(row.trained_through);
+    const details = row.variant || trained || review
+      ? `<details class="forecast-support model-card-details">
+          <summary>모델 정보</summary>
+          ${row.variant ? `<p>${escapeHtml(row.variant)}</p>` : ''}
+          ${trained ? `<p>학습 기준일 ${trained}</p>` : ''}
+          ${review}
+        </details>`
       : '';
     const interval = row.interval;
     const hasEstimate = Number.isFinite(row.expected_index) && row.expected_index > 0
@@ -90,11 +65,12 @@
       && Number.isFinite(interval.low) && Number.isFinite(interval.high)
       && 0 < interval.low && interval.low <= interval.high;
     const ended = targetEnded({ target_date: row.target_date, target_close_at: targetClose });
+    const returnClass = row.expected_return > 0 ? 'return-up' : row.expected_return < 0 ? 'return-down' : '';
     return `<article class="forecast-card research-card">
       <h3>${escapeHtml(names[row.market])}</h3>
       <div class="card-dates session-dates">
         <div><strong>기준 종가일</strong> ${escapeHtml(day(row.asof_date) || '확인 불가')}</div>
-        <div><strong>대상 거래일</strong> ${escapeHtml(day(row.target_date) || '확인 불가')} <span class="session-ended" data-target-date="${escapeHtml(row.target_date)}" data-target-close="${escapeHtml(targetClose)}" data-kr-session${ended ? '' : ' hidden'}>이미 종료</span></div>
+        ${sharedTarget ? '' : `<div><strong>대상 거래일</strong> ${escapeHtml(day(row.target_date) || '확인 불가')} <span class="session-ended" data-target-date="${escapeHtml(row.target_date)}" data-target-close="${escapeHtml(targetClose)}" data-kr-session${ended ? '' : ' hidden'}>이미 종료</span></div>`}
       </div>
       <div class="hero-metrics">
         <div class="hero-metric"><span>기준 종가</span><strong>${escapeHtml(level(row.close))}</strong></div>
@@ -106,41 +82,40 @@
         <div class="prob-box down"><span>${escapeHtml(threshold)} 이상 하락</span><strong>${escapeHtml(probability(row.p_down))}</strong></div>
       </div>
       ${hasEstimate ? `
-        <div class="detail-line"><span>예상 수익률 </span><strong>${escapeHtml(signedReturn(row.expected_return))}</strong></div>
-        <div class="detail-line"><span>80% 지수 구간 </span><strong>${escapeHtml(level(interval.low))} ~ ${escapeHtml(level(interval.high))}</strong></div>
+        <div class="detail-line"><span>예상 수익률 </span><strong class="${returnClass}">${escapeHtml(signedReturn(row.expected_return))}</strong></div>
+        <div class="detail-line range-line"><span>80% 예측 구간 </span><strong>${escapeHtml(level(interval.low))} ~ ${escapeHtml(level(interval.high))}</strong></div>
         ${row.close_estimate_reconstructed === true ? '<div class="card-dates">예상 종가·구간은 기준일 자료로 사후 재구성</div>' : ''}
       ` : '<div class="detail-line">종가 추정 자료 없음</div>'}
-      ${row.variant ? `<div class="detail-line">${escapeHtml(row.variant)}</div>` : ''}
-      ${review}
+      ${details}
     </article>`;
   };
 
   const render = data => {
     const threshold = thresholdText(data.threshold);
     const generated = kstStamp(data.generated_at);
-    const when = generated ? `생성 ${generated} KST` : '생성 시각 확인 불가';
-    const threeWay = data.probability_mode === 'three_way';
+    const when = generated ? ` · 생성 ${generated} KST` : '';
     if (status) {
       const stage = data.issue_stage === 'postclose' ? '장후' : data.issue_stage === 'premarket' ? '장전' : '수동';
-      const triggers = Object.keys(names).filter(market => Math.abs(data.trigger_returns[market]) >= 0.03)
+      const triggers = Object.keys(names).filter(market => Math.abs(data.trigger_returns[market]) >= data.threshold)
         .map(market => `${names[market]} ${signedReturn(data.trigger_returns[market])}`).join(' · ');
-      status.textContent = threeWay
-        ? `${stage} 예측 · ${when} · ${data.asof_date} 종가 변동 ${triggers} · 종가 수익률의 급등·중립·급락 확률 · 연구용`
-        : `수동 GPU 예측 · ${data.architecture || '8층 미세조정 복사'} · ${when} · ${data.gpu || 'GPU 확인 불가'} · 운영 반영 비중 0. 급등·급락 전용이며 절대 수익률 ${threshold} 이상인 날만 적중과 오차에 넣습니다. 매매 지시가 아닙니다.`;
+      status.textContent = `${stage} 예측${when} · 기준일 ${data.asof_date} 변동 ${triggers}`;
     }
     if (!cards) return;
-    const byMarket = new Map((data.markets || []).filter(row => row && names[row.market]).map(row => [row.market, row]));
+    const byMarket = new Map(data.markets.filter(row => row && names[row.market]).map(row => [row.market, row]));
+    const sharedTarget = byMarket.size === Object.keys(names).length;
+    if (target) {
+      target.hidden = !sharedTarget;
+      target.innerHTML = sharedTarget ? renderTargetDate({
+        target_date: data.target_date, target_close_at: data.target_close_at,
+      }) : '';
+    }
     cards.replaceChildren();
     for (const market of Object.keys(names)) {
       const row = byMarket.get(market);
       const holder = document.createElement('div');
-      holder.className = 'compare-side';
-      const canDisplay = row && Number.isFinite(row.close) && (threeWay
-        ? validThreeWay(row)
-        : Number.isFinite(row.p_up) && Number.isFinite(row.expected_index));
-      holder.innerHTML = canDisplay
-        ? (threeWay ? renderThreeWay(row, threshold, data.target_close_at) : renderCard(row, threshold))
-        : '<p>모델 C 결과가 없습니다.</p>';
+      holder.innerHTML = row
+        ? renderThreeWay(row, threshold, data.target_close_at, sharedTarget)
+        : `<article class="forecast-card"><h3>${names[market]}</h3><p class="forecast-note">모델 C 결과 없음</p></article>`;
       cards.appendChild(holder);
     }
   };
@@ -175,6 +150,9 @@
       render(data);
       if (section) section.hidden = false;
       if (nav) nav.hidden = false;
+      const hash = document.defaultView?.location.hash;
+      const destination = hash ? document.getElementById(hash.slice(1)) : null;
+      if (destination && section?.contains(destination)) destination.scrollIntoView();
     })
     .catch(hide);
 })();

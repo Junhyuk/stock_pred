@@ -2,7 +2,9 @@
   'use strict';
   const status = document.getElementById('model-b-status');
   const cards = document.getElementById('manual-model-b-cards');
-  const names = ['KOSPI', 'KOSDAQ'];
+  const target = document.getElementById('model-b-target');
+  const marketNames = { KOSPI: '코스피', KOSDAQ: '코스닥' };
+  const names = Object.keys(marketNames);
 
   const kstStamp = value => {
     if (typeof value !== 'string' || !/(?:Z|[+-]\d{2}:\d{2})$/.test(value)) return '';
@@ -18,6 +20,8 @@
 
   const modelBItem = (row, data) => ({
     market: row.market,
+    expected_index_label: row.variant === baseline ? '기준선 종가' : '예상 종가',
+    carried_forward: row.carried_forward === true && row.target_date !== data.target_date,
     context: {
       asof_date: day(row.asof_date),
       target_date: day(row.target_date),
@@ -41,27 +45,44 @@
     const stage = data.issue_stage === 'postclose' ? '장후' : data.issue_stage === 'premarket' ? '장전' : '수동';
     if (status) {
       const baselineOnly = data.markets.length > 0 && data.markets.every(row => row?.variant === baseline);
-      const when = generated ? ` · 생성 ${generated} KST` : ' · 생성 시각 확인 불가';
+      const when = generated ? ` · 생성 ${generated} KST` : '';
       status.textContent = !data.markets.length ? '장전 예상 종가 산출 대기'
-        : baselineOnly ? `${baseline}${stage === '장후' ? when : ''} · 연구용`
-        : `${stage} 예측${when} · 연구용`;
+        : baselineOnly ? `${baseline}${stage === '장후' ? when : ''}`
+        : `${stage} 예측${when}`;
     }
     const byMarket = new Map(data.markets.filter(row => row && names.includes(row.market)).map(row => [row.market, row]));
+    const sharedTarget = byMarket.size === names.length && Boolean(day(data.target_date)) &&
+      [...byMarket.values()].every(row => row.target_date === data.target_date
+        && Number.isFinite(row.p_up) && Number.isFinite(row.close));
+    if (target) {
+      target.hidden = !sharedTarget;
+      target.innerHTML = sharedTarget ? renderTargetDate({
+        target_date: data.target_date, target_close_at: data.target_close_at,
+      }) : '';
+    }
     cards.replaceChildren();
     for (const market of names) {
       const row = byMarket.get(market);
       const holder = document.createElement('div');
       if (!row || !Number.isFinite(row.p_up) || !Number.isFinite(row.close)) {
-        holder.textContent = `${market} 예상 종가에 필요한 장전 입력을 확인 중입니다.`;
+        holder.innerHTML = `<article class="forecast-card"><h3>${marketNames[market]}</h3><p class="forecast-note">예상 종가 산출 대기</p></article>`;
       } else {
-        const trained = day(row.trained_through) || '확인 불가';
-        const variant = row.variant ? ` · ${escapeHtml(row.variant)}` : '';
+        const item = modelBItem(row, data);
+        const trained = day(row.trained_through);
         const evaluation = row.evaluation_2026;
         const review = evaluation?.n > 0 && Number.isFinite(evaluation.close_mae)
-          ? `<p class="model-run-note">2026년 장후 재구성 · ${escapeHtml(evaluation.n)}거래일 · 종가 MAE ${evaluation.close_mae.toFixed(2)}점</p>`
+          ? `<p>2026년 장후 재구성 · ${escapeHtml(evaluation.n)}거래일 · 평균 종가 오차 ${evaluation.close_mae.toFixed(2)}점</p>`
           : '';
-        const previous = row.carried_forward === true && row.target_date !== data.target_date ? '이전 예측 · ' : '';
-        holder.innerHTML = `<p class="model-run-note">${previous}학습 마지막 ${trained}${variant}</p>${renderCard(modelBItem(row, data), 'research_only')}${review}`;
+        const details = row.variant || trained || review
+          ? `<details class="forecast-support model-card-details">
+              <summary>모델 정보</summary>
+              ${row.variant ? `<p>${escapeHtml(row.variant)}</p>` : ''}
+              ${trained ? `<p>학습 기준일 ${trained}</p>` : ''}
+              ${review}
+            </details>`
+          : '';
+        const card = renderCard(item, 'research_only', undefined, sharedTarget);
+        holder.innerHTML = details ? card.replace('</article>', `${details}</article>`) : card;
       }
       cards.appendChild(holder);
     }
